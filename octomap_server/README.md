@@ -11,3 +11,8 @@ roslaunch octomap_server octomap_mapping_multicloud.launch
 roseus multicloud-publisher.l
 (main)
 ```
+
+3. Stop pointcloud.
+```
+rosservice call /multicloud_passthrough
+```
