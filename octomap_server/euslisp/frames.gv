@@ -1,0 +1,9 @@
+digraph G {
+"world" -> "camera_1"[label="Broadcaster: /camera_transform_1\nAverage rate: 99.424 Hz\nMost recent transform: 1536574561.259 ( -0.005 sec old)\nBuffer length: 4.989 sec\n"];
+"world" -> "camera_2"[label="Broadcaster: /camera_transform_2\nAverage rate: 99.423 Hz\nMost recent transform: 1536574561.259 ( -0.005 sec old)\nBuffer length: 4.989 sec\n"];
+"world" -> "octomap_world"[label="Broadcaster: /multicloud_publisher_1536574482188737113\nAverage rate: 10.204 Hz\nMost recent transform: 1536574561.169 ( 0.085 sec old)\nBuffer length: 4.900 sec\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1536574561.254"[ shape=plaintext ] ;
+ }->"world";
+}
