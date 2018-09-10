@@ -1,18 +1,12 @@
 Usage of multicloud
 -------------------
 
-1. launch octomap.
+1. (for simulation) launch Octomap, Gazebo and Rviz.
 ```
 roslaunch octomap_server octomap_mapping_multicloud.launch
 ```
 
-2. Publish pointcloud.
-```
-roseus multicloud-publisher.l
-(main)
-```
-
-3. Stop pointcloud.
+2. Stop pointcloud.
 ```
 rosservice call /multicloud_passthrough
 ```
