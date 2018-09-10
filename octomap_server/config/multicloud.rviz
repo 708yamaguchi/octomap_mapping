@@ -26,7 +26,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: PointCloud2
+    SyncSource: cloud_in
 Visualization Manager:
   Class: ""
   Displays:
@@ -51,18 +51,48 @@ Visualization Manager:
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /occupied_cells_vis_array
-      Name: MarkerArray
+      Name: OccupiedCells
       Namespaces:
-        {}
+        map: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /free_cells_vis_array
-      Name: MarkerArray
+      Name: FreeCells
       Namespaces:
-        {}
+        map: true
       Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: cloud_in
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.01
+      Style: Spheres
+      Topic: /cloud_in
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
       Value: true
     - Class: rviz/TF
       Enabled: false
@@ -219,36 +249,6 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
-    - Alpha: 1
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: Intensity
-      Decay Time: 0
-      Enabled: true
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Max Intensity: 4096
-      Min Color: 0; 0; 0
-      Min Intensity: 0
-      Name: PointCloud2
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.01
-      Style: Spheres
-      Topic: /cloud_in
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -273,7 +273,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.88765
+      Distance: 2.134
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -285,10 +285,10 @@ Visualization Manager:
         Z: 0.316523
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.820398
+      Pitch: 0.655398
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.73856
+      Yaw: 5.54856
     Saved: ~
 Window Geometry:
   Displays:
