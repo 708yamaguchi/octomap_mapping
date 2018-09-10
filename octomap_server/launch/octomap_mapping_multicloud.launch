@@ -7,28 +7,25 @@
   www.ros.org/wiki/octomap_server for details
 -->
 <launch>
-	<node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
-		<param name="resolution" value="0.05" />
+  <!-- octomap -->
+  <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
+	<param name="resolution" value="0.05" />
+	<!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
+	<param name="frame_id" type="string" value="octomap_world" />
+	<!-- maximum range to integrate (speedup!) -->
+	<param name="sensor_model/max_range" value="5.0" />
+    <param name="publish_free_space" value="true"/>
+	<!-- data source to integrate (PointCloud2) -->
+	<remap from="cloud_in" to="/cloud_in" />
+  </node>
 
-		<!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
-		<param name="frame_id" type="string" value="octomap_world" />
+  <!-- <node name="camera_transform_1" pkg="tf" type="static_transform_publisher" args="1 0 0 0 0 0 /world /camera_1 10" /> -->
+  <!-- <node name="camera_transform_2" pkg="tf" type="static_transform_publisher" args="0 1 0 0 0 0 /world /camera_2 10" /> -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/multicloud.rviz"/>
 
-		<!-- maximum range to integrate (speedup!) -->
-		<param name="sensor_model/max_range" value="5.0" />
-
-        <param name="publish_free_space" value="true"/>
-
-		<!-- data source to integrate (PointCloud2) -->
-		<remap from="cloud_in" to="/cloud_in" />
-	</node>
-
-    <node name="camera_transform_1" pkg="tf" type="static_transform_publisher" args="1 0 0 0 0 0 /world /camera_1 10" />
-    <node name="camera_transform_2" pkg="tf" type="static_transform_publisher" args="0 1 0 0 0 0 /world /camera_2 10" />
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/multicloud.rviz"/>
-
-    <node pkg="jsk_topic_tools" type="passthrough" name="multicloud_passthrough">
-      <remap from="~input" to="/multicloud" />
-      <remap from="~output" to="/cloud_in" />
-      <param name="default_duration" value="86400" />
-    </node>
+  <node pkg="jsk_topic_tools" type="passthrough" name="multicloud_passthrough">
+    <remap from="~input" to="/multicloud" />
+    <remap from="~output" to="/cloud_in" />
+    <param name="default_duration" value="86400" />
+  </node>
 </launch>
