@@ -7,25 +7,39 @@
   www.ros.org/wiki/octomap_server for details
 -->
 <launch>
+  <!-- broadcast tf of each proximity sensor -->
+  <!-- <node name="camera_transform_1" pkg="tf" type="static_transform_publisher" args="1 0 0 0 0 0 /world /camera_1 10" /> -->
+  <!-- <node name="camera_transform_2" pkg="tf" type="static_transform_publisher" args="0 1 0 0 0 0 /world /camera_2 10" /> -->
+  <arg name="real_sensor" value="false"/>
+  <!-- publish pointcloud with vision and proximity -->
+  <group unless="$(arg real_sensor)">
+    <include file="$(find euslib)/launch/proximity.launch">
+      <arg name="real_sensor" value="false"/>
+      <arg name="use_fetch" value="false"/>
+    </include>
+  </group>
+  <!-- Do not forget to rosservice call /proximitycloud_passthrough/request -->
+  <node pkg="jsk_topic_tools" type="passthrough" name="proximitycloud_passthrough">
+    <remap from="~input" to="/proximity_pointcloud/all" />
+    <remap from="~output" to="/cloud_in" />
+    <param name="default_duration" value="86400" />
+  </node>
+
   <!-- octomap -->
   <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
 	<param name="resolution" value="0.05" />
 	<!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
-	<param name="frame_id" type="string" value="octomap_world" />
+    <param name="frame_id" type="string" value="octomap_world" />
 	<!-- maximum range to integrate (speedup!) -->
 	<param name="sensor_model/max_range" value="5.0" />
     <param name="publish_free_space" value="true"/>
 	<!-- data source to integrate (PointCloud2) -->
 	<remap from="cloud_in" to="/cloud_in" />
   </node>
+  <!-- make tf of octomap_world, and rosservice call passthrough/request -->
+  <node pkg="octomap_server" type="octomap-setup.l" name="octomap_setup"/>
 
-  <!-- <node name="camera_transform_1" pkg="tf" type="static_transform_publisher" args="1 0 0 0 0 0 /world /camera_1 10" /> -->
-  <!-- <node name="camera_transform_2" pkg="tf" type="static_transform_publisher" args="0 1 0 0 0 0 /world /camera_2 10" /> -->
+  <!-- rviz -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/multicloud.rviz"/>
 
-  <node pkg="jsk_topic_tools" type="passthrough" name="multicloud_passthrough">
-    <remap from="~input" to="/multicloud" />
-    <remap from="~output" to="/cloud_in" />
-    <param name="default_duration" value="86400" />
-  </node>
 </launch>
