@@ -1,0 +1,61 @@
+<!--
+  Example launch file for octomap_server mapping:
+  Listens to incoming PointCloud2 data and incrementally builds an octomap.
+  The data is sent out in different representations.
+
+  Copy this file into your workspace and adjust as needed, see
+  www.ros.org/wiki/octomap_server for details
+-->
+<launch>
+  <!-- broadcast tf of each proximity sensor -->
+  <arg name="real_sensor" value="false"/>
+  <!-- publish pointcloud with vision and proximity -->
+  <group unless="$(arg real_sensor)">
+    <include file="$(find euslib)/launch/proximity.launch">
+      <arg name="real_sensor" value="false"/>
+      <arg name="use_fetch" value="false"/>
+    </include>
+  </group>
+  <!-- Do not forget to rosservice call /proximitycloud_passthrough/request -->
+  <node pkg="jsk_topic_tools" type="passthrough" name="proximitycloud_passthrough">
+    <remap from="~input" to="/proximity_pointcloud/all" />
+    <remap from="~output" to="/proximity_in" />
+    <!-- <remap from="~output" to="/cloud_in" /> -->
+    <param name="default_duration" value="86400" />
+  </node>
+
+  <!-- octomap -->
+  <node pkg="jsk_pcl_ros" type="octomap_server_contact" name="octomap_server_contact"
+        output="screen" >
+	<param name="resolution" value="0.003" />
+	<!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
+    <param name="frame_id" type="string" value="octomap_world" />
+	<!-- maximum range to integrate (speedup!) -->
+	<param name="sensor_model/max_range" value="5.0" />
+    <param name="publish_free_space" value="true"/>
+    <param name="publish_unknown_space" value="true"/>
+    <param name="latch" value="false"/>
+	<!-- data source to integrate (PointCloud2) -->
+	<remap from="/cloud_in" to="cloud_in" />
+	<remap from="/proximity_in" to="proximity_in" />
+	<remap from="/contact_sensors_in" to="contact_sensors_in" />
+    <!-- Sensor Input PassThrough Filter Params -->
+    <param name="occupancy_min_x" value="0.0" />
+    <param name="occupancy_max_x" value="0.5" />
+    <param name="occupancy_min_y" value="-0.5" />
+    <param name="occupancy_max_y" value="0.5" />
+    <param name="occupancy_min_z" value="0.5" />
+    <param name="occupancy_max_z" value="1.2" />
+
+    <rosparam command="load" file="$(find octomap_server)/config/fetch_contact_sensor_config.yaml" />
+</node>
+  <!-- make tf of octomap_world, and rosservice call passthrough/request -->
+  <node pkg="octomap_server" type="octomap-setup.l" name="octomap_setup"/>
+
+  <node pkg="octomap_server" type="publish_fetch_contact_sensor.py" name="publish_fetch_contact_sensor"
+        output="screen" />
+
+<!-- rviz -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/multicloud.rviz"/>
+
+</launch>
