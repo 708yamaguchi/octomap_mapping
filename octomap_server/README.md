@@ -1,12 +1,29 @@
 Usage of multicloud
 -------------------
 
-1. (for simulation) launch Octomap, Gazebo and Rviz.
-```
+- (On real robot) launch Proximity sensors, Octomap and Rviz.
+```bash
+rossetfetch
 roslaunch octomap_server octomap_mapping_multicloud.launch
 ```
 
-2. Stop pointcloud.
+- Reset Octomap mapping.
+```bash
+rosservice call /octomap_server_contact/reset
 ```
-rosservice call /multicloud_passthrough
+
+- Stop pointcloud from camera.
+```bash
+rosservice call /camera_passthrough
+```
+
+- Stop pointcloud from proximity sensors.
+```bash
+rosservice call /proximitycloud_passthrough
+```
+
+- (For simulation) launch Octomap, Gazebo and Rviz.
+```bash
+rossetlocal
+roslaunch octomap_server octomap_mapping_multicloud.launch real_sensor:=false
 ```
