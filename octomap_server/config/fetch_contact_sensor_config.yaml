@@ -1,0 +1,7 @@
+min_sensor_dist: .2
+self_see_default_padding: 0.0
+self_see_default_scale: 1.0
+self_see_links:
+  - name: gripper_link
+  - name: l_gripper_finger_link
+  - name: r_gripper_finger_link
