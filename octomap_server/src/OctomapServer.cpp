@@ -1271,6 +1271,3 @@ std_msgs::ColorRGBA OctomapServer::heightMapColor(double h) {
   return color;
 }
 }
-
-
-
