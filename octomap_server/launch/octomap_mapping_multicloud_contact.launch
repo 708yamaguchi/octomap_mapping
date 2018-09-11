@@ -34,7 +34,7 @@
   <!-- octomap -->
   <node pkg="jsk_pcl_ros" type="octomap_server_contact" name="octomap_server_contact"
         output="screen" >
-	<param name="resolution" value="0.01" />
+	<param name="resolution" value="0.003" />
 	<!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
     <param name="frame_id" type="string" value="octomap_world" />
 	<!-- maximum range to integrate (speedup!) -->
@@ -53,6 +53,7 @@
     <param name="occupancy_max_y" value="0.0" />
     <param name="occupancy_min_z" value="0.3" />
     <param name="occupancy_max_z" value="0.8" />
+    <param name="use_vertex" value="false" /> <!-- to speedup insertContactSensor -->
 
     <rosparam command="load" file="$(find octomap_server)/config/fetch_contact_sensor_config.yaml" />
 </node>
@@ -60,8 +61,8 @@
   <node pkg="octomap_server" type="octomap-setup.l" name="octomap_setup"/>
 
   <!-- set octomap free where pointcloud is inside of the robot -->
-  <!-- <node pkg="octomap_server" type="publish_fetch_contact_sensor.py" name="publish_fetch_contact_sensor" -->
-  <!--       output="screen" /> -->
+  <node pkg="octomap_server" type="publish_fetch_contact_sensor.py" name="publish_fetch_contact_sensor"
+        output="screen" />
 
   <!-- rviz -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/multicloud.rviz"/>
