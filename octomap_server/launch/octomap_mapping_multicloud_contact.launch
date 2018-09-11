@@ -7,27 +7,34 @@
   www.ros.org/wiki/octomap_server for details
 -->
 <launch>
-  <!-- broadcast tf of each proximity sensor -->
-  <arg name="real_sensor" value="false"/>
-  <!-- publish pointcloud with vision and proximity -->
-  <group unless="$(arg real_sensor)">
-    <include file="$(find euslib)/launch/proximity.launch">
-      <arg name="real_sensor" value="false"/>
-      <arg name="use_fetch" value="false"/>
-    </include>
-  </group>
+  <!-- publish pointcloud with proximity and camera sensor -->
+  <arg name="real_sensor" default="true"/>
+  <!-- publish pointcloud with proximity sensor -->
+  <include file="$(find euslib)/launch/proximity.launch">
+    <arg name="real_sensor" value="$(arg real_sensor)"/>
+    <arg name="use_fetch" value="$(arg real_sensor)"/>
+  </include>
   <!-- Do not forget to rosservice call /proximitycloud_passthrough/request -->
   <node pkg="jsk_topic_tools" type="passthrough" name="proximitycloud_passthrough">
     <remap from="~input" to="/proximity_pointcloud/all" />
     <remap from="~output" to="/proximity_in" />
-    <!-- <remap from="~output" to="/cloud_in" /> -->
+    <param name="default_duration" value="86400" />
+  </node>
+  <!-- publish pointcloud with vision sensor -->
+  <include file="$(find bag_segmentation)/launch/fcn_bag_segmentation.launch">
+    <arg name="rviz" value="false"/>
+  </include>
+  <!-- Do not forget to rosservice call /proximitycloud_passthrough/request -->
+  <node pkg="jsk_topic_tools" type="passthrough" name="camera_passthrough">
+    <remap from="~input" to="/camera_remote/depth_registered/points" />
+    <remap from="~output" to="/camera_in" />
     <param name="default_duration" value="86400" />
   </node>
 
   <!-- octomap -->
   <node pkg="jsk_pcl_ros" type="octomap_server_contact" name="octomap_server_contact"
         output="screen" >
-	<param name="resolution" value="0.003" />
+	<param name="resolution" value="0.01" />
 	<!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
     <param name="frame_id" type="string" value="octomap_world" />
 	<!-- maximum range to integrate (speedup!) -->
@@ -36,26 +43,27 @@
     <param name="publish_unknown_space" value="true"/>
     <param name="latch" value="false"/>
 	<!-- data source to integrate (PointCloud2) -->
-	<remap from="/cloud_in" to="cloud_in" />
+	<remap from="/cloud_in" to="camera_in" />
 	<remap from="/proximity_in" to="proximity_in" />
 	<remap from="/contact_sensors_in" to="contact_sensors_in" />
     <!-- Sensor Input PassThrough Filter Params -->
-    <param name="occupancy_min_x" value="0.0" />
+    <param name="occupancy_min_x" value="-0.2" />
     <param name="occupancy_max_x" value="0.5" />
     <param name="occupancy_min_y" value="-0.5" />
-    <param name="occupancy_max_y" value="0.5" />
-    <param name="occupancy_min_z" value="0.5" />
-    <param name="occupancy_max_z" value="1.2" />
+    <param name="occupancy_max_y" value="0.0" />
+    <param name="occupancy_min_z" value="0.3" />
+    <param name="occupancy_max_z" value="0.8" />
 
     <rosparam command="load" file="$(find octomap_server)/config/fetch_contact_sensor_config.yaml" />
 </node>
   <!-- make tf of octomap_world, and rosservice call passthrough/request -->
   <node pkg="octomap_server" type="octomap-setup.l" name="octomap_setup"/>
 
-  <node pkg="octomap_server" type="publish_fetch_contact_sensor.py" name="publish_fetch_contact_sensor"
-        output="screen" />
+  <!-- set octomap free where pointcloud is inside of the robot -->
+  <!-- <node pkg="octomap_server" type="publish_fetch_contact_sensor.py" name="publish_fetch_contact_sensor" -->
+  <!--       output="screen" /> -->
 
-<!-- rviz -->
+  <!-- rviz -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/multicloud.rviz"/>
 
 </launch>
