@@ -6,7 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
       Splitter Ratio: 0.5
-    Tree Height: 757
+    Tree Height: 660
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -26,6 +26,9 @@ Panels:
     Name: Time
     SyncMode: 0
     SyncSource: ProximityCloudIn
+  - Class: jsk_rviz_plugin/PublishTopic
+    Name: PublishTopic
+    Topic: ""
 Visualization Manager:
   Class: ""
   Displays:
@@ -56,13 +59,13 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /free_cells_vis_array
       Name: FreeCells
       Namespaces:
-        octomap_world: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /unknown_cells_vis_array
@@ -113,7 +116,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: RGB8
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -130,438 +133,21 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        base_link:
-          Value: true
-        bellows_link:
-          Value: true
-        bellows_link2:
-          Value: true
-        elbow_flex_link:
-          Value: true
-        eng2:
-          Value: true
-        eng2/1f:
-          Value: true
-        eng2/2f:
-          Value: true
-        eng2/3f:
-          Value: true
-        eng2/7f:
-          Value: true
-        eng2/7f/73B2:
-          Value: true
-        eng2/8f:
-          Value: true
-        estop_link:
-          Value: true
-        forearm_roll_link:
-          Value: true
-        gripper_link:
-          Value: true
-        head_camera_depth_frame:
-          Value: true
-        head_camera_depth_optical_frame:
-          Value: true
-        head_camera_link:
-          Value: true
-        head_camera_rgb_frame:
-          Value: true
-        head_camera_rgb_optical_frame:
-          Value: true
-        head_pan_link:
-          Value: true
-        head_tilt_link:
-          Value: true
-        l_gripper_finger_link:
-          Value: true
-        l_wheel_link:
-          Value: true
-        laser_link:
-          Value: true
-        map:
-          Value: true
-        octomap_world:
-          Value: true
-        odom:
-          Value: true
-        proximity_sensor_tf/left/side0/0:
-          Value: true
-        proximity_sensor_tf/left/side0/1:
-          Value: true
-        proximity_sensor_tf/left/side0/2:
-          Value: true
-        proximity_sensor_tf/left/side0/3:
-          Value: true
-        proximity_sensor_tf/left/side0/4:
-          Value: true
-        proximity_sensor_tf/left/side0/5:
-          Value: true
-        proximity_sensor_tf/left/side0/6:
-          Value: true
-        proximity_sensor_tf/left/side0/7:
-          Value: true
-        proximity_sensor_tf/left/side1/0:
-          Value: true
-        proximity_sensor_tf/left/side1/1:
-          Value: true
-        proximity_sensor_tf/left/side1/2:
-          Value: true
-        proximity_sensor_tf/left/side1/3:
-          Value: true
-        proximity_sensor_tf/left/side1/4:
-          Value: true
-        proximity_sensor_tf/left/side1/5:
-          Value: true
-        proximity_sensor_tf/left/side1/6:
-          Value: true
-        proximity_sensor_tf/left/side1/7:
-          Value: true
-        proximity_sensor_tf/left/side2/0:
-          Value: true
-        proximity_sensor_tf/left/side2/1:
-          Value: true
-        proximity_sensor_tf/left/side2/2:
-          Value: true
-        proximity_sensor_tf/left/side2/3:
-          Value: true
-        proximity_sensor_tf/left/side2/4:
-          Value: true
-        proximity_sensor_tf/left/side2/5:
-          Value: true
-        proximity_sensor_tf/left/side2/6:
-          Value: true
-        proximity_sensor_tf/left/side2/7:
-          Value: true
-        proximity_sensor_tf/left/side3/0:
-          Value: true
-        proximity_sensor_tf/left/side3/1:
-          Value: true
-        proximity_sensor_tf/left/side3/2:
-          Value: true
-        proximity_sensor_tf/left/side3/3:
-          Value: true
-        proximity_sensor_tf/left/side3/4:
-          Value: true
-        proximity_sensor_tf/left/side3/5:
-          Value: true
-        proximity_sensor_tf/left/side3/6:
-          Value: true
-        proximity_sensor_tf/left/side3/7:
-          Value: true
-        proximity_sensor_tf/left/top/0:
-          Value: true
-        proximity_sensor_tf/left/top/1:
-          Value: true
-        proximity_sensor_tf/left/top/2:
-          Value: true
-        proximity_sensor_tf/left/top/3:
-          Value: true
-        proximity_sensor_tf/right/side0/0:
-          Value: true
-        proximity_sensor_tf/right/side0/1:
-          Value: true
-        proximity_sensor_tf/right/side0/2:
-          Value: true
-        proximity_sensor_tf/right/side0/3:
-          Value: true
-        proximity_sensor_tf/right/side0/4:
-          Value: true
-        proximity_sensor_tf/right/side0/5:
-          Value: true
-        proximity_sensor_tf/right/side0/6:
-          Value: true
-        proximity_sensor_tf/right/side0/7:
-          Value: true
-        proximity_sensor_tf/right/side1/0:
-          Value: true
-        proximity_sensor_tf/right/side1/1:
-          Value: true
-        proximity_sensor_tf/right/side1/2:
-          Value: true
-        proximity_sensor_tf/right/side1/3:
-          Value: true
-        proximity_sensor_tf/right/side1/4:
-          Value: true
-        proximity_sensor_tf/right/side1/5:
-          Value: true
-        proximity_sensor_tf/right/side1/6:
-          Value: true
-        proximity_sensor_tf/right/side1/7:
-          Value: true
-        proximity_sensor_tf/right/side2/0:
-          Value: true
-        proximity_sensor_tf/right/side2/1:
-          Value: true
-        proximity_sensor_tf/right/side2/2:
-          Value: true
-        proximity_sensor_tf/right/side2/3:
-          Value: true
-        proximity_sensor_tf/right/side2/4:
-          Value: true
-        proximity_sensor_tf/right/side2/5:
-          Value: true
-        proximity_sensor_tf/right/side2/6:
-          Value: true
-        proximity_sensor_tf/right/side2/7:
-          Value: true
-        proximity_sensor_tf/right/side3/0:
-          Value: true
-        proximity_sensor_tf/right/side3/1:
-          Value: true
-        proximity_sensor_tf/right/side3/2:
-          Value: true
-        proximity_sensor_tf/right/side3/3:
-          Value: true
-        proximity_sensor_tf/right/side3/4:
-          Value: true
-        proximity_sensor_tf/right/side3/5:
-          Value: true
-        proximity_sensor_tf/right/side3/6:
-          Value: true
-        proximity_sensor_tf/right/side3/7:
-          Value: true
-        proximity_sensor_tf/right/top/0:
-          Value: true
-        proximity_sensor_tf/right/top/1:
-          Value: true
-        proximity_sensor_tf/right/top/2:
-          Value: true
-        proximity_sensor_tf/right/top/3:
-          Value: true
-        r_gripper_finger_link:
-          Value: true
-        r_wheel_link:
-          Value: true
-        respeaker_base:
-          Value: true
-        shoulder_lift_link:
-          Value: true
-        shoulder_pan_link:
-          Value: true
-        torso_fixed_link:
-          Value: true
-        torso_lift_link:
-          Value: true
-        upperarm_roll_link:
-          Value: true
-        world:
-          Value: true
-        wrist_flex_link:
-          Value: true
-        wrist_roll_link:
-          Value: true
       Marker Scale: 0.1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: false
       Tree:
-        world:
-          eng2:
-            eng2/1f:
-              {}
-            eng2/2f:
-              {}
-            eng2/3f:
-              {}
-            eng2/7f:
-              eng2/7f/73B2:
-                {}
-              map:
-                odom:
-                  base_link:
-                    estop_link:
-                      {}
-                    l_wheel_link:
-                      {}
-                    laser_link:
-                      {}
-                    octomap_world:
-                      {}
-                    r_wheel_link:
-                      {}
-                    torso_fixed_link:
-                      {}
-                    torso_lift_link:
-                      bellows_link:
-                        {}
-                      bellows_link2:
-                        {}
-                      head_pan_link:
-                        head_tilt_link:
-                          head_camera_link:
-                            head_camera_depth_frame:
-                              head_camera_depth_optical_frame:
-                                {}
-                            head_camera_rgb_frame:
-                              head_camera_rgb_optical_frame:
-                                {}
-                        respeaker_base:
-                          {}
-                      shoulder_pan_link:
-                        shoulder_lift_link:
-                          upperarm_roll_link:
-                            elbow_flex_link:
-                              forearm_roll_link:
-                                wrist_flex_link:
-                                  wrist_roll_link:
-                                    gripper_link:
-                                      l_gripper_finger_link:
-                                        proximity_sensor_tf/left/side0/0:
-                                          {}
-                                        proximity_sensor_tf/left/side0/1:
-                                          {}
-                                        proximity_sensor_tf/left/side0/2:
-                                          {}
-                                        proximity_sensor_tf/left/side0/3:
-                                          {}
-                                        proximity_sensor_tf/left/side0/4:
-                                          {}
-                                        proximity_sensor_tf/left/side0/5:
-                                          {}
-                                        proximity_sensor_tf/left/side0/6:
-                                          {}
-                                        proximity_sensor_tf/left/side0/7:
-                                          {}
-                                        proximity_sensor_tf/left/side1/0:
-                                          {}
-                                        proximity_sensor_tf/left/side1/1:
-                                          {}
-                                        proximity_sensor_tf/left/side1/2:
-                                          {}
-                                        proximity_sensor_tf/left/side1/3:
-                                          {}
-                                        proximity_sensor_tf/left/side1/4:
-                                          {}
-                                        proximity_sensor_tf/left/side1/5:
-                                          {}
-                                        proximity_sensor_tf/left/side1/6:
-                                          {}
-                                        proximity_sensor_tf/left/side1/7:
-                                          {}
-                                        proximity_sensor_tf/left/side2/0:
-                                          {}
-                                        proximity_sensor_tf/left/side2/1:
-                                          {}
-                                        proximity_sensor_tf/left/side2/2:
-                                          {}
-                                        proximity_sensor_tf/left/side2/3:
-                                          {}
-                                        proximity_sensor_tf/left/side2/4:
-                                          {}
-                                        proximity_sensor_tf/left/side2/5:
-                                          {}
-                                        proximity_sensor_tf/left/side2/6:
-                                          {}
-                                        proximity_sensor_tf/left/side2/7:
-                                          {}
-                                        proximity_sensor_tf/left/side3/0:
-                                          {}
-                                        proximity_sensor_tf/left/side3/1:
-                                          {}
-                                        proximity_sensor_tf/left/side3/2:
-                                          {}
-                                        proximity_sensor_tf/left/side3/3:
-                                          {}
-                                        proximity_sensor_tf/left/side3/4:
-                                          {}
-                                        proximity_sensor_tf/left/side3/5:
-                                          {}
-                                        proximity_sensor_tf/left/side3/6:
-                                          {}
-                                        proximity_sensor_tf/left/side3/7:
-                                          {}
-                                        proximity_sensor_tf/left/top/0:
-                                          {}
-                                        proximity_sensor_tf/left/top/1:
-                                          {}
-                                        proximity_sensor_tf/left/top/2:
-                                          {}
-                                        proximity_sensor_tf/left/top/3:
-                                          {}
-                                      r_gripper_finger_link:
-                                        proximity_sensor_tf/right/side0/0:
-                                          {}
-                                        proximity_sensor_tf/right/side0/1:
-                                          {}
-                                        proximity_sensor_tf/right/side0/2:
-                                          {}
-                                        proximity_sensor_tf/right/side0/3:
-                                          {}
-                                        proximity_sensor_tf/right/side0/4:
-                                          {}
-                                        proximity_sensor_tf/right/side0/5:
-                                          {}
-                                        proximity_sensor_tf/right/side0/6:
-                                          {}
-                                        proximity_sensor_tf/right/side0/7:
-                                          {}
-                                        proximity_sensor_tf/right/side1/0:
-                                          {}
-                                        proximity_sensor_tf/right/side1/1:
-                                          {}
-                                        proximity_sensor_tf/right/side1/2:
-                                          {}
-                                        proximity_sensor_tf/right/side1/3:
-                                          {}
-                                        proximity_sensor_tf/right/side1/4:
-                                          {}
-                                        proximity_sensor_tf/right/side1/5:
-                                          {}
-                                        proximity_sensor_tf/right/side1/6:
-                                          {}
-                                        proximity_sensor_tf/right/side1/7:
-                                          {}
-                                        proximity_sensor_tf/right/side2/0:
-                                          {}
-                                        proximity_sensor_tf/right/side2/1:
-                                          {}
-                                        proximity_sensor_tf/right/side2/2:
-                                          {}
-                                        proximity_sensor_tf/right/side2/3:
-                                          {}
-                                        proximity_sensor_tf/right/side2/4:
-                                          {}
-                                        proximity_sensor_tf/right/side2/5:
-                                          {}
-                                        proximity_sensor_tf/right/side2/6:
-                                          {}
-                                        proximity_sensor_tf/right/side2/7:
-                                          {}
-                                        proximity_sensor_tf/right/side3/0:
-                                          {}
-                                        proximity_sensor_tf/right/side3/1:
-                                          {}
-                                        proximity_sensor_tf/right/side3/2:
-                                          {}
-                                        proximity_sensor_tf/right/side3/3:
-                                          {}
-                                        proximity_sensor_tf/right/side3/4:
-                                          {}
-                                        proximity_sensor_tf/right/side3/5:
-                                          {}
-                                        proximity_sensor_tf/right/side3/6:
-                                          {}
-                                        proximity_sensor_tf/right/side3/7:
-                                          {}
-                                        proximity_sensor_tf/right/top/0:
-                                          {}
-                                        proximity_sensor_tf/right/top/1:
-                                          {}
-                                        proximity_sensor_tf/right/top/2:
-                                          {}
-                                        proximity_sensor_tf/right/top/3:
-                                          {}
-            eng2/8f:
-              {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
@@ -727,22 +313,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.42323
+      Distance: 0.853504
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.12054
-        Y: -0.0190739
-        Z: 0.573736
+        X: 0.0247961
+        Y: -0.156398
+        Z: 0.370592
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.435398
+      Pitch: 0.895398
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.38361
+      Yaw: 4.93361
     Saved: ~
 Window Geometry:
   Displays:
@@ -750,7 +336,9 @@ Window Geometry:
   Height: 1056
   Hide Left Dock: false
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd0000000400000000000002f6000003dafc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000000800540069006d00650100000028000000500000003b00fffffffb000000100044006900730070006c006100790073010000007e00000384000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000037afc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000000280000037a000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000073f0000003efc0100000001fb0000000800540069006d0065010000000000000450000000000000000000000443000003da00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  PublishTopic:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd0000000400000000000002f6000003dafc020000000afb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000000800540069006d00650100000028000000470000003b00fffffffb000000100044006900730070006c006100790073010000007500000323000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000018005000750062006c0069007300680054006f007000690063010000039e000000640000006400ffffff000000010000010f0000037afc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000000280000037a000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000073f0000003efc0100000001fb0000000800540069006d0065010000000000000450000000000000000000000443000003da00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
