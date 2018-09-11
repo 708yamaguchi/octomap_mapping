@@ -6,9 +6,6 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /cloud_in1
-        - /TF1
-        - /MarkerArray1
       Splitter Ratio: 0.5
     Tree Height: 757
   - Class: rviz/Selection
@@ -29,7 +26,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: cloud_in
+    SyncSource: ProximityCloudIn
 Visualization Manager:
   Class: ""
   Displays:
@@ -56,7 +53,7 @@ Visualization Manager:
       Marker Topic: /occupied_cells_vis_array
       Name: OccupiedCells
       Namespaces:
-        octomap_world: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -64,9 +61,17 @@ Visualization Manager:
       Marker Topic: /free_cells_vis_array
       Name: FreeCells
       Namespaces:
-        octomap_world: true
+        {}
       Queue Size: 100
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /unknown_cells_vis_array
+      Name: UnknownCells
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -85,7 +90,7 @@ Visualization Manager:
       Max Intensity: 4096
       Min Color: 0; 0; 0
       Min Intensity: 0
-      Name: cloud_in
+      Name: ProximityCloudIn
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
@@ -109,6 +114,20 @@ Visualization Manager:
         bellows_link2:
           Value: true
         elbow_flex_link:
+          Value: true
+        eng2:
+          Value: true
+        eng2/1f:
+          Value: true
+        eng2/2f:
+          Value: true
+        eng2/3f:
+          Value: true
+        eng2/7f:
+          Value: true
+        eng2/7f/73B2:
+          Value: true
+        eng2/8f:
           Value: true
         estop_link:
           Value: true
@@ -135,6 +154,8 @@ Visualization Manager:
         l_wheel_link:
           Value: true
         laser_link:
+          Value: true
+        map:
           Value: true
         octomap_world:
           Value: true
@@ -288,6 +309,8 @@ Visualization Manager:
           Value: true
         r_wheel_link:
           Value: true
+        respeaker_base:
+          Value: true
         shoulder_lift_link:
           Value: true
         shoulder_pan_link:
@@ -297,6 +320,8 @@ Visualization Manager:
         torso_lift_link:
           Value: true
         upperarm_roll_link:
+          Value: true
+        world:
           Value: true
         wrist_flex_link:
           Value: true
@@ -308,188 +333,204 @@ Visualization Manager:
       Show Axes: true
       Show Names: false
       Tree:
-        odom:
-          base_link:
-            estop_link:
+        world:
+          eng2:
+            eng2/1f:
               {}
-            l_wheel_link:
+            eng2/2f:
               {}
-            laser_link:
+            eng2/3f:
               {}
-            octomap_world:
-              {}
-            r_wheel_link:
-              {}
-            torso_fixed_link:
-              {}
-            torso_lift_link:
-              bellows_link:
+            eng2/7f:
+              eng2/7f/73B2:
                 {}
-              bellows_link2:
-                {}
-              head_pan_link:
-                head_tilt_link:
-                  head_camera_link:
-                    head_camera_depth_frame:
-                      head_camera_depth_optical_frame:
+              map:
+                odom:
+                  base_link:
+                    estop_link:
+                      {}
+                    l_wheel_link:
+                      {}
+                    laser_link:
+                      {}
+                    octomap_world:
+                      {}
+                    r_wheel_link:
+                      {}
+                    torso_fixed_link:
+                      {}
+                    torso_lift_link:
+                      bellows_link:
                         {}
-                    head_camera_rgb_frame:
-                      head_camera_rgb_optical_frame:
+                      bellows_link2:
                         {}
-              shoulder_pan_link:
-                shoulder_lift_link:
-                  upperarm_roll_link:
-                    elbow_flex_link:
-                      forearm_roll_link:
-                        wrist_flex_link:
-                          wrist_roll_link:
-                            gripper_link:
-                              l_gripper_finger_link:
-                                proximity_sensor_tf/left/side0/0:
-                                  {}
-                                proximity_sensor_tf/left/side0/1:
-                                  {}
-                                proximity_sensor_tf/left/side0/2:
-                                  {}
-                                proximity_sensor_tf/left/side0/3:
-                                  {}
-                                proximity_sensor_tf/left/side0/4:
-                                  {}
-                                proximity_sensor_tf/left/side0/5:
-                                  {}
-                                proximity_sensor_tf/left/side0/6:
-                                  {}
-                                proximity_sensor_tf/left/side0/7:
-                                  {}
-                                proximity_sensor_tf/left/side1/0:
-                                  {}
-                                proximity_sensor_tf/left/side1/1:
-                                  {}
-                                proximity_sensor_tf/left/side1/2:
-                                  {}
-                                proximity_sensor_tf/left/side1/3:
-                                  {}
-                                proximity_sensor_tf/left/side1/4:
-                                  {}
-                                proximity_sensor_tf/left/side1/5:
-                                  {}
-                                proximity_sensor_tf/left/side1/6:
-                                  {}
-                                proximity_sensor_tf/left/side1/7:
-                                  {}
-                                proximity_sensor_tf/left/side2/0:
-                                  {}
-                                proximity_sensor_tf/left/side2/1:
-                                  {}
-                                proximity_sensor_tf/left/side2/2:
-                                  {}
-                                proximity_sensor_tf/left/side2/3:
-                                  {}
-                                proximity_sensor_tf/left/side2/4:
-                                  {}
-                                proximity_sensor_tf/left/side2/5:
-                                  {}
-                                proximity_sensor_tf/left/side2/6:
-                                  {}
-                                proximity_sensor_tf/left/side2/7:
-                                  {}
-                                proximity_sensor_tf/left/side3/0:
-                                  {}
-                                proximity_sensor_tf/left/side3/1:
-                                  {}
-                                proximity_sensor_tf/left/side3/2:
-                                  {}
-                                proximity_sensor_tf/left/side3/3:
-                                  {}
-                                proximity_sensor_tf/left/side3/4:
-                                  {}
-                                proximity_sensor_tf/left/side3/5:
-                                  {}
-                                proximity_sensor_tf/left/side3/6:
-                                  {}
-                                proximity_sensor_tf/left/side3/7:
-                                  {}
-                                proximity_sensor_tf/left/top/0:
-                                  {}
-                                proximity_sensor_tf/left/top/1:
-                                  {}
-                                proximity_sensor_tf/left/top/2:
-                                  {}
-                                proximity_sensor_tf/left/top/3:
-                                  {}
-                              r_gripper_finger_link:
-                                proximity_sensor_tf/right/side0/0:
-                                  {}
-                                proximity_sensor_tf/right/side0/1:
-                                  {}
-                                proximity_sensor_tf/right/side0/2:
-                                  {}
-                                proximity_sensor_tf/right/side0/3:
-                                  {}
-                                proximity_sensor_tf/right/side0/4:
-                                  {}
-                                proximity_sensor_tf/right/side0/5:
-                                  {}
-                                proximity_sensor_tf/right/side0/6:
-                                  {}
-                                proximity_sensor_tf/right/side0/7:
-                                  {}
-                                proximity_sensor_tf/right/side1/0:
-                                  {}
-                                proximity_sensor_tf/right/side1/1:
-                                  {}
-                                proximity_sensor_tf/right/side1/2:
-                                  {}
-                                proximity_sensor_tf/right/side1/3:
-                                  {}
-                                proximity_sensor_tf/right/side1/4:
-                                  {}
-                                proximity_sensor_tf/right/side1/5:
-                                  {}
-                                proximity_sensor_tf/right/side1/6:
-                                  {}
-                                proximity_sensor_tf/right/side1/7:
-                                  {}
-                                proximity_sensor_tf/right/side2/0:
-                                  {}
-                                proximity_sensor_tf/right/side2/1:
-                                  {}
-                                proximity_sensor_tf/right/side2/2:
-                                  {}
-                                proximity_sensor_tf/right/side2/3:
-                                  {}
-                                proximity_sensor_tf/right/side2/4:
-                                  {}
-                                proximity_sensor_tf/right/side2/5:
-                                  {}
-                                proximity_sensor_tf/right/side2/6:
-                                  {}
-                                proximity_sensor_tf/right/side2/7:
-                                  {}
-                                proximity_sensor_tf/right/side3/0:
-                                  {}
-                                proximity_sensor_tf/right/side3/1:
-                                  {}
-                                proximity_sensor_tf/right/side3/2:
-                                  {}
-                                proximity_sensor_tf/right/side3/3:
-                                  {}
-                                proximity_sensor_tf/right/side3/4:
-                                  {}
-                                proximity_sensor_tf/right/side3/5:
-                                  {}
-                                proximity_sensor_tf/right/side3/6:
-                                  {}
-                                proximity_sensor_tf/right/side3/7:
-                                  {}
-                                proximity_sensor_tf/right/top/0:
-                                  {}
-                                proximity_sensor_tf/right/top/1:
-                                  {}
-                                proximity_sensor_tf/right/top/2:
-                                  {}
-                                proximity_sensor_tf/right/top/3:
-                                  {}
+                      head_pan_link:
+                        head_tilt_link:
+                          head_camera_link:
+                            head_camera_depth_frame:
+                              head_camera_depth_optical_frame:
+                                {}
+                            head_camera_rgb_frame:
+                              head_camera_rgb_optical_frame:
+                                {}
+                        respeaker_base:
+                          {}
+                      shoulder_pan_link:
+                        shoulder_lift_link:
+                          upperarm_roll_link:
+                            elbow_flex_link:
+                              forearm_roll_link:
+                                wrist_flex_link:
+                                  wrist_roll_link:
+                                    gripper_link:
+                                      l_gripper_finger_link:
+                                        proximity_sensor_tf/left/side0/0:
+                                          {}
+                                        proximity_sensor_tf/left/side0/1:
+                                          {}
+                                        proximity_sensor_tf/left/side0/2:
+                                          {}
+                                        proximity_sensor_tf/left/side0/3:
+                                          {}
+                                        proximity_sensor_tf/left/side0/4:
+                                          {}
+                                        proximity_sensor_tf/left/side0/5:
+                                          {}
+                                        proximity_sensor_tf/left/side0/6:
+                                          {}
+                                        proximity_sensor_tf/left/side0/7:
+                                          {}
+                                        proximity_sensor_tf/left/side1/0:
+                                          {}
+                                        proximity_sensor_tf/left/side1/1:
+                                          {}
+                                        proximity_sensor_tf/left/side1/2:
+                                          {}
+                                        proximity_sensor_tf/left/side1/3:
+                                          {}
+                                        proximity_sensor_tf/left/side1/4:
+                                          {}
+                                        proximity_sensor_tf/left/side1/5:
+                                          {}
+                                        proximity_sensor_tf/left/side1/6:
+                                          {}
+                                        proximity_sensor_tf/left/side1/7:
+                                          {}
+                                        proximity_sensor_tf/left/side2/0:
+                                          {}
+                                        proximity_sensor_tf/left/side2/1:
+                                          {}
+                                        proximity_sensor_tf/left/side2/2:
+                                          {}
+                                        proximity_sensor_tf/left/side2/3:
+                                          {}
+                                        proximity_sensor_tf/left/side2/4:
+                                          {}
+                                        proximity_sensor_tf/left/side2/5:
+                                          {}
+                                        proximity_sensor_tf/left/side2/6:
+                                          {}
+                                        proximity_sensor_tf/left/side2/7:
+                                          {}
+                                        proximity_sensor_tf/left/side3/0:
+                                          {}
+                                        proximity_sensor_tf/left/side3/1:
+                                          {}
+                                        proximity_sensor_tf/left/side3/2:
+                                          {}
+                                        proximity_sensor_tf/left/side3/3:
+                                          {}
+                                        proximity_sensor_tf/left/side3/4:
+                                          {}
+                                        proximity_sensor_tf/left/side3/5:
+                                          {}
+                                        proximity_sensor_tf/left/side3/6:
+                                          {}
+                                        proximity_sensor_tf/left/side3/7:
+                                          {}
+                                        proximity_sensor_tf/left/top/0:
+                                          {}
+                                        proximity_sensor_tf/left/top/1:
+                                          {}
+                                        proximity_sensor_tf/left/top/2:
+                                          {}
+                                        proximity_sensor_tf/left/top/3:
+                                          {}
+                                      r_gripper_finger_link:
+                                        proximity_sensor_tf/right/side0/0:
+                                          {}
+                                        proximity_sensor_tf/right/side0/1:
+                                          {}
+                                        proximity_sensor_tf/right/side0/2:
+                                          {}
+                                        proximity_sensor_tf/right/side0/3:
+                                          {}
+                                        proximity_sensor_tf/right/side0/4:
+                                          {}
+                                        proximity_sensor_tf/right/side0/5:
+                                          {}
+                                        proximity_sensor_tf/right/side0/6:
+                                          {}
+                                        proximity_sensor_tf/right/side0/7:
+                                          {}
+                                        proximity_sensor_tf/right/side1/0:
+                                          {}
+                                        proximity_sensor_tf/right/side1/1:
+                                          {}
+                                        proximity_sensor_tf/right/side1/2:
+                                          {}
+                                        proximity_sensor_tf/right/side1/3:
+                                          {}
+                                        proximity_sensor_tf/right/side1/4:
+                                          {}
+                                        proximity_sensor_tf/right/side1/5:
+                                          {}
+                                        proximity_sensor_tf/right/side1/6:
+                                          {}
+                                        proximity_sensor_tf/right/side1/7:
+                                          {}
+                                        proximity_sensor_tf/right/side2/0:
+                                          {}
+                                        proximity_sensor_tf/right/side2/1:
+                                          {}
+                                        proximity_sensor_tf/right/side2/2:
+                                          {}
+                                        proximity_sensor_tf/right/side2/3:
+                                          {}
+                                        proximity_sensor_tf/right/side2/4:
+                                          {}
+                                        proximity_sensor_tf/right/side2/5:
+                                          {}
+                                        proximity_sensor_tf/right/side2/6:
+                                          {}
+                                        proximity_sensor_tf/right/side2/7:
+                                          {}
+                                        proximity_sensor_tf/right/side3/0:
+                                          {}
+                                        proximity_sensor_tf/right/side3/1:
+                                          {}
+                                        proximity_sensor_tf/right/side3/2:
+                                          {}
+                                        proximity_sensor_tf/right/side3/3:
+                                          {}
+                                        proximity_sensor_tf/right/side3/4:
+                                          {}
+                                        proximity_sensor_tf/right/side3/5:
+                                          {}
+                                        proximity_sensor_tf/right/side3/6:
+                                          {}
+                                        proximity_sensor_tf/right/side3/7:
+                                          {}
+                                        proximity_sensor_tf/right/top/0:
+                                          {}
+                                        proximity_sensor_tf/right/top/1:
+                                          {}
+                                        proximity_sensor_tf/right/top/2:
+                                          {}
+                                        proximity_sensor_tf/right/top/3:
+                                          {}
+            eng2/8f:
+              {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -633,14 +674,6 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /unknown_cells_vis_array
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -665,7 +698,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.727089
+      Distance: 1.48214
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -677,10 +710,10 @@ Visualization Manager:
         Z: 0.573736
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.755398
+      Pitch: 0.505398
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.50361
+      Yaw: 4.55361
     Saved: ~
 Window Geometry:
   Displays:
