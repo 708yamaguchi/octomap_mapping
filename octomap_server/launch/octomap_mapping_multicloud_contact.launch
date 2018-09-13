@@ -9,6 +9,7 @@
 <launch>
   <!-- publish pointcloud with proximity and camera sensor -->
   <arg name="real_sensor" default="true"/>
+  <arg name="fcn" default="true"/>
   <!-- publish pointcloud with proximity sensor -->
   <include file="$(find euslib)/launch/proximity.launch">
     <arg name="real_sensor" value="$(arg real_sensor)"/>
@@ -21,9 +22,16 @@
     <param name="default_duration" value="86400" />
   </node>
   <!-- publish pointcloud with vision sensor -->
-  <include file="$(find bag_segmentation)/launch/fcn_bag_segmentation.launch">
-    <arg name="rviz" value="false"/>
-  </include>
+  <group if="$(arg fcn)">
+    <include file="$(find bag_segmentation)/launch/fcn_bag_segmentation.launch">
+      <arg name="rviz" value="false"/>
+    </include>
+  </group>
+  <group unless="$(arg fcn)">
+    <include file="$(find euslib)/launch/visualize_pointcloud_fetch.launch">
+      <arg name="rviz" value="false"/>
+    </include>
+  </group>
   <!-- Do not forget to rosservice call /proximitycloud_passthrough/request -->
   <node pkg="jsk_topic_tools" type="passthrough" name="camera_passthrough">
     <remap from="~input" to="/camera_remote/depth_registered/points" />
