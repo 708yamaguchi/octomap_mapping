@@ -25,7 +25,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ProximityCloudIn
+    SyncSource: VisProximityLeft
   - Class: jsk_rviz_plugin/PublishTopic
     Name: PublishTopic
     Topic: /set_init_proximities
@@ -59,13 +59,13 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /free_cells_vis_array
       Name: FreeCells
       Namespaces:
-        octomap_world: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /unknown_cells_vis_array
@@ -92,7 +92,7 @@ Visualization Manager:
       Max Intensity: 4096
       Min Color: 0; 0; 0
       Min Intensity: 0
-      Name: ProximityCloudIn
+      Name: VisProximityLeft
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
@@ -100,6 +100,36 @@ Visualization Manager:
       Size (m): 0.01
       Style: Spheres
       Topic: /proximity_pointcloud/left
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: VisProximityRight
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.01
+      Style: Spheres
+      Topic: /proximity_pointcloud/right
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -151,9 +181,25 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
-      Enabled: true
+      Enabled: false
       Links:
         All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+      Name: RobotModel
+      Robot Description: robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: false
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: false
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
@@ -162,32 +208,32 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         bellows_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         bellows_link2:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         elbow_flex_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         estop_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         forearm_roll_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         gripper_link:
           Alpha: 1
           Show Axes: false
@@ -217,12 +263,12 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         head_tilt_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         l_gripper_finger_link:
           Alpha: 1
           Show Axes: false
@@ -232,12 +278,12 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         laser_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         r_gripper_finger_link:
           Alpha: 1
           Show Axes: false
@@ -247,43 +293,43 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         shoulder_lift_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         shoulder_pan_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         torso_fixed_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         torso_lift_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         upperarm_roll_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         wrist_flex_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         wrist_roll_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-      Name: RobotModel
+          Value: false
+      Name: RobotHandModel
       Robot Description: robot_description
       TF Prefix: ""
       Update Interval: 0
@@ -313,22 +359,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.01764
+      Distance: 0.820882
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.258358
-        Y: -0.156321
-        Z: 0.461756
+        X: -0.0874816
+        Y: -0.383402
+        Z: 0.295597
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.560398
+      Pitch: 0.885398
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.36177
+      Yaw: 0.701766
     Saved: ~
 Window Geometry:
   Displays:
