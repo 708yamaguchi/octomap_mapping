@@ -21,9 +21,9 @@
 
 (defun grope ()
   (let* ((ec nil) (range 150.0)
-         (rand-vec-x (- (random range) (/ range 2))) (rand-vec-y (- (random range) (/ range 2.0))) (rand-vec-rot (- (random 1.0) 0.5))
+         (rand-vec-x (- (random range) (/ range 2))) (rand-vec-y (- (random range) (/ range 2.0))) (rand-vec-rot (- (random 1.6) 0.8))
          )
-    (send *ri* :stop-grasp :wait t)
+    (send *ri* :start-grasp :wait t)
     (send *fetch* :inverse-kinematics (make-coords
                                        :pos (v+ (float-vector rand-vec-x rand-vec-y 0) (float-vector 600 0 900))
                                        :rpy (float-vector 0 pi/2 rand-vec-rot)))
