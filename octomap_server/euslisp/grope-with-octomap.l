@@ -3,9 +3,10 @@
 (load "package://bag_segmentation/euslisp/bag-manipulation-interface.l")
 (load "package://bag_segmentation/euslisp/utils.l")
 
-(unless (boundp '*ri*)
-  (set-fetch))
+;; (unless (boundp '*ri*)
+;;   (set-fetch))
 (unless (boundp '*irtviewer*)
+  (fetch)
   (objects (list *fetch*)))
 
 (defun main ()
@@ -19,22 +20,22 @@
   )
 
 
-(load "av-and-groped-pc1.l")
+(load "package://octomap_server/euslisp/av-and-groped-pc1.l")
 (setq *pc* (cadr av-and-groped-pc1))
 (defun search-graspable-point (pc)
-  (let (min-x max-x min-y max-y min-z max-z
-        stick-l stick-r
-        random-x random-y random-rot
-        best-x best-y best-rot
-        (gr-x 40.0) (gr-y 30.0) (gr-z 60.0) (gr-open 100.0)
-        (gripper-l (send (make-cube gr-x gr-y gr-z) :locate #f(0 (/ gr-open -2) 0)))
-        (gripper-r (send (make-cube gr-x gr-y gr-z) :locate #f(0 (/ gr-open 2) 0)))
-        (gripper-inside (make-cube gr-x (- gr-open gr-y) gr-z))
-        (point-list (send pc :point-list))
-        (point-list-sorted (copy-object point-list))
-        highest-z
-        (inside-point 0) (max-inside-point 0)
-        )
+  (let* (min-x max-x min-y max-y min-z max-z
+         stick-l stick-r
+         random-x random-y random-rot
+         best-x best-y best-rot
+         (gr-x 40.0) (gr-y 30.0) (gr-z 60.0) (gr-open 100.0)
+         (gripper-l (send (make-cube gr-x gr-y gr-z) :locate (float-vector 0 (/ gr-open -2) 0)))
+         (gripper-r (send (make-cube gr-x gr-y gr-z) :locate (float-vector 0 (/ gr-open 2) 0)))
+         (gripper-inside (make-cube gr-x (- gr-open gr-y) gr-z))
+         (point-list (send pc :point-list))
+         (point-list-sorted (copy-object point-list))
+         highest-z
+         (inside-point 0) (max-inside-point 0)
+         )
     ;; get working space
     ;; (setq min-x (ros::get-param "occupancy_min_x"))
     ;; (setq max-x (ros::get-param "occupancy_max_x"))
@@ -53,9 +54,9 @@
     (send gripper-l :set-color #f(1 0 0))
     (send gripper-r :set-color #f(0 1 0))
     (send gripper-inside :set-color #f(0 0 1))
-    (setq stick-l (send (make-cube (make-cube gr-x gr-y (- max-z min-z))) :locate #f(0 (/ gr-open -2) (/ (+ max-z min-z) 2.0))))
+    (setq stick-l (send (make-cube gr-x gr-y (- max-z min-z)) :locate (float-vector 0 (/ gr-open -2) (/ (+ max-z min-z) 2.0))))
     (send stick-l :set-color #f(1 0 0 0.5))
-    (setq stick-r (send (make-cube (make-cube gr-x gr-y (- max-z min-z))) :locate #f(0 (/ gr-open 2) (/ (+ max-z min-z) 2.0))))
+    (setq stick-r (send (make-cube gr-x gr-y (- max-z min-z)) :locate (float-vector 0 (/ gr-open 2) (/ (+ max-z min-z) 2.0))))
     (send stick-r :set-color #f(0 1 0 0.5))
     (send gripper-inside :assoc gripper-l)
     (send gripper-inside :assoc gripper-r)
@@ -65,7 +66,6 @@
     ;; sort points in the order of z-height
     ;; (sort) is destructively sort
     (sort point-list-sorted #'(lambda (x y) (> (aref x 2) (aref y 2))))
-
     ;; search for most graspable point
     (dotimes (i 10)
       ;; move gripper randomly and get the highest point under the gripper
@@ -73,7 +73,7 @@
       (setq random-y (+ (random (- max-y min-y)) min-y))
       (setq random-rot (- (random pi) pi/2))
       (send gripper-inside :locate (float-vector random-x random-y 0) :world) ;; change position absolutely
-      (send gripper-inside :orient :z random-rot) ;; change rotation absolutely
+      (send gripper-inside :orient random-rot :z) ;; change rotation absolutely
       (dolist (point point-list-sorted)
         (if (or (equal (send stick-l :insidep point) :inside)
                 (equal (send stick-r :insidep point) :inside))
@@ -98,6 +98,7 @@
       (send gripper-inside :assoc stick-l)
       (send gripper-inside :assoc stick-r)
       )
+    (list best-x best-y best-rot)
     ))
 
 (defun random-grope ()
