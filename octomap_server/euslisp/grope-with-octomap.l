@@ -78,26 +78,26 @@
         (if (or (equal (send stick-l :insidep point) :inside)
                 (equal (send stick-r :insidep point) :inside))
           (setq highest-z (aref point 0))))
-      (if (null highest-z)
-        (return))
-      ;; move the hand down until collision with the highest point, and count the points inside the gripper.
-      (send gripper-inside :dissoc stick-l)
-      (send gripper-inside :dissoc stick-r)
-      (send gripper-inside :locate (float-vector 0 0 (+ highest-z (/ gr-z 2.0)) ))
-      ;; count the point inside of gripper-inside
-      (dolist (point point-list)
-        (if (equal (send gripper-inside :insidep point) :inside)
-          (setq inside-point (+ inside-point 1))))
-      (when (> inside-point max-inside-point)
-        (setq max-inside-point inside-point)
-        (setq best-x random-x)
-        (setq best-y random-y)
-        (setq best-rot random-rot))
-      ;; redo the movement of gripper-l, gripper-r and gripper-inside
-      (send gripper-inside :locate (float-vector 0 0 0))
-      (send gripper-inside :assoc stick-l)
-      (send gripper-inside :assoc stick-r)
-      )
+      (print highest-z)
+      (when highest-z
+        ;; move the hand down until collision with the highest point, and count the points inside the gripper.
+        (send gripper-inside :dissoc stick-l)
+        (send gripper-inside :dissoc stick-r)
+        (send gripper-inside :locate (float-vector 0 0 (+ highest-z (/ gr-z 2.0)) ))
+        ;; count the point inside of gripper-inside
+        (dolist (point point-list)
+          (if (equal (send gripper-inside :insidep point) :inside)
+            (setq inside-point (+ inside-point 1))))
+        (when (> inside-point max-inside-point)
+          (setq max-inside-point inside-point)
+          (setq best-x random-x)
+          (setq best-y random-y)
+          (setq best-rot random-rot))
+        ;; redo the movement of gripper-l, gripper-r and gripper-inside
+        (send gripper-inside :locate (float-vector 0 0 0))
+        (send gripper-inside :assoc stick-l)
+        (send gripper-inside :assoc stick-r)
+        ))
     (list best-x best-y best-rot)
     ))
 
