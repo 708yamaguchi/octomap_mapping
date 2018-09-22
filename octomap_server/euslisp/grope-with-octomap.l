@@ -26,7 +26,7 @@
 (setq *pc1* (cadr av-and-groped-pc1))
 (setq *pc2* (cadr av-and-groped-pc1))
 (defun search-graspable-point (pc)
-  (let* (min-x max-x min-y max-y min-z max-z
+  (let* (min-x max-x min-y max-y min-z max-z region
          stick-l stick-r
          random-x random-y random-rot
          best-x best-y best-z best-rot
@@ -54,6 +54,13 @@
     (setq max-y (* 0.25 1000))
     (setq min-z (* 0.6 1000))
     (setq max-z (* 1.0 1000))
+
+    (let ((cube (make-cube (- max-x min-x) (- max-y min-y) (- max-z min-z))))
+      (send cube :locate (float-vector (/ (+ max-x min-x) 2.0)
+                                       (/ (+ max-y min-y) 2.0)
+                                       (/ (+ max-z min-z) 2.0)) :world)
+      (send cube :worldcoords)
+      (setq region (send cube :edges)))
 
     ;; assoc the virtual gripper model
     (send gripper-l :set-color #f(1 0 0))
@@ -100,20 +107,18 @@
         (send gripper-inside :dissoc stick-l)
         (send gripper-inside :dissoc stick-r)
         (send gripper-inside :locate (float-vector 0 0 (+ highest-z (/ gr-z 2.0))) :local)
-        ;; (send *fetch* :inverse-kinematics (send (send gripper-inside :copy-worldcoords) :rotate pi/2 :y) :use-torso nil)
-        (send *fetch* :inverse-kinematics
-              (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
-                           :rpy (float-vector 0 pi/2 (* -1 random-rot))
-                           :use-torso nil))
         ;; for visualization
-        ;; (objects (list *fetch* *pc* stick-l stick-r gripper-inside))
+        ;; (send *fetch* :inverse-kinematics
+        ;;       (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
+        ;;                    :rpy (float-vector 0 pi/2 (* -1 random-rot))
+        ;;                    :use-torso nil))
+        ;; (objects (append (list *fetch* pc stick-l stick-r gripper-inside) region))
         ;; update objects related counting pointcloud
         (send gripper-inside :worldcoords)
         ;; count the point inside of gripper-inside
         (dolist (point point-list)
           (if (equal (send gripper-inside :insidep point) :inside)
             (setq inside-point (+ inside-point 1))))
-        (print inside-point)
         (when (> inside-point max-inside-point)
           (setq max-inside-point inside-point)
           (setq best-x random-x)
@@ -138,7 +143,7 @@
         (send gripper-inside :dissoc stick-r)
         (send gripper-inside :locate (float-vector best-x best-y (+ best-z (/ gr-z 2.0))) :world) ;; change position absolutely
         (send gripper-inside :orient best-rot :z :world) ;; change rotation absolutely
-        (objects (list *fetch* *pc*)))
+        (objects (append (list *fetch* pc) region)))
       (fotmat t "cannot find graspable point.~%"))
     ))
 
