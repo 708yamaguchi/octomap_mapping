@@ -2,6 +2,20 @@
 
 (load "package://bag_segmentation/euslisp/bag-manipulation-interface.l")
 (load "package://bag_segmentation/euslisp/utils.l")
+;; set working region
+;; (setq *min-x* (ros::get-param "occupancy_min_x"))
+;; (setq *max-x* (ros::get-param "occupancy_max_x"))
+;; (setq *min-y* (ros::get-param "occupancy_min_y"))
+;; (setq *max-y* (ros::get-param "occupancy_max_y"))
+;; (setq *min-z* (ros::get-param "occupancy_min_z"))
+;; (setq *max-z* (ros::get-param "occupancy_max_z"))
+(setq *min-x* (* 0.4 1000))
+(setq *max-x* (* 0.8 1000))
+(setq *min-y* (* -0.25 1000))
+(setq *max-y* (* 0.25 1000))
+(setq *min-z* (* 0.6 1000))
+(setq *max-z* (* 1.0 1000))
+
 
 ;; (unless (boundp '*ri*)
 ;;   (set-fetch))
@@ -20,13 +34,16 @@
   )
 
 
+;; resolution of octomap is assumed as 0.005[m]
+(defun create-octomap ()
+
 ;; for debug, call (search-graspable-point *pc1)
 (load "package://octomap_server/euslisp/av-and-groped-pc1.l")
 (load "package://octomap_server/euslisp/av-and-groped-pc2.l")
 (setq *pc1* (cadr av-and-groped-pc1))
 (setq *pc2* (cadr av-and-groped-pc1))
 (defun search-graspable-point (pc)
-  (let* (min-x max-x min-y max-y min-z max-z region
+  (let* (*min-x* *max-x* *min-y* *max-y* *min-z* *max-z* region
          stick-l stick-r
          random-x random-y random-rot
          best-x best-y best-z best-rot
@@ -41,24 +58,11 @@
          )
     (send *fetch* :torso :waist-z :joint-angle 300)
     (send *fetch* :stop-grasp)
-    ;; get working space
-    ;; (setq min-x (ros::get-param "occupancy_min_x"))
-    ;; (setq max-x (ros::get-param "occupancy_max_x"))
-    ;; (setq min-y (ros::get-param "occupancy_min_y"))
-    ;; (setq max-y (ros::get-param "occupancy_max_y"))
-    ;; (setq min-z (ros::get-param "occupancy_min_z"))
-    ;; (setq max-z (ros::get-param "occupancy_max_z"))
-    (setq min-x (* 0.4 1000))
-    (setq max-x (* 0.8 1000))
-    (setq min-y (* -0.25 1000))
-    (setq max-y (* 0.25 1000))
-    (setq min-z (* 0.6 1000))
-    (setq max-z (* 1.0 1000))
 
-    (let ((cube (make-cube (- max-x min-x) (- max-y min-y) (- max-z min-z))))
-      (send cube :locate (float-vector (/ (+ max-x min-x) 2.0)
-                                       (/ (+ max-y min-y) 2.0)
-                                       (/ (+ max-z min-z) 2.0)) :world)
+    (let ((cube (make-cube (- *max-x* *min-x*) (- *max-y* *min-y*) (- *max-z* *min-z*))))
+      (send cube :locate (float-vector (/ (+ *max-x* *min-x*) 2.0)
+                                       (/ (+ *max-y* *min-y*) 2.0)
+                                       (/ (+ *max-z* *min-z*) 2.0)) :world)
       (send cube :worldcoords)
       (setq region (send cube :edges)))
 
@@ -67,9 +71,9 @@
     (send gripper-r :set-color #f(0 1 0))
     (send gripper-inside :set-color #f(0 0 1))
     ;; stick is thexy-plane field occupied by gripper
-    (setq stick-l (send (make-cube gr-x gr-y (- max-z min-z)) :locate (float-vector 0 (/ gr-open -2) (/ (+ max-z min-z) 2.0))))
+    (setq stick-l (send (make-cube gr-x gr-y (- *max-z* *min-z*)) :locate (float-vector 0 (/ gr-open -2) (/ (+ *max-z* *min-z*) 2.0))))
     (send stick-l :set-color #f(1 0 0 0.5))
-    (setq stick-r (send (make-cube gr-x gr-y (- max-z min-z)) :locate (float-vector 0 (/ gr-open 2) (/ (+ max-z min-z) 2.0))))
+    (setq stick-r (send (make-cube gr-x gr-y (- *max-z* *min-z*)) :locate (float-vector 0 (/ gr-open 2) (/ (+ *max-z* *min-z*) 2.0))))
     (send stick-r :set-color #f(0 1 0 0.5))
     (send gripper-inside :assoc gripper-l)
     (send gripper-inside :assoc gripper-r)
@@ -90,8 +94,8 @@
       (send stick-r :worldcoords)
       (send gripper-inside :worldcoords)
       ;; set random point to grope
-      (setq random-x (+ (random (- max-x min-x)) min-x))
-      (setq random-y (+ (random (- max-y min-y)) min-y))
+      (setq random-x (+ (random (- *max-x* *min-x*)) *min-x*))
+      (setq random-y (+ (random (- *max-y* *min-y*)) *min-y*))
       (setq random-rot (- (random pi) pi/2))
       (send gripper-inside :locate (float-vector random-x random-y 0) :world) ;; change position absolutely
       (send gripper-inside :orient random-rot :z :world) ;; change rotation absolutely
@@ -127,8 +131,8 @@
           (setq best-rot random-rot))
         ;; redo the movement of gripper-l, gripper-r and gripper-inside
         (send gripper-inside :locate (float-vector 0 0 0) :world)
-        (send stick-l :locate (float-vector 0 (/ gr-open -2) (/ (+ max-z min-z) 2.0)) :world)
-        (send stick-r :locate (float-vector 0 (/ gr-open 2) (/ (+ max-z min-z) 2.0)) :world)
+        (send stick-l :locate (float-vector 0 (/ gr-open -2) (/ (+ *max-z* *min-z*) 2.0)) :world)
+        (send stick-r :locate (float-vector 0 (/ gr-open 2) (/ (+ *max-z* *min-z*) 2.0)) :world)
         (send gripper-inside :assoc stick-l)
         (send gripper-inside :assoc stick-r)
         ))
