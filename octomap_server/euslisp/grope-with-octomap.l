@@ -20,8 +20,11 @@
   )
 
 
+;; for debug, call (search-graspable-point *pc1)
 (load "package://octomap_server/euslisp/av-and-groped-pc1.l")
-(setq *pc* (cadr av-and-groped-pc1))
+(load "package://octomap_server/euslisp/av-and-groped-pc2.l")
+(setq *pc1* (cadr av-and-groped-pc1))
+(setq *pc2* (cadr av-and-groped-pc1))
 (defun search-graspable-point (pc)
   (let* (min-x max-x min-y max-y min-z max-z
          stick-l stick-r
