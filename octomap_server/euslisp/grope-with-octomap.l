@@ -16,13 +16,13 @@
 (setq *max-y* (* 0.25 1000))
 (setq *min-z* (* 0.6 1000))
 (setq *max-z* (* 1.0 1000))
-
-
+(setq *resolution* (* 0.005 1000))
 ;; (unless (boundp '*ri*)
 ;;   (set-fetch))
 (unless (boundp '*irtviewer*)
   (fetch)
   (objects (list *fetch*)))
+
 
 (defun main ()
   (send *fetch* :reset-pose)
@@ -35,8 +35,40 @@
   )
 
 
-;; resolution of octomap is assumed as 0.005[m]
-(defun create-octomap ()
+;; decide next grope point which is desirable for creating octomap
+(defun calc-grope-point (pc)
+  (let* ((point-list (send pc :point-list))
+         (point-mask (make-matrix (round (/ (- *max-x* *min-x*) *resolution*))
+                                  (round (/ (- *max-y* *min-y*) *resolution*))))
+         (density-map (copy-object point-mask))
+         (density-map-tile nil) (tile nil)
+         (adjacent-point-num 0))
+    ;; make 2D map above which at least one grid is occupied.
+    (dolist (point point-list)
+      (setf (aref point-mask
+                  (round (/ (- (aref point 0) *min-x* (/ *resolution* 2.0)) *resolution*))
+                  (round (/ (- (aref point 1) *min-y* (/ *resolution* 2.0)) *resolution*))) 1))
+    ;; calc number of adjacent masked pixel for each pixel of 2D map (pointmask)
+    (dotimes (x (length (matrix-column a 0)))
+      (dotimes (y (length (matrix-row a 0)))
+        (dolist (i (list -1 0 1))
+          (dolist (j (list -1 0 1))
+            (when (and (<= 0 (+ x i) (- (round (/ (- *max-x* *min-x*) *resolution*)) 1))
+                       (<= 0 (+ y j) (- (round (/ (- *max-y* *min-y*) *resolution*)) 1)))
+              (when (eq (round (aref point-mask (+ x i) (+ y j))) 1)
+                (setq adjacent-point-num (+ adjacent-point-num 1))))))
+        (setf (aref density-map x y) adjacent-point-num)
+        (setq tile (make-cube *resolution* *resolution* 1))
+        (send tile :set-color (float-vector (/ (* adjacent-point-num 1.0) 8.0) 1.0 1.0))
+        (send tile :locate (float-vector (+ *min-x* (/ *resolution* 2.0) (* x *resolution*))
+                                         (+ *min-y* (/ *resolution* 2.0) (* y *resolution*))
+                                         *min-z*) :world)
+        (setq density-map-tile (append density-map-tile (list tile)))
+        (setq adjacent-point-num 0)))
+    ;; for visualization
+    (objects (append (list *fetch* *pc*) density-map-tile))
+    nil
+    ))
 
 ;; for debug, call (search-graspable-point *pc1)
 (load "package://octomap_server/euslisp/av-and-groped-pc1.l")
