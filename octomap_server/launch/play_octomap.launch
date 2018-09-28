@@ -15,4 +15,7 @@
 
   <param name="robot_description" command="$(find xacro)/xacro.py $(find fetch_description)/robots/fetch.urdf" />
 
+  <!-- rviz -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/multicloud.rviz"/>
+
 </launch>

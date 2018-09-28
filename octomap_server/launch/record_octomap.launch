@@ -18,8 +18,9 @@
               /joint_states
               /map
 
-              /octomap_point_cloud_centers
-              /octomap_unknown_point_cloud_centers
+              /occupied_cells_vis_array
+              /free_cells_vis_array
+              /unknown_cells_vis_array
               "
 
         output="screen">
