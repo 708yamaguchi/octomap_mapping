@@ -4,6 +4,7 @@
 
   <!-- USAGE -->
   <!-- roslaunch euslib play_rosbag.launch filename:=$HOME/.ros/rosbag/sotsuron/hoge.bag -->
+  <!-- you can pause rosbag at any time by pressing space key -->
 
   <!-- for fetch robot -->
   <arg name="filename" />
