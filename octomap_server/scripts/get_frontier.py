@@ -3,6 +3,8 @@
 import rospy
 from sensor_msgs.msg import PointCloud2
 from jsk_topic_tools import ConnectionBasedTransport
+import numpy as np
+from std_srvs.srv import *
 
 
 class FrontierPublisher(ConnectionBasedTransport):
@@ -26,11 +28,14 @@ class FrontierPublisher(ConnectionBasedTransport):
 
     def cb_unknown(self, msg):
         self.unknown_cloud = msg
-        self.occupied_pub.publish(f.occupied_cloud)
-        self.unknown_pub.publish(f.unknown_cloud)
-        rospy.sleep(100)
+
+    def get_frontier(self, req):
+        self.occupied_pub.publish(self.occupied_cloud)
+        self.unknown_pub.publish(self.unknown_cloud)
+        return EmptyResponse()
 
 if __name__ == '__main__':
-    rospy.init_node('frontier_publisher')
-    f = FrontierPublisher()
+    rospy.init_node('get_frontier_server')
+    fp = FrontierPublisher()
+    s = rospy.Service('get_frontier', Empty, fp.get_frontier)
     rospy.spin()
