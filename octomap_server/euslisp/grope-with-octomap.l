@@ -35,7 +35,27 @@
   )
 
 
+;; before calling this function, necessary to subscribe "/unknown_cells_vis_array"
+;; (load "package://octomap_server/euslisp/occupied-and-unknown-cloud1.l")
+;; (load "package://octomap_server/euslisp/occupied-and-unknown-cloud2.l")
+(defun get-octo-pointcloud ()
+  (ros::spin-once)
+  (let* ((occupied-octo-cloud (one-shot-subscribe "/octomap_point_cloud_centers" sensor_msgs::Pointcloud2))
+         (eus-occupied-octo-cloud (make-eus-pointcloud-from-ros-msg occupied-octo-cloud))
+         (unknown-octo-cloud (one-shot-subscribe "/octomap_unknown_point_cloud_centers" sensor_msgs::Pointcloud2))
+         (eus-unknown-octo-cloud (make-eus-pointcloud-from-ros-msg unknown-octo-cloud))
+         (colors nil))
+    ;; set colors to octo-clouds, occupied -> blue, unknown -> default(green)
+    (setq colors (make-list (send eus-occupied-octo-cloud :size) :initial-element (list 0 0 1)))
+    (send eus-occupied-octo-cloud :colors (apply #'matrix colors))
+    (list eus-occupied-octo-cloud eus-unknown-octo-cloud)))
+
+
+(defun get-frontier-edge (eus-occupied-octo-cloud eus-unknown-octo-cloud)
+
+
 ;; decide next grope point which is desirable for creating octomap
+;; TODO this method is no more needed.
 (defun calc-grope-point (pc)
   (let* ((point-list (send pc :point-list))
          (point-mask (make-matrix (round (/ (- *max-x* *min-x*) *resolution*))
@@ -73,11 +93,14 @@
     nil
     ))
 
+
 ;; for debug, call (search-graspable-point *pc1)
 (load "package://octomap_server/euslisp/av-and-groped-pc1.l")
 (load "package://octomap_server/euslisp/av-and-groped-pc2.l")
 (setq *pc1* (cadr av-and-groped-pc1))
 (setq *pc2* (cadr av-and-groped-pc1))
+;; TODO decide grope point based on height map. hint is in (calc-grope-point)
+;; TODO use pyramid algorithm when searching grope point
 (defun search-graspable-point (pc)
   (let* (*min-x* *max-x* *min-y* *max-y* *min-z* *max-z* region
          stick-l stick-r
