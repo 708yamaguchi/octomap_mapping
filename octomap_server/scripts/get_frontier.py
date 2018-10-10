@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+import time
+import chainer
+import chainer.functions as F
+import copy
 import rospy
 # from sensor_msgs.msg import PointCloud2
 from visualization_msgs.msg import Marker
@@ -88,29 +92,42 @@ class FrontierPublisher(ConnectionBasedTransport):
     def get_frontier(self):
         # return EmptyResponse()
         # rospy.loginfo("Calculate frontier.")
-        t = rospy.Time.now()
-        rospy.loginfo('start get_frontier: {}.{}'.format(t.secs, t.nsecs))
+        # t_start = rospy.Time.now()
+        t_start = time.time()
+        # rospy.loginfo(
+        #     'start get_frontier: {}'.format(t_start))
         self.frontier[:] = 0
-        for i in range(1, self.frontier.shape[0] - 1):
-            for j in range(1, self.frontier.shape[1] - 1):
-                for k in range(1, self.frontier.shape[2] - 1):
-                    if self.grid[i][j][k] == 0:  # if this grid is free
-                        flag = False
-                        for l in [-1, 0, 1]:
-                            if flag is False:
-                                for m in [-1, 0, 1]:
-                                    if flag is False:
-                                        for n in [-1, 0, 1]:
-                                            if flag is False:
-                                                if self.grid[i+l][j+m][k+n] == 2:
-                                                    flag = True
-                                                    self.frontier[i][j][k] = 1
-                                            else:
-                                                break
-                                    else:
-                                        break
-                            else:
-                                break
+
+        # slow
+        # for i in range(1, self.frontier.shape[0] - 1):
+        #     for j in range(1, self.frontier.shape[1] - 1):
+        #         for k in range(1, self.frontier.shape[2] - 1):
+        #             if self.grid[i][j][k] == 0:  # if this grid is free
+        #                 flag = False
+        #                 for l in [-1, 0, 1]:
+        #                     if flag is False:
+        #                         for m in [-1, 0, 1]:
+        #                             if flag is False:
+        #                                 for n in [-1, 0, 1]:
+        #                                     if flag is False:
+        #                                         if self.grid[i+l][j+m][k+n] == 2:
+        #                                             flag = True
+        #                                             self.frontier[i][j][k] = 1
+        #                                     else:
+        #                                         break
+        #                             else:
+        #                                 break
+        #                     else:
+        #                         break
+
+        # use conv
+        grid = copy.copy(self.grid)
+        grid = chainer.Variable(grid.astype(np.float32))
+        max_grid = F.max_pooling_nd(grid, ksize=3, stride=1, pad=1)
+        self.frontier = np.logical_and(
+            max_grid.data == 2,
+            self.grid == 0).astype(np.int)
+
 
         pub_marker = MarkerArray()
         frontier_marker = Marker()
@@ -125,8 +142,11 @@ class FrontierPublisher(ConnectionBasedTransport):
         frontier_marker.color.r = 1.0
         pub_marker.markers = [frontier_marker]
 
-        t = rospy.Time.now()
-        rospy.loginfo('end get_frontier: {}.{}'.format(t.secs, t.nsecs))
+        # t_end = rospy.Time.now()
+        # rospy.loginfo(
+        #     'end get_frontier: {}.{}'.format(t_end.secs, t_end.nsecs))
+        t_end = time.time()
+        rospy.loginfo('computation time: {}'.format(t_end - t_start))
 
         return
 
