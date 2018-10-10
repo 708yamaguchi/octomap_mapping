@@ -2,6 +2,7 @@
 
 import rospy
 # from sensor_msgs.msg import PointCloud2
+from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 from jsk_topic_tools import ConnectionBasedTransport
 import numpy as np
@@ -72,6 +73,8 @@ class FrontierPublisher(ConnectionBasedTransport):
     def cb_free(self, msg):
         free_points = msg.markers[0].points
         self.update_grid(free_points, 'free')
+        self.frame_id = msg.markers[0].header.frame_id
+        self.ns = msg.markers[0].ns
         self.get_frontier()
 
     def cb_occupied(self, msg):
@@ -84,11 +87,48 @@ class FrontierPublisher(ConnectionBasedTransport):
 
     def get_frontier(self):
         # return EmptyResponse()
-        rospy.loginfo("Calculate frontier.")
+        # rospy.loginfo("Calculate frontier.")
+        t = rospy.Time.now()
+        rospy.loginfo('start get_frontier: {}.{}'.format(t.secs, t.nsecs))
         self.frontier[:] = 0
-        for i in self.frontier.shape[0]:
-            for j in self.frontier.shape[1]:
-                for k in self.frontier.shape[2]:
+        for i in range(1, self.frontier.shape[0] - 1):
+            for j in range(1, self.frontier.shape[1] - 1):
+                for k in range(1, self.frontier.shape[2] - 1):
+                    if self.grid[i][j][k] == 0:  # if this grid is free
+                        flag = False
+                        for l in [-1, 0, 1]:
+                            if flag is False:
+                                for m in [-1, 0, 1]:
+                                    if flag is False:
+                                        for n in [-1, 0, 1]:
+                                            if flag is False:
+                                                if self.grid[i+l][j+m][k+n] == 2:
+                                                    flag = True
+                                                    self.frontier[i][j][k] = 1
+                                            else:
+                                                break
+                                    else:
+                                        break
+                            else:
+                                break
+
+        pub_marker = MarkerArray()
+        frontier_marker = Marker()
+        frontier_marker.header.stamp = rospy.Time.now()
+        frontier_marker.header.frame_id = self.frame_id
+        frontier_marker.ns = self.ns
+        frontier_marker.type = 6
+        frontier_marker.action = 2
+        frontier_marker.color.r = 1.0
+        frontier_marker.color.g = 0.0
+        frontier_marker.color.b = 0.0
+        frontier_marker.color.r = 1.0
+        pub_marker.markers = [frontier_marker]
+
+        t = rospy.Time.now()
+        rospy.loginfo('end get_frontier: {}.{}'.format(t.secs, t.nsecs))
+
+        return
 
 
 if __name__ == '__main__':
