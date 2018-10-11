@@ -76,38 +76,41 @@ class FrontierPublisher(ConnectionBasedTransport):
         self.sub_unknown.unregister()
 
     def update_grid(self, marker_array, occupancy_type=True):
-        if occupancy_type == 'free':
-            self.free[:] = 0
-        elif occupancy_type == 'unknown':
-            self.unknown[:] = 0
-        # update each grid
-        # be careful that size of grids in octomap may differ from each other
         x_min = self.occupancy_region[self.min_x]
         y_min = self.occupancy_region[self.min_y]
         z_min = self.occupancy_region[self.min_z]
         resolution = self.resolution
-        for marker in marker_array.markers:
-            x_size = marker.scale.x
-            y_size = marker.scale.y
-            z_size = marker.scale.z
-            x_num = int(x_size / self.resolution)
-            y_num = int(y_size / self.resolution)
-            z_num = int(z_size / self.resolution)
-            for point in marker.points:
-                xyz_min = np.round(np.array([
-                    point.x - (x_size / 2.0) - x_min,
-                    point.y - (y_size / 2.0) - y_min,
-                    point.z - (z_size / 2.0) - z_min]) / resolution).astype(np.int)
 
-                if occupancy_type == 'free':
+        if occupancy_type == 'free':
+            self.free[:] = 0
+            # update each grid
+            # be careful that size of grids in octomap may differ from each other
+            for marker in marker_array.markers:
+                x_size = marker.scale.x
+                y_size = marker.scale.y
+                z_size = marker.scale.z
+                x_num = int(x_size / self.resolution)
+                y_num = int(y_size / self.resolution)
+                z_num = int(z_size / self.resolution)
+                for point in marker.points:
+                    xyz_min = np.round(np.array([
+                        point.x - (x_size / 2.0) - x_min,
+                        point.y - (y_size / 2.0) - y_min,
+                        point.z - (z_size / 2.0) - z_min]) / resolution).astype(np.int)
                     self.free[xyz_min[0]:xyz_min[0]+x_num,
                               xyz_min[1]:xyz_min[1]+y_num,
                               xyz_min[2]:xyz_min[2]+z_num] = 1
 
-                elif occupancy_type == 'unknown':
-                    self.unknown[xyz_min[0]:xyz_min[0]+x_num,
-                                 xyz_min[1]:xyz_min[1]+y_num,
-                                 xyz_min[2]:xyz_min[2]+z_num] = 1
+        elif occupancy_type == 'unknown':
+            self.unknown[:] = 0
+            # be careful that size of all grids are resolution
+            for marker in marker_array.markers:  # markers' length is always 1
+                for point in marker.points:
+                    xyz_min = np.round(np.array([
+                        (point.x - x_min),
+                        (point.y - y_min),
+                        (point.z - z_min)]) / resolution - 1).astype(np.int)
+                    self.unknown[xyz_min[0]][xyz_min[1]][xyz_min[2]] = 1
 
     # only when free grid topic comes, publish frontier grid
     def cb_free(self, msg):
