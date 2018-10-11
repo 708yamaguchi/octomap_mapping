@@ -65,8 +65,6 @@ class FrontierPublisher(ConnectionBasedTransport):
     def subscribe(self):
         self.sub_free = rospy.Subscriber("free_cells_vis_array",
                                          MarkerArray, self.cb_free)
-        # self.sub_occupied = rospy.Subscriber("occupied_cells_vis_array",
-        #                                      MarkerArray, self.cb_occupied)
         self.sub_unknown = rospy.Subscriber("unknown_cells_vis_array",
                                             MarkerArray, self.cb_unknown)
 
@@ -89,17 +87,18 @@ class FrontierPublisher(ConnectionBasedTransport):
                 x_size = marker.scale.x
                 y_size = marker.scale.y
                 z_size = marker.scale.z
-                x_num = int(x_size / self.resolution)
-                y_num = int(y_size / self.resolution)
-                z_num = int(z_size / self.resolution)
+                x_num = int(x_size / resolution)
+                y_num = int(y_size / resolution)
+                z_num = int(z_size / resolution)
                 for point in marker.points:
                     xyz_min = np.round(np.array([
                         point.x - (x_size / 2.0) - x_min,
                         point.y - (y_size / 2.0) - y_min,
                         point.z - (z_size / 2.0) - z_min]) / resolution).astype(np.int)
-                    self.free[xyz_min[0]:xyz_min[0]+x_num,
-                              xyz_min[1]:xyz_min[1]+y_num,
-                              xyz_min[2]:xyz_min[2]+z_num] = 1
+                    # NOTE +1 in below codes are very important to avoid making gap between unknown grids and frontier grids
+                    self.free[xyz_min[0]:xyz_min[0]+x_num+1,
+                              xyz_min[1]:xyz_min[1]+y_num+1,
+                              xyz_min[2]:xyz_min[2]+z_num+1] = 1
 
         elif occupancy_type == 'unknown':
             self.unknown[:] = 0
@@ -114,14 +113,11 @@ class FrontierPublisher(ConnectionBasedTransport):
 
     # only when free grid topic comes, publish frontier grid
     def cb_free(self, msg):
-        rospy.loginfo('[cb_free]')
+        # rospy.loginfo('[cb_free]')
         self.update_grid(msg, 'free')
 
-    # def cb_occupied(self, msg):
-    #     self.update_grid(msg, 'occupied')
-
     def cb_unknown(self, msg):
-        rospy.loginfo('[cb_unknown] publish frontier grids')
+        # rospy.loginfo('[cb_unknown] publish frontier grids')
         self.frame_id = msg.markers[0].header.frame_id
         self.ns = msg.markers[0].ns
         self.update_grid(msg, 'unknown')
@@ -142,6 +138,11 @@ class FrontierPublisher(ConnectionBasedTransport):
         # self.frontier = (self.unknown == 1).astype(np.int)
         # self.frontier = (self.free == 1).astype(np.int)
         # self.frontier = (max_grid == 1).astype(np.int)
+        # print(11111111111111)
+        # print(np.sum(self.frontier == 1))
+        # print(np.sum(free_grid == 1))
+        # print(np.sum(max_grid == 1))
+        # print(22222222222222)
 
         pub_marker = MarkerArray()
         frontier_marker = Marker()
