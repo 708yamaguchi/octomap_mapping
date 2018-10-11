@@ -121,9 +121,9 @@ class FrontierPublisher(ConnectionBasedTransport):
     #     self.update_grid(msg, 'occupied')
 
     def cb_unknown(self, msg):
+        rospy.loginfo('[cb_unknown] publish frontier grids')
         self.frame_id = msg.markers[0].header.frame_id
         self.ns = msg.markers[0].ns
-        rospy.loginfo('[cb_unknown] publish frontier grids')
         self.update_grid(msg, 'unknown')
         self.publish_frontier()
 
@@ -131,14 +131,17 @@ class FrontierPublisher(ConnectionBasedTransport):
         self.frontier[:] = 0
         # use conv for detecting free grids adjacent to unknown grids
         unknown_grid = copy.copy(self.unknown)
-        unknown_grid = chainer.Variable(np.array([[unknown_grid]], dtype=np.float32))
+        free_grid = copy.copy(self.free)
+        unknown_grid = chainer.Variable(np.array([[self.unknown]], dtype=np.float32))
         max_grid = F.max_pooling_nd(unknown_grid, ksize=3, stride=1, pad=1).data[0][0]
         self.frontier = np.logical_and(
             max_grid == 1,
-            self.free == 1).astype(np.int)
+            free_grid == 1).astype(np.int)
 
         # for debug, visualize unknown grid as frontier grid
         # self.frontier = (self.unknown == 1).astype(np.int)
+        # self.frontier = (self.free == 1).astype(np.int)
+        # self.frontier = (max_grid == 1).astype(np.int)
 
         pub_marker = MarkerArray()
         frontier_marker = Marker()
