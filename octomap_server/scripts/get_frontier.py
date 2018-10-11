@@ -119,7 +119,8 @@ class FrontierPublisher(ConnectionBasedTransport):
 
         pub_marker = MarkerArray()
         frontier_marker = Marker()
-        point_list = []
+        point_list = [None] * np.sum(self.frontier == 1)
+        count = 0
         for i in range(self.frontier.shape[0]):
             for j in range(self.frontier.shape[1]):
                 for k in range(self.frontier.shape[2]):
@@ -128,7 +129,9 @@ class FrontierPublisher(ConnectionBasedTransport):
                         point.x = (i+1) * self.resolution + self.occupancy_region['occupancy_min_x']
                         point.y = (j+1) * self.resolution + self.occupancy_region['occupancy_min_y']
                         point.z = (k+1) * self.resolution + self.occupancy_region['occupancy_min_z']
-                        point_list.append(point)
+                        point_list[count] = point
+                        count = count + 1
+
         frontier_marker.points = point_list
         frontier_marker.header.stamp = rospy.Time.now()
         frontier_marker.header.frame_id = self.frame_id
