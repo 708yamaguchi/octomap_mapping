@@ -44,7 +44,7 @@ class FrontierPublisher(ConnectionBasedTransport):
                  - self.occupancy_region['occupancy_min_z']) / self.resolution
         # grid is 0: free, 1: occupied, 2: unknown # NOQA
         self.grid = np.full((int(x_num), int(y_num), int(z_num)),
-                            2,  # initialize array by 2
+                            -1,  # initialize array by -1, which does not belongs to free, occupied and unknown
                             dtype=np.int)
         self.frontier = np.full((int(x_num), int(y_num), int(z_num)),
                                 0,  # initialize array by 0
@@ -74,32 +74,41 @@ class FrontierPublisher(ConnectionBasedTransport):
             oc_type = 2
         # set grid_type to each grid
         # be careful that size of grids in octomap may differ from each other
+        x_min = self.occupancy_region['occupancy_min_x']
+        y_min = self.occupancy_region['occupancy_min_y']
+        z_min = self.occupancy_region['occupancy_min_z']
+        resolution = self.resolution
         for marker in marker_array.markers:
             x_size = marker.scale.x
             y_size = marker.scale.y
             z_size = marker.scale.z
+            x_num = int(x_size / self.resolution)
+            y_num = int(y_size / self.resolution)
+            z_num = int(z_size / self.resolution)
             for point in marker.points:
-                x_min_index = int(np.round((point.x - (x_size / 2.0) - self.occupancy_region['occupancy_min_x']) / self.resolution))
-                x_max_index = int(np.round((point.x + (x_size / 2.0) - self.occupancy_region['occupancy_min_x']) / self.resolution))
-                y_min_index = int(np.round((point.y - (y_size / 2.0) - self.occupancy_region['occupancy_min_y']) / self.resolution))
-                y_max_index = int(np.round((point.y + (y_size / 2.0) - self.occupancy_region['occupancy_min_y']) / self.resolution))
-                z_min_index = int(np.round((point.z - (z_size / 2.0) - self.occupancy_region['occupancy_min_z']) / self.resolution))
-                z_max_index = int(np.round((point.z + (z_size / 2.0) - self.occupancy_region['occupancy_min_z']) / self.resolution))
-                for x in range(x_min_index, x_max_index):
-                    for y in range(y_min_index, y_max_index):
-                        for z in range(z_min_index, z_max_index):
-                            self.grid[x][y][z] = oc_type
+                xyz_min = np.round(np.array([
+                    point.x - (x_size / 2.0) - x_min,
+                    point.y - (y_size / 2.0) - y_min,
+                    point.z - (z_size / 2.0) - z_min]) / resolution).astype(np.int)
+                # x_max_index = int(np.round((point.x + (x_size / 2.0) - self.occupancy_region['occupancy_min_x']) / self.resolution))
+                self.grid[xyz_min[0]:xyz_min[0]+x_num,
+                          xyz_min[1]:xyz_min[1]+y_num,
+                          xyz_min[2]:xyz_min[2]+z_num] = oc_type
 
     # only when free grid topic comes, publish frontier grid
     def cb_free(self, msg):
+        t_start = time.time()
         self.update_grid(msg, 'free')
+        t_end = time.time()
+        rospy.loginfo('update_grid() computation time: {}'.format(t_end - t_start))
         self.frame_id = msg.markers[0].header.frame_id
         self.ns = msg.markers[0].ns
         t_start = time.time()
         self.publish_frontier()
         t_end = time.time()
-
-        rospy.loginfo('frontier grids computation time: {}'.format(t_end - t_start))
+        rospy.loginfo('publish_frontier() computation time: {}'.format(t_end - t_start))
+        print()
+        # rospy.loginfo('frontier grids computation time: {}'.format(t_end - t_start))
 
     def cb_occupied(self, msg):
         self.update_grid(msg, 'occupied')
@@ -111,11 +120,14 @@ class FrontierPublisher(ConnectionBasedTransport):
         self.frontier[:] = 0
         # use conv for detecting free grids adjacent to unknown grids
         grid = copy.copy(self.grid)
-        grid = chainer.Variable(grid.astype(np.float32))
-        max_grid = F.max_pooling_nd(grid, ksize=3, stride=1, pad=1)
+        grid = chainer.Variable(np.array([[grid]], dtype=np.float32))
+        max_grid = F.max_pooling_nd(grid, ksize=3, stride=1, pad=1).data[0][0]
         self.frontier = np.logical_and(
-            max_grid.data == 2,
+            max_grid == 2,
             self.grid == 0).astype(np.int)
+
+        # for debug, visualize unknown grid as frontier grid
+        # self.frontier = (self.grid == 2).astype(np.int)
 
         pub_marker = MarkerArray()
         frontier_marker = Marker()
