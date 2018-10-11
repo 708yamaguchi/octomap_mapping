@@ -107,18 +107,12 @@ class FrontierPublisher(ConnectionBasedTransport):
 
     # only when free grid topic comes, publish frontier grid
     def cb_free(self, msg):
-        t_start = time.time()
+        rospy.loginfo('publish')
         self.update_grid(msg, 'free')
-        t_end = time.time()
-        rospy.loginfo('update_grid() computation time: {}'.format(t_end - t_start))
         self.frame_id = msg.markers[0].header.frame_id
         self.ns = msg.markers[0].ns
-        t_start = time.time()
+        rospy.loginfo('publish frontier grid')
         self.publish_frontier()
-        t_end = time.time()
-        rospy.loginfo('publish_frontier() computation time: {}'.format(t_end - t_start))
-        print()
-        # rospy.loginfo('frontier grids computation time: {}'.format(t_end - t_start))
 
     def cb_occupied(self, msg):
         self.update_grid(msg, 'occupied')
