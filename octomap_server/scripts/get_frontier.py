@@ -107,7 +107,6 @@ class FrontierPublisher(ConnectionBasedTransport):
 
     # only when free grid topic comes, publish frontier grid
     def cb_free(self, msg):
-        rospy.loginfo('publish')
         self.update_grid(msg, 'free')
         self.frame_id = msg.markers[0].header.frame_id
         self.ns = msg.markers[0].ns
