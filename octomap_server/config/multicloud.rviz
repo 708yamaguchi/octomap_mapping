@@ -26,7 +26,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: VisProximityLeft
+    SyncSource: ""
   - Class: jsk_rviz_plugin/PublishTopic
     Name: PublishTopic
     Topic: /set_init_proximities
@@ -56,7 +56,7 @@ Visualization Manager:
       Marker Topic: /occupied_cells_vis_array
       Name: OccupiedCells
       Namespaces:
-        octomap_world: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -105,6 +105,14 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /frontier_cells_vis_array
+      Name: FrontierCells
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -527,22 +535,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.75022
+      Distance: 0.917106
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.0591561
-        Y: -0.305533
-        Z: 0.52142
+        X: -0.0361145
+        Y: -0.285814
+        Z: 0.557825
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.789795
+      Pitch: 1.3348
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.07493
+      Yaw: 0.0699347
     Saved: ~
 Window Geometry:
   Displays:
@@ -564,5 +572,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1855
-  X: 55
-  Y: -14
+  X: 65
+  Y: 24
