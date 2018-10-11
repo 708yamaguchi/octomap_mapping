@@ -4,6 +4,7 @@ import time
 import chainer
 import chainer.functions as F
 import copy
+from geometry_msgs.msg import Point
 import rospy
 # from sensor_msgs.msg import PointCloud2
 from visualization_msgs.msg import Marker
@@ -62,65 +63,53 @@ class FrontierPublisher(ConnectionBasedTransport):
         self.sub_occupied.unregister()
         self.sub_unknown.unregister()
 
-    def update_grid(self, points, occupancy_type):
-        for point in points:
-            x_index = int(np.round(((point.x - self.occupancy_region['occupancy_min_x']) / self.resolution) - 1))
-            y_index = int(np.round(((point.y - self.occupancy_region['occupancy_min_y']) / self.resolution) - 1))
-            z_index = int(np.round(((point.z - self.occupancy_region['occupancy_min_z']) / self.resolution) - 1))
-            if occupancy_type == 'free':
-                self.grid[x_index][y_index][z_index] = 0
-            elif occupancy_type == 'occupied':
-                self.grid[x_index][y_index][z_index] = 1
-            elif occupancy_type == 'unknown':
-                self.grid[x_index][y_index][z_index] = 2
+    def update_grid(self, marker_array, occupancy_type=True):
+        if occupancy_type is True:
+            rospy.logerr('occupancy type is not set.')
+        elif occupancy_type == 'free':
+            oc_type = 0
+        elif occupancy_type == 'occupied':
+            oc_type = 1
+        elif occupancy_type == 'unknown':
+            oc_type = 2
+        # set grid_type to each grid
+        # be careful that size of grids in octomap may differ from each other
+        for marker in marker_array.markers:
+            x_size = marker.scale.x
+            y_size = marker.scale.y
+            z_size = marker.scale.z
+            for point in marker.points:
+                x_min_index = int(np.round((point.x - (x_size / 2.0) - self.occupancy_region['occupancy_min_x']) / self.resolution))
+                x_max_index = int(np.round((point.x + (x_size / 2.0) - self.occupancy_region['occupancy_min_x']) / self.resolution))
+                y_min_index = int(np.round((point.y - (y_size / 2.0) - self.occupancy_region['occupancy_min_y']) / self.resolution))
+                y_max_index = int(np.round((point.y + (y_size / 2.0) - self.occupancy_region['occupancy_min_y']) / self.resolution))
+                z_min_index = int(np.round((point.z - (z_size / 2.0) - self.occupancy_region['occupancy_min_z']) / self.resolution))
+                z_max_index = int(np.round((point.z + (z_size / 2.0) - self.occupancy_region['occupancy_min_z']) / self.resolution))
+                for x in range(x_min_index, x_max_index):
+                    for y in range(y_min_index, y_max_index):
+                        for z in range(z_min_index, z_max_index):
+                            self.grid[x][y][z] = oc_type
 
+    # only when free grid topic comes, publish frontier grid
     def cb_free(self, msg):
-        free_points = msg.markers[0].points
-        self.update_grid(free_points, 'free')
+        self.update_grid(msg, 'free')
         self.frame_id = msg.markers[0].header.frame_id
         self.ns = msg.markers[0].ns
-        self.get_frontier()
+        t_start = time.time()
+        self.publish_frontier()
+        t_end = time.time()
+
+        rospy.loginfo('frontier grids computation time: {}'.format(t_end - t_start))
 
     def cb_occupied(self, msg):
-        occupied_points = msg.markers[0].points
-        self.update_grid(occupied_points, 'occupied')
+        self.update_grid(msg, 'occupied')
 
     def cb_unknown(self, msg):
-        unknown_points = msg.markers[0].points
-        self.update_grid(unknown_points, 'unknown')
+        self.update_grid(msg, 'unknown')
 
-    def get_frontier(self):
-        # return EmptyResponse()
-        # rospy.loginfo("Calculate frontier.")
-        # t_start = rospy.Time.now()
-        t_start = time.time()
-        # rospy.loginfo(
-        #     'start get_frontier: {}'.format(t_start))
+    def publish_frontier(self):
         self.frontier[:] = 0
-
-        # slow
-        # for i in range(1, self.frontier.shape[0] - 1):
-        #     for j in range(1, self.frontier.shape[1] - 1):
-        #         for k in range(1, self.frontier.shape[2] - 1):
-        #             if self.grid[i][j][k] == 0:  # if this grid is free
-        #                 flag = False
-        #                 for l in [-1, 0, 1]:
-        #                     if flag is False:
-        #                         for m in [-1, 0, 1]:
-        #                             if flag is False:
-        #                                 for n in [-1, 0, 1]:
-        #                                     if flag is False:
-        #                                         if self.grid[i+l][j+m][k+n] == 2:
-        #                                             flag = True
-        #                                             self.frontier[i][j][k] = 1
-        #                                     else:
-        #                                         break
-        #                             else:
-        #                                 break
-        #                     else:
-        #                         break
-
-        # use conv
+        # use conv for detecting free grids adjacent to unknown grids
         grid = copy.copy(self.grid)
         grid = chainer.Variable(grid.astype(np.float32))
         max_grid = F.max_pooling_nd(grid, ksize=3, stride=1, pad=1)
@@ -128,32 +117,39 @@ class FrontierPublisher(ConnectionBasedTransport):
             max_grid.data == 2,
             self.grid == 0).astype(np.int)
 
-
         pub_marker = MarkerArray()
         frontier_marker = Marker()
+        point_list = []
+        for i in range(self.frontier.shape[0]):
+            for j in range(self.frontier.shape[1]):
+                for k in range(self.frontier.shape[2]):
+                    if self.frontier[i][j][k]:
+                        point = Point()
+                        point.x = (i+1) * self.resolution + self.occupancy_region['occupancy_min_x']
+                        point.y = (j+1) * self.resolution + self.occupancy_region['occupancy_min_y']
+                        point.z = (k+1) * self.resolution + self.occupancy_region['occupancy_min_z']
+                        point_list.append(point)
+        frontier_marker.points = point_list
         frontier_marker.header.stamp = rospy.Time.now()
         frontier_marker.header.frame_id = self.frame_id
         frontier_marker.ns = self.ns
         frontier_marker.type = 6
-        frontier_marker.action = 2
+        frontier_marker.action = 0
+        frontier_marker.scale.x = self.resolution
+        frontier_marker.scale.y = self.resolution
+        frontier_marker.scale.z = self.resolution
         frontier_marker.color.r = 1.0
         frontier_marker.color.g = 0.0
         frontier_marker.color.b = 0.0
-        frontier_marker.color.r = 1.0
+        frontier_marker.color.a = 1.0
         pub_marker.markers = [frontier_marker]
 
-        # t_end = rospy.Time.now()
-        # rospy.loginfo(
-        #     'end get_frontier: {}.{}'.format(t_end.secs, t_end.nsecs))
-        t_end = time.time()
-        rospy.loginfo('computation time: {}'.format(t_end - t_start))
-
-        return
+        self.frontier_pub.publish(pub_marker)
 
 
 if __name__ == '__main__':
     rospy.init_node('frontier_publisher')
-    rospy.loginfo("fugo")
+    rospy.loginfo("start publishing frontier grids")
     fp = FrontierPublisher()
-    # s = rospy.Service('get_frontier', Empty, fp.get_frontier)
+    # s = rospy.Service('publish_frontier', Empty, fp.publish_frontier)
     rospy.spin()
