@@ -23,28 +23,38 @@ class FrontierPublisher(ConnectionBasedTransport):
                                            MarkerArray, queue_size=1)
         # set occupancy region
         self.occupancy_region = {}
-        for i, rosparam in enumerate(['occupancy_min_x', 'occupancy_max_x',
-                                      'occupancy_min_y', 'occupancy_max_y',
-                                      'occupancy_min_z', 'occupancy_max_z']):
-            if rospy.has_param(rosparam):
-                self.occupancy_region[rosparam] = rospy.get_param(rosparam)
+        self.min_x = '/octomap_server_contact/occupancy_min_x'
+        self.max_x = '/octomap_server_contact/occupancy_max_x'
+        self.min_y = '/octomap_server_contact/occupancy_min_y'
+        self.max_y = '/octomap_server_contact/occupancy_max_y'
+        self.min_z = '/octomap_server_contact/occupancy_min_z'
+        self.max_z = '/octomap_server_contact/occupancy_max_z'
+        for i, param in enumerate([self.min_x,
+                                   self.max_x,
+                                   self.min_y,
+                                   self.max_y,
+                                   self.min_z,
+                                   self.max_z]):
+            if rospy.has_param(param):
+                self.occupancy_region[param] = rospy.get_param(param)
             else:
-                self.occupancy_region[rosparam] = [-0.3, 0.2, -0.7, 0.0, 0.3, 0.8][i]
-        if rospy.has_param('resolution'):
-            self.resolution = rospy.get_param('resolution')
+                # for bag, this is example
+                self.occupancy_region[param] = [-0.3, 0.2, -0.6, -0.1, 0.2, 0.8][i]
+        if rospy.has_param('/octomap_server_contact/resolution'):
+            self.resolution = rospy.get_param('/octomap_server_contact/resolution')
         else:
             self.resolution = 0.005
 
         # bool array for occupied grid
-        x_num = (self.occupancy_region['occupancy_max_x']
-                 - self.occupancy_region['occupancy_min_x']) / self.resolution
-        y_num = (self.occupancy_region['occupancy_max_y']
-                 - self.occupancy_region['occupancy_min_y']) / self.resolution
-        z_num = (self.occupancy_region['occupancy_max_z']
-                 - self.occupancy_region['occupancy_min_z']) / self.resolution
+        x_num = (self.occupancy_region[self.max_x]
+                 - self.occupancy_region[self.min_x]) / self.resolution
+        y_num = (self.occupancy_region[self.max_y]
+                 - self.occupancy_region[self.min_y]) / self.resolution
+        z_num = (self.occupancy_region[self.max_z]
+                 - self.occupancy_region[self.min_z]) / self.resolution
         # grid is 0: free, 1: occupied, 2: unknown # NOQA
         self.grid = np.full((int(x_num), int(y_num), int(z_num)),
-                            -1,  # initialize array by -1, which does not belongs to free, occupied and unknown
+                            -1,  # initialize array by -1, which does not belongs to any of free, occupied and unknown
                             dtype=np.int)
         self.frontier = np.full((int(x_num), int(y_num), int(z_num)),
                                 0,  # initialize array by 0
@@ -74,9 +84,9 @@ class FrontierPublisher(ConnectionBasedTransport):
             oc_type = 2
         # set grid_type to each grid
         # be careful that size of grids in octomap may differ from each other
-        x_min = self.occupancy_region['occupancy_min_x']
-        y_min = self.occupancy_region['occupancy_min_y']
-        z_min = self.occupancy_region['occupancy_min_z']
+        x_min = self.occupancy_region[self.min_x]
+        y_min = self.occupancy_region[self.min_y]
+        z_min = self.occupancy_region[self.min_z]
         resolution = self.resolution
         for marker in marker_array.markers:
             x_size = marker.scale.x
@@ -90,7 +100,7 @@ class FrontierPublisher(ConnectionBasedTransport):
                     point.x - (x_size / 2.0) - x_min,
                     point.y - (y_size / 2.0) - y_min,
                     point.z - (z_size / 2.0) - z_min]) / resolution).astype(np.int)
-                # x_max_index = int(np.round((point.x + (x_size / 2.0) - self.occupancy_region['occupancy_min_x']) / self.resolution))
+                # x_max_index = int(np.round((point.x + (x_size / 2.0) - self.occupancy_region[self.min_x]) / self.resolution))
                 self.grid[xyz_min[0]:xyz_min[0]+x_num,
                           xyz_min[1]:xyz_min[1]+y_num,
                           xyz_min[2]:xyz_min[2]+z_num] = oc_type
@@ -138,9 +148,9 @@ class FrontierPublisher(ConnectionBasedTransport):
                 for k in range(self.frontier.shape[2]):
                     if self.frontier[i][j][k]:
                         point = Point()
-                        point.x = (i+1) * self.resolution + self.occupancy_region['occupancy_min_x']
-                        point.y = (j+1) * self.resolution + self.occupancy_region['occupancy_min_y']
-                        point.z = (k+1) * self.resolution + self.occupancy_region['occupancy_min_z']
+                        point.x = (i+1) * self.resolution + self.occupancy_region[self.min_x]
+                        point.y = (j+1) * self.resolution + self.occupancy_region[self.min_y]
+                        point.z = (k+1) * self.resolution + self.occupancy_region[self.min_z]
                         point_list[count] = point
                         count = count + 1
 
