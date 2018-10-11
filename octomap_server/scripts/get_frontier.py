@@ -167,7 +167,7 @@ class FrontierPublisher(ConnectionBasedTransport):
 
 
 if __name__ == '__main__':
-    rospy.init_node('frontier_publisher')
+    rospy.init_node('get_frontier')
     rospy.loginfo("start publishing frontier grids")
     fp = FrontierPublisher()
     # s = rospy.Service('publish_frontier', Empty, fp.publish_frontier)
