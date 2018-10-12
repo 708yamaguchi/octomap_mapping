@@ -15,6 +15,7 @@ from jsk_topic_tools import ConnectionBasedTransport
 import rospy
 # from sensor_msgs.msg import PointCloud2
 # from std_srvs.srv import Empty
+import threading
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 
@@ -54,9 +55,10 @@ class FrontierPublisher(ConnectionBasedTransport):
             (self.occupancy_region_max_z - self.occupancy_region_min_z) /
             self.resolution)
         self.free = np.full((x_num, y_num, z_num), False, dtype=np.bool)
-        self.free_past = np.full((x_num, y_num, z_num), False, dtype=np.bool)
+        # self.free_past = np.full((x_num, y_num, z_num), False, dtype=np.bool)
         self.unknown = np.full((x_num, y_num, z_num), False, dtype=np.bool)
         self.frontier = np.full((x_num, y_num, z_num), False, dtype=np.bool)
+        self.lock = threading.Lock()
 
     def subscribe(self):
         sub_free = rospy.Subscriber("free_cells_vis_array",
@@ -101,7 +103,7 @@ class FrontierPublisher(ConnectionBasedTransport):
                               xyz_min[1]:xyz_min[1] + y_num_plus1,
                               xyz_min[2]:xyz_min[2] + z_num_plus1] = True
             # copy latest free to past free
-            self.free_past = copy.deepcopy(self.free)
+            # self.free_past = copy.deepcopy(self.free)
 
         elif occupancy_type == 'unknown':
             self.unknown[:] = False
@@ -117,7 +119,9 @@ class FrontierPublisher(ConnectionBasedTransport):
     # Only when free grid topic comes, publish frontier grid
     def cb_free(self, msg):
         # rospy.loginfo('[cb_free]')
+        self.lock.acquire()
         self.update_grid(msg, 'free')
+        self.lock.release()
 
     def cb_unknown(self, msg):
         # rospy.loginfo('[cb_unknown] publish frontier grids')
@@ -129,13 +133,13 @@ class FrontierPublisher(ConnectionBasedTransport):
     def publish_frontier(self):
         self.frontier[:] = False
         # Use max_pooling for detecting free grids adjacent to unknown grids
-        unknown_grid = copy.deepcopy(self.unknown)
-        free_grid = copy.deepcopy(self.free_past)
-        unknown_grid_chainer = chainer.Variable(
-            np.array([[unknown_grid]], dtype=np.float32))
+        unknown_grid = chainer.Variable(
+            np.array([[self.unknown]], dtype=np.float32))
         max_grid = F.max_pooling_nd(
-            unknown_grid_chainer, ksize=3, stride=1, pad=1).data[0][0].astype(np.bool)
-        self.frontier = np.logical_and(max_grid, free_grid)
+            unknown_grid, ksize=3, stride=1, pad=1).data[0][0].astype(np.bool)
+        self.lock.acquire()
+        self.frontier = np.logical_and(max_grid, self.free)
+        self.lock.release()
 
         # For debug, visualize unknown grid as frontier grid
         # self.frontier = (self.unknown == 1).astype(np.int)
@@ -143,9 +147,9 @@ class FrontierPublisher(ConnectionBasedTransport):
         # self.frontier = (max_grid == 1).astype(np.int)
         print(11111111111111)
         print(np.sum(self.frontier == 1))
-        print(np.sum(free_grid))
+        print(np.sum(self.free))
         # print(np.sum(max_grid == 1))
-        print(np.sum(unknown_grid))
+        print(np.sum(self.unknown))
         print(22222222222222)
 
         frontier_marker = Marker()
