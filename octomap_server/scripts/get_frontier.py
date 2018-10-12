@@ -54,6 +54,7 @@ class FrontierPublisher(ConnectionBasedTransport):
             (self.occupancy_region_max_z - self.occupancy_region_min_z) /
             self.resolution)
         self.free = np.full((x_num, y_num, z_num), False, dtype=np.bool)
+        self.free_past = np.full((x_num, y_num, z_num), False, dtype=np.bool)
         self.unknown = np.full((x_num, y_num, z_num), False, dtype=np.bool)
         self.frontier = np.full((x_num, y_num, z_num), False, dtype=np.bool)
 
@@ -99,6 +100,8 @@ class FrontierPublisher(ConnectionBasedTransport):
                     self.free[xyz_min[0]:xyz_min[0] + x_num_plus1,
                               xyz_min[1]:xyz_min[1] + y_num_plus1,
                               xyz_min[2]:xyz_min[2] + z_num_plus1] = True
+            # copy latest free to past free
+            self.free_past = copy.deepcopy(self.free)
 
         elif occupancy_type == 'unknown':
             self.unknown[:] = False
@@ -127,22 +130,23 @@ class FrontierPublisher(ConnectionBasedTransport):
         self.frontier[:] = False
         # Use max_pooling for detecting free grids adjacent to unknown grids
         unknown_grid = copy.deepcopy(self.unknown)
-        free_grid = copy.deepcopy(self.free)
-        unknown_grid = chainer.Variable(
-            np.array([[self.unknown]], dtype=np.float32))
+        free_grid = copy.deepcopy(self.free_past)
+        unknown_grid_chainer = chainer.Variable(
+            np.array([[unknown_grid]], dtype=np.float32))
         max_grid = F.max_pooling_nd(
-            unknown_grid, ksize=3, stride=1, pad=1).data[0][0].astype(np.bool)
+            unknown_grid_chainer, ksize=3, stride=1, pad=1).data[0][0].astype(np.bool)
         self.frontier = np.logical_and(max_grid, free_grid)
 
         # For debug, visualize unknown grid as frontier grid
         # self.frontier = (self.unknown == 1).astype(np.int)
         # self.frontier = (self.free == 1).astype(np.int)
         # self.frontier = (max_grid == 1).astype(np.int)
-        # print(11111111111111)
-        # print(np.sum(self.frontier == 1))
-        # print(np.sum(free_grid == 1))
+        print(11111111111111)
+        print(np.sum(self.frontier == 1))
+        print(np.sum(free_grid))
         # print(np.sum(max_grid == 1))
-        # print(22222222222222)
+        print(np.sum(unknown_grid))
+        print(22222222222222)
 
         frontier_marker = Marker()
         point_list = [None] * np.sum(self.frontier)
