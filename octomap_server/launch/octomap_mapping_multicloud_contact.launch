@@ -90,6 +90,6 @@
   <!-- <node pkg="octomap_server" type="get_frontier.py" name="get_frontier" output="screen" /> -->
 
   <!-- rviz -->
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/multicloud.rviz"/>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/octomap_frontier.rviz"/>
 
 </launch>
