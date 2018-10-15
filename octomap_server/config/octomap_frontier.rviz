@@ -198,7 +198,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.001
       Style: Flat Squares
-      Topic: /camera_in
+      Topic: /camera_remote/depth_registered/points
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -535,22 +535,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.66504
+      Distance: 2.27467
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.0115091
-        Y: -0.182166
-        Z: 0.430068
+        X: 0.216585
+        Y: -0.0927414
+        Z: 0.819939
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.469797
+      Pitch: 0.330204
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 6.00313
+      Yaw: 5.08631
     Saved: ~
 Window Geometry:
   Displays:
