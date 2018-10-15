@@ -42,13 +42,14 @@
   <!-- octomap -->
   <node pkg="jsk_pcl_ros" type="octomap_server_contact" name="octomap_server_contact"
         output="screen" >
-	<param name="resolution" value="0.005" />
+	<param name="resolution" value="0.01" />
 	<!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
     <param name="frame_id" type="string" value="octomap_world" />
 	<!-- maximum range to integrate (speedup!) -->
 	<param name="sensor_model/max_range" value="5.0" />
     <param name="publish_free_space" value="true"/>
     <param name="publish_unknown_space" value="true"/>
+    <param name="publish_frontier_space" value="true"/>
     <param name="latch" value="false"/>
 	<!-- data source to integrate (PointCloud2) -->
 	<remap from="/cloud_in" to="camera_in" />
@@ -86,7 +87,7 @@
   <node pkg="octomap_server" type="publish_fetch_contact_sensor.py" name="publish_fetch_contact_sensor" output="screen" />
 
   <!-- publish frontier grid in octomap -->
-  <node pkg="octomap_server" type="get_frontier.py" name="get_frontier" output="screen" />
+  <!-- <node pkg="octomap_server" type="get_frontier.py" name="get_frontier" output="screen" /> -->
 
   <!-- rviz -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/multicloud.rviz"/>
