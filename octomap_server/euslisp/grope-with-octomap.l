@@ -2,21 +2,21 @@
 
 (load "package://bag_segmentation/euslisp/bag-manipulation-interface.l")
 (load "package://bag_segmentation/euslisp/utils.l")
+
+
 ;; set working region
-;; (setq *min-x* (* (ros::get-param "occupancy_min_x") 1000))
-;; (setq *max-x* (* (ros::get-param "occupancy_max_x") 1000))
-;; (setq *min-y* (* (ros::get-param "occupancy_min_y") 1000))
-;; (setq *max-y* (* (ros::get-param "occupancy_max_y") 1000))
-;; (setq *min-z* (* (ros::get-param "occupancy_min_z") 1000))
-;; (setq *max-z* (* (ros::get-param "occupancy_max_z") 1000))
-;; (setq *resolution* (* (ros::get-param "resolution") 1000))
-(setq *min-x* (* 0.4 1000))
-(setq *max-x* (* 0.8 1000))
-(setq *min-y* (* -0.25 1000))
-(setq *max-y* (* 0.25 1000))
-(setq *min-z* (* 0.6 1000))
-(setq *max-z* (* 1.0 1000))
-(setq *resolution* (* 0.005 1000))
+(setq *region* (list (* 0.4 1000) (* 0.8 1000) (* -0.25 1000) (* 0.25 1000) (* 0.6 1000) (* 1.0 1000)))
+(setq *resolution* 0.01)
+(let ((param-list (list "occupancy_min_x" "occupancy_max_x" "occupancy_min_y" "occupancy_max_y" "occupancy_min_z" "occupancy_max_z"))
+      (count 0))
+  (dolist (param param-list)
+    (if (ros::has-param param)
+      (setf (nth count *region*) (ros::has-param param)))
+    (setq count (+ count 1))))
+(if (ros::has-param "resolution")
+  (setq *resolution* (* (ros::get-param "resolution") 1000)))
+
+
 ;; (unless (boundp '*ri*)
 ;;   (set-fetch))
 (unless (boundp '*irtviewer*)
@@ -49,9 +49,6 @@
     (setq colors (make-list (send eus-occupied-octo-cloud :size) :initial-element (list 0 0 1)))
     (send eus-occupied-octo-cloud :colors (apply #'matrix colors))
     (list eus-occupied-octo-cloud eus-unknown-octo-cloud)))
-
-
-(defun get-frontier-edge (eus-occupied-octo-cloud eus-unknown-octo-cloud)
 
 
 ;; decide next grope point which is desirable for creating octomap
@@ -225,3 +222,6 @@
     (detect ec (list "/left" "/right") "/top" 30)
     (unix:sleep 4)
     ))
+
+;; do not return pointcloud when loading this file
+nil
