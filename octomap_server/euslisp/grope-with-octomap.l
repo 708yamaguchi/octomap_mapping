@@ -12,7 +12,14 @@
   (dolist (param param-list)
     (if (ros::has-param param)
       (setf (nth count *region*) (ros::has-param param)))
-    (setq count (+ count 1))))
+    (setq count (+ count 1)))
+  (setq *min-x* (nth 0 *region*))
+  (setq *max-x* (nth 1 *region*))
+  (setq *min-y* (nth 2 *region*))
+  (setq *max-y* (nth 3 *region*))
+  (setq *min-z* (nth 4 *region*))
+  (setq *max-z* (nth 5 *region*)))
+(print (list *min-x* *max-x*))
 (if (ros::has-param "resolution")
   (setq *resolution* (* (ros::get-param "resolution") 1000)))
 
@@ -128,7 +135,7 @@
 ;; TODO decide grope point based on height map. hint is in (calc-grope-point)
 ;; TODO use pyramid algorithm when searching grope point
 (defun search-graspable-point (pc)
-  (let* (*min-x* *max-x* *min-y* *max-y* *min-z* *max-z* region
+  (let* (;*min-x* *max-x* *min-y* *max-y* *min-z* *max-z* region
          stick-l stick-r
          random-x random-y random-rot
          best-x best-y best-z best-rot
