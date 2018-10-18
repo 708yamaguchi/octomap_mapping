@@ -31,21 +31,50 @@
   (send *ri* :wait-interpolation)
 
   (dotimes (i 30)
-    (random-grope))
+    ;; (random-grope)
+    (reach-frontier)
+    )
   )
 
+
+(defun reach-frontier ()
+  (ros::spin-once)
+  (let ((frontier-pc nil) (next-pos))
+    (setq frontier-pc (send (get-octo-pointcloud :type "frontier") :points))
+    (setq next-pos (nth (random (car (array-dimensions frontier-pc))) frontier-pc))
+    (send *fetch* :inverse-kinematics
+          (make-coords :pos (v+ next-pos #f(0 0 200)) :rpy (float-vector 0 pi/2 0)) :use-torso nil)
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+    (send *ri* :wait-interpolation)
+    (send *fetch* :move-end-pos :rarm #f(0 0 -200) :use-torso nil)
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+    (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
+    (detect ec (list "/left" "/right") "/top" 30)
+    (unix:sleep 4)
+    )
+  )
 
 ;; before calling this function, necessary to subscribe "/unknown_cells_vis_array"
 ;; (load "package://octomap_server/euslisp/occupied-and-unknown-cloud1.l")
 ;; (load "package://octomap_server/euslisp/occupied-and-unknown-cloud2.l")
-(defun get-octo-pointcloud ()
-  (ros::spin-once)
-  (let* ((occupied-octo-cloud (one-shot-subscribe "/octomap_point_cloud_centers" sensor_msgs::Pointcloud2))
-         (eus-occupied-octo-cloud (make-eus-pointcloud-from-ros-msg occupied-octo-cloud))
-         (unknown-octo-cloud (one-shot-subscribe "/octomap_unknown_point_cloud_centers" sensor_msgs::Pointcloud2))
-         (eus-unknown-octo-cloud (make-eus-pointcloud-from-ros-msg unknown-octo-cloud))
-         (colors nil))
-    ;; set colors to octo-clouds, occupied -> blue, unknown -> default(green)
+(defun get-octo-pointcloud (&key (type nil))
+  (let* ((octo-cloud nil) (color nil) (colors nil))
+    ;; subscribe octomap pointcloud
+    (cond
+     ((equal type "free")
+      (setq color (list 0 1 0))
+      (setq octo-cloud (one-shot-subscribe "/octomap_free_point_cloud_centers" sensor_msgs::Pointcloud2)))
+     ((equal type "occupied")
+      (setq color (list 0 0 1))
+      (setq octo-cloud (one-shot-subscribe "/octomap_occupied_point_cloud_centers" sensor_msgs::Pointcloud2)))
+     ((equal type "unknown")
+      (setq color (list 1 0 1))
+      (setq octo-cloud (one-shot-subscribe "/octomap_unknown_point_cloud_centers" sensor_msgs::Pointcloud2)))
+     ((equal type "frontier")
+      (setq color (list 1 0 0))
+      (setq octo-cloud (one-shot-subscribe "/octomap_frontier_point_cloud_centers" sensor_msgs::Pointcloud2))))
+    (eus-octo-cloud (make-eus-pointcloud-from-ros-msg octo-cloud))
+    ;; set colors to octo-clouds, free -> green, occupied -> blue, unknown -> purple, frontier -> red
     (setq colors (make-list (send eus-occupied-octo-cloud :size) :initial-element (list 0 0 1)))
     (send eus-occupied-octo-cloud :colors (apply #'matrix colors))
     (list eus-occupied-octo-cloud eus-unknown-octo-cloud)))
@@ -207,6 +236,9 @@
       (fotmat t "cannot find graspable point.~%"))
     ))
 
+
+;; This is trial function, and do not use at experiment stage.
+;; randomly extend hand to surface of table.
 (defun random-grope ()
   (let* ((ec nil) (range 150.0)
          (rand-vec-x (- (random range) (/ range 2))) (rand-vec-y (- (random range) (/ range 2.0))) (rand-vec-rot (- (random 1.6) 0.8))
