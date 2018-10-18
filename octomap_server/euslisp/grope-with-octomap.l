@@ -19,13 +19,12 @@
   (setq *max-y* (nth 3 *region*))
   (setq *min-z* (nth 4 *region*))
   (setq *max-z* (nth 5 *region*)))
-(print (list *min-x* *max-x*))
 (if (ros::has-param "resolution")
   (setq *resolution* (* (ros::get-param "resolution") 1000)))
 
 
-;; (unless (boundp '*ri*)
-;;   (set-fetch))
+(unless (boundp '*ri*)
+  (set-fetch))
 (unless (boundp '*irtviewer*)
   (fetch)
   (objects (list *fetch*)))
@@ -45,6 +44,7 @@
 
 
 (defun reach-frontier ()
+  (send *ri* :start-grasp :wait t)
   (ros::spin-once)
   (let ((frontier-pc nil) (next-pos))
     (setq frontier-pc (send (get-octo-pointcloud :type "frontier") :points))
@@ -64,13 +64,17 @@
 ;; before calling this function, necessary to subscribe "/unknown_cells_vis_array"
 ;; (load "package://octomap_server/euslisp/occupied-and-unknown-cloud1.l")
 ;; (load "package://octomap_server/euslisp/occupied-and-unknown-cloud2.l")
+
+;; TODO
+;; TODO: use markerarray instead of pointcloud
+;; TODO
 (defun get-octo-pointcloud (&key (type nil))
-  (let* ((octo-cloud nil) (color nil) (colors nil))
+  (let ((octo-cloud nil) (eus-octo-cloud nil) (color nil) (colors nil))
     ;; subscribe octomap pointcloud
     (cond
-     ((equal type "free")
-      (setq color (list 0 1 0))
-      (setq octo-cloud (one-shot-subscribe "/octomap_free_point_cloud_centers" sensor_msgs::Pointcloud2)))
+     ;; ((equal type "free")
+     ;;  (setq color (list 0 1 0))
+     ;;  (setq octo-cloud (one-shot-subscribe "/octomap_free_point_cloud_centers" sensor_msgs::Pointcloud2)))
      ((equal type "occupied")
       (setq color (list 0 0 1))
       (setq octo-cloud (one-shot-subscribe "/octomap_occupied_point_cloud_centers" sensor_msgs::Pointcloud2)))
@@ -79,12 +83,17 @@
       (setq octo-cloud (one-shot-subscribe "/octomap_unknown_point_cloud_centers" sensor_msgs::Pointcloud2)))
      ((equal type "frontier")
       (setq color (list 1 0 0))
-      (setq octo-cloud (one-shot-subscribe "/octomap_frontier_point_cloud_centers" sensor_msgs::Pointcloud2))))
-    (eus-octo-cloud (make-eus-pointcloud-from-ros-msg octo-cloud))
-    ;; set colors to octo-clouds, free -> green, occupied -> blue, unknown -> purple, frontier -> red
-    (setq colors (make-list (send eus-occupied-octo-cloud :size) :initial-element (list 0 0 1)))
-    (send eus-occupied-octo-cloud :colors (apply #'matrix colors))
-    (list eus-occupied-octo-cloud eus-unknown-octo-cloud)))
+      (setq octo-cloud (one-shot-subscribe "/octomap_frontier_point_cloud_centers" sensor_msgs::Pointcloud2)))
+     (t
+      (fotmat t "key argument type is not correctly set.~%"))
+     )
+    (setq eus-octo-cloud (make-eus-pointcloud-from-ros-msg octo-cloud))
+    (if eus-octo-cloud
+      (progn
+        ;; set colors to octo-clouds, free -> green, occupied -> blue, unknown -> purple, frontier -> red
+        (setq colors (make-list (send eus-octo-cloud :size) :initial-element (list 0 0 1)))
+        (send eus-octo-cloud :colors (apply #'matrix colors))
+        eus-octo-cloud))))
 
 
 ;; decide next grope point which is desirable for creating octomap
@@ -252,7 +261,7 @@
          )
     (send *ri* :start-grasp :wait t)
     (send *fetch* :inverse-kinematics (make-coords
-                                       :pos (v+ (float-vector rand-vec-x rand-vec-y 0) (float-vector 600 0 900))
+                                       :pos (v+ (float-vector rand-vec-x rand-vec-y 0) (float-vector 400 0 150))
                                        :rpy (float-vector 0 pi/2 rand-vec-rot)))
     (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
     (send *ri* :wait-interpolation)
