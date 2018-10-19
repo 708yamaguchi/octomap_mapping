@@ -48,7 +48,9 @@
   (ros::spin-once)
   (let ((frontier-pc nil) (next-pos))
     (setq frontier-pc (send (get-octo-pointcloud :type "frontier") :points))
+    ;; TODO decide where to explore next
     (setq next-pos (nth (random (car (array-dimensions frontier-pc))) frontier-pc))
+    ;; TODO decide where to explore next
     (send *fetch* :inverse-kinematics
           (make-coords :pos (v+ next-pos #f(0 0 200)) :rpy (float-vector 0 pi/2 0)) :use-torso nil)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
@@ -61,13 +63,9 @@
     )
   )
 
-;; before calling this function, necessary to subscribe "/unknown_cells_vis_array"
+;; before calling this function, necessary to subscribe "/unknown(frontier)_cells_vis_array"
 ;; (load "package://octomap_server/euslisp/occupied-and-unknown-cloud1.l")
 ;; (load "package://octomap_server/euslisp/occupied-and-unknown-cloud2.l")
-
-;; TODO
-;; TODO: use markerarray instead of pointcloud
-;; TODO
 (defun get-octo-pointcloud (&key (type nil))
   (let ((octo-cloud nil) (eus-octo-cloud nil) (color nil) (colors nil))
     ;; subscribe octomap pointcloud
