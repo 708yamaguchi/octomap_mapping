@@ -58,13 +58,20 @@
     <!-- <remap from="/proximity_in" to="proximity_pointcloud/all" /> -->
 	<remap from="/contact_sensors_in" to="contact_sensors_in" />
     <!-- Sensor Input PassThrough Filter Params -->
-    <!-- for debug -->
-    <param name="occupancy_min_x" value="-0.3" />
-    <param name="occupancy_max_x" value="0.2" />
-    <param name="occupancy_min_y" value="-1.1" />
-    <param name="occupancy_max_y" value="-0.6" />
-    <param name="occupancy_min_z" value="0.3" />
-    <param name="occupancy_max_z" value="0.9" />
+    <!-- in front of fetch -->
+    <param name="occupancy_min_x" value="0.3" />
+    <param name="occupancy_max_x" value="0.8" />
+    <param name="occupancy_min_y" value="-0.3" />
+    <param name="occupancy_max_y" value="0.3" />
+    <param name="occupancy_min_z" value="0.0" />
+    <param name="occupancy_max_z" value="0.6" />
+    <!-- for right side of fetch -->
+    <!-- <param name="occupancy_min_x" value="-0.3" /> -->
+    <!-- <param name="occupancy_max_x" value="0.2" /> -->
+    <!-- <param name="occupancy_min_y" value="-1.1" /> -->
+    <!-- <param name="occupancy_max_y" value="-0.6" /> -->
+    <!-- <param name="occupancy_min_z" value="0.3" /> -->
+    <!-- <param name="occupancy_max_z" value="0.9" /> -->
     <!-- for bag -->
     <!-- <param name="occupancy_min_x" value="-0.3" /> -->
     <!-- <param name="occupancy_max_x" value="0.2" /> -->
