@@ -98,29 +98,29 @@ Visualization Manager:
       Queue Size: 100
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /unknown_cells_vis_array
       Name: UnknownCells
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /frontier_cells_vis_array
-      Name: FrontierCells
       Namespaces:
         base_link: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
       Enabled: false
-      Marker Topic: /octomap2d_cells_vis_array
-      Name: OctoMap2dCells
+      Marker Topic: /frontier_cells_vis_array
+      Name: FrontierCells
       Namespaces:
         {}
       Queue Size: 100
       Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /potential_cells_vis_array
+      Name: PotentialCells
+      Namespaces:
+        base_link: true
+      Queue Size: 100
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -543,22 +543,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.19561
+      Distance: 1.49609
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.189275
-        Y: -0.452734
-        Z: 0.505221
+        X: 0.619162
+        Y: -0.109144
+        Z: 0.400972
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.385203
+      Pitch: 0.540202
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.34131
+      Yaw: 4.90129
     Saved: ~
 Window Geometry:
   Displays:
