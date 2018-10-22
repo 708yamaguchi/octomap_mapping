@@ -23,7 +23,7 @@
   (setq *resolution* (* (ros::get-param "resolution") 1000)))
 
 ;; torso length
-(setq *torso* 100)
+(setq *torso* 20)
 
 
 (unless (boundp '*ri*)
@@ -39,11 +39,14 @@
   (send *fetch* :inverse-kinematics (make-coords :pos #f(600 0 600) :rpy (float-vector 0 pi/2 0)) :use-torso nil)
   (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
   (send *ri* :wait-interpolation)
+  (send *ri* :start-grasp :wait t)
 
   ;; first grope
-  (send *fetch* :rarm :move-end-pos #f(0 0 -600) :use-torso nil)
-  (send *ri* :angle-vector (send *fetch* :angle-vector) 6000)
-  (detect ec (list "/left" "/right") "/top" 30)
+  (let ((ec nil))
+    (send *fetch* :rarm :move-end-pos #f(0 0 -400) :world :use-torso nil)
+    (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 12000)
+    (detect ec (list "/left" "/right") "/top" 30))
 
   (dotimes (i 30)
     ;; (random-grope)
@@ -58,15 +61,15 @@
   (let ((potential-pc nil) (next-pos nil) (next-pos-cube nil))
     (setq potential-pc (send (get-octo-pointcloud :type "potential") :points))
     ;; TODO decide where to explore next
-    (setq next-pos (nth (random (car (array-dimensions potential-pc))) potential-pc))
-    (objects (setq next-pos-cube (send (make-cube 20 20 20) :locate next-pos)))
+    (setq next-pos (matrix-row potential-pc (random (car (array-dimensions potential-pc)))))
+    (objects (list *fetch* (setq next-pos-cube (send (make-cube 20 20 20) :locate next-pos))))
     (send next-pos-cube :set-color #f(1 0 0))
     ;; TODO decide where to explore next
     (send *fetch* :inverse-kinematics
           (make-coords :pos (v+ next-pos #f(0 0 200)) :rpy (float-vector 0 pi/2 0)) :use-torso nil)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
     (send *ri* :wait-interpolation)
-    (send *fetch* :move-end-pos :rarm #f(0 0 -200) :use-torso nil)
+    (send *fetch* :rarm :move-end-pos #f(0 0 -200) :world :use-torso nil)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
     (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
     (detect ec (list "/left" "/right") "/top" 30)
