@@ -22,6 +22,9 @@
 (if (ros::has-param "resolution")
   (setq *resolution* (* (ros::get-param "resolution") 1000)))
 
+;; torso length
+(setq *torso* 100)
+
 
 (unless (boundp '*ri*)
   (set-fetch))
@@ -32,24 +35,32 @@
 
 (defun main ()
   (send *fetch* :reset-pose)
-  (send *fetch* :inverse-kinematics (make-coords :pos #f(600 0 900) :rpy (float-vector 0 pi/2 0)))
+  (send *fetch* :torso :waist-z :joint-angle *torso*)
+  (send *fetch* :inverse-kinematics (make-coords :pos #f(600 0 600) :rpy (float-vector 0 pi/2 0)) :use-torso nil)
   (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
   (send *ri* :wait-interpolation)
 
+  ;; first grope
+  (send *fetch* :rarm :move-end-pos #f(0 0 -600) :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 6000)
+  (detect ec (list "/left" "/right") "/top" 30)
+
   (dotimes (i 30)
     ;; (random-grope)
-    (reach-frontier)
+    (create-map)
     )
   )
 
 
-(defun reach-frontier ()
+(defun create-map ()
   (send *ri* :start-grasp :wait t)
   (ros::spin-once)
-  (let ((frontier-pc nil) (next-pos))
-    (setq frontier-pc (send (get-octo-pointcloud :type "frontier") :points))
+  (let ((potential-pc nil) (next-pos nil) (next-pos-cube nil))
+    (setq potential-pc (send (get-octo-pointcloud :type "potential") :points))
     ;; TODO decide where to explore next
-    (setq next-pos (nth (random (car (array-dimensions frontier-pc))) frontier-pc))
+    (setq next-pos (nth (random (car (array-dimensions potential-pc))) potential-pc))
+    (objects (setq next-pos-cube (send (make-cube 20 20 20) :locate next-pos)))
+    (send next-pos-cube :set-color #f(1 0 0))
     ;; TODO decide where to explore next
     (send *fetch* :inverse-kinematics
           (make-coords :pos (v+ next-pos #f(0 0 200)) :rpy (float-vector 0 pi/2 0)) :use-torso nil)
@@ -59,6 +70,7 @@
     (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
     (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
     (detect ec (list "/left" "/right") "/top" 30)
+    (send *irtviewer* :draw-objects :flush t)
     (unix:sleep 4)
     )
   )
@@ -82,6 +94,9 @@
      ((equal type "frontier")
       (setq color (list 1 0 0))
       (setq octo-cloud (one-shot-subscribe "/octomap_frontier_point_cloud_centers" sensor_msgs::Pointcloud2)))
+     ((equal type "potential")
+      (setq color (list 1 0 0))
+      (setq octo-cloud (one-shot-subscribe "/octomap_potential_point_cloud_centers" sensor_msgs::Pointcloud2)))
      (t
       (fotmat t "key argument type is not correctly set.~%"))
      )
