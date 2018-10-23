@@ -46,7 +46,7 @@
     (send *fetch* :rarm :move-end-pos #f(0 0 -400) :world :use-torso nil)
     (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
     (send *ri* :angle-vector (send *fetch* :angle-vector) 12000)
-    (detect ec (list "/left" "/right") "/top" :thre 30))
+    (detect ec (list (list "/left" "/top") (list "/right" "/top")) :thre 30))
 
   (dotimes (i 30)
     ;; (random-grope)
@@ -55,6 +55,7 @@
   )
 
 
+;; TODO: what method is best solution to create map?
 (defun create-map ()
   (send *ri* :start-grasp :wait t)
   (ros::spin-once)
@@ -72,11 +73,19 @@
     (send *fetch* :rarm :move-end-pos #f(0 0 -200) :world :use-torso nil)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
     (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
-    (detect ec (list "/left" "/right") "/top" :thre 30)
+    (detect ec (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
     (send *irtviewer* :draw-objects :flush t)
     (unix:sleep 4)
     )
   )
+
+
+(defun trace (target-coords-world) ;; argument(target-coords) is world coords
+  (let* ((ec-world (send *fetch* :rarm :end-coords :copy-worldcoords))
+         (target-coords-local (send (copy-object target-coords-world) :transform (send ec-world :transformation (make-coords))))
+         (move-pos))
+
+    ))
 
 ;; before calling this function, necessary to subscribe "/unknown(frontier)_cells_vis_array"
 ;; (load "package://octomap_server/euslisp/occupied-and-unknown-cloud1.l")
@@ -283,7 +292,7 @@
     (send *ri* :wait-interpolation)
     (send *fetch* :rarm :move-end-pos #f(0 0 -200) :world :use-torso nil)
     (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
-    (detect ec (list "/left" "/right") "/top" :thre 30)
+    (detect ec (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
     (unix:sleep 4)
     ))
 
