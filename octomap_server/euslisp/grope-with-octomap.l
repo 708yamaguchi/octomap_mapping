@@ -46,7 +46,7 @@
     (send *fetch* :rarm :move-end-pos #f(0 0 -400) :world :use-torso nil)
     (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
     (send *ri* :angle-vector (send *fetch* :angle-vector) 12000)
-    (detect ec (list "/left" "/right") "/top" 30))
+    (detect ec (list "/left" "/right") "/top" :thre 30))
 
   (dotimes (i 30)
     ;; (random-grope)
@@ -72,7 +72,7 @@
     (send *fetch* :rarm :move-end-pos #f(0 0 -200) :world :use-torso nil)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
     (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
-    (detect ec (list "/left" "/right") "/top" 30)
+    (detect ec (list "/left" "/right") "/top" :thre 30)
     (send *irtviewer* :draw-objects :flush t)
     (unix:sleep 4)
     )
@@ -283,7 +283,7 @@
     (send *ri* :wait-interpolation)
     (send *fetch* :rarm :move-end-pos #f(0 0 -200) :world :use-torso nil)
     (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
-    (detect ec (list "/left" "/right") "/top" 30)
+    (detect ec (list "/left" "/right") "/top" :thre 30)
     (unix:sleep 4)
     ))
 
