@@ -80,10 +80,27 @@
   )
 
 
-(defun trace (target-coords-world) ;; argument(target-coords) is world coords
+(defun trace (target-coords-world) ;; argument(target-coords) is world coords, rotation of coords is NOT considered.
   (let* ((ec-world (send *fetch* :rarm :end-coords :copy-worldcoords))
          (target-coords-local (send (copy-object target-coords-world) :transform (send ec-world :transformation (make-coords))))
-         (move-pos))
+         (move-pos (send target-coords-local :pos))
+         (l/r-frame-list nil)) ;; sensor frame which is considered detection during tracing
+    (if (> (aref move-pos 0) 10) ;; if move direction is x-axis positive
+      (setq l/r-frame-list (append l/r-frame-list (list (list "/left" "/top")) (list (list "/right" "/top")))))
+    (if (> (aref move-pos 1) 10) ;; if move direction is y-axis positive
+      (setq l/r-frame-list (append l/r-frame-list (list (list "/right" "/side2")))))
+    (if (< (aref move-pos 1) -10) ;; if move direction is y-axis negative
+      (setq l/r-frame-list (append l/r-frame-list (list (list "/left" "/side2")))))
+    (if (> (aref move-pos z) 10) ;; if move direction is z-axis positive
+      (setq l/r-frame-list (append l/r-frame-list (list (list "/left" "/side1")) (list (list "/right" "/side1")))))
+    (if (< (aref move-pos z) -10) ;; if move direction is z-axis negative
+      (setq l/r-frame-list (append l/r-frame-list (list (list "/left" "/side3")) (list (list "/right" "/side3")))))
+
+    ;; trace flow:
+    ;; 1. move toward the destination, 2. when detecting at side of gripper, move hand up, 3. when there is nothing under gripper, move hand down
+    ;; repeat 1~3 above until hand reach the destinationv
+    (detect target-coords-world l/r-frame-list :go-near t)
+    ;; TODO
 
     ))
 
