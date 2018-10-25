@@ -46,7 +46,7 @@
     (send *fetch* :rarm :move-end-pos #f(0 0 -400) :world :use-torso nil)
     (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
     (send *ri* :angle-vector (send *fetch* :angle-vector) 12000)
-    (detect ec (list (list "/left" "/top") (list "/right" "/top")) :thre 30))
+    (detect ec :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30))
 
   (dotimes (i 30)
     ;; (random-grope)
@@ -73,7 +73,7 @@
     (send *fetch* :rarm :move-end-pos #f(0 0 -200) :world :use-torso nil)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
     (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
-    (detect ec (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
+    (detect ec :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
     (send *irtviewer* :draw-objects :flush t)
     (unix:sleep 4)
     )
@@ -99,7 +99,7 @@
     ;; trace flow:
     ;; 1. move toward the destination, 2. when detecting at side of gripper, move hand up, 3. when there is nothing under gripper, move hand down
     ;; repeat 1~3 above until hand reach the destinationv
-    (detect target-coords-world l/r-frame-list :go-near t)
+    (detect target-coords-world :close-frame-list l/r-frame-list :go-near t)
     ;; TODO
 
     ))
@@ -309,7 +309,7 @@
     (send *ri* :wait-interpolation)
     (send *fetch* :rarm :move-end-pos #f(0 0 -200) :world :use-torso nil)
     (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
-    (detect ec (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
+    (detect ec :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
     (unix:sleep 4)
     ))
 
