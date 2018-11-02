@@ -57,29 +57,75 @@
 
 ;; TODO: what method is best solution to create map?
 (defun create-map ()
-  (send *ri* :start-grasp :wait t)
-  (ros::spin-once)
-  (let ((potential-pc nil) (next-pos nil) (next-pos-cube nil))
-    (setq potential-pc (send (get-octo-pointcloud :type "potential") :points))
-    ;; TODO decide where to explore next
-    (setq next-pos (matrix-row potential-pc (random (car (array-dimensions potential-pc)))))
-    (objects (list *fetch* (setq next-pos-cube (send (make-cube 20 20 20) :locate next-pos))))
-    (send next-pos-cube :set-color #f(1 0 0))
-    ;; TODO decide where to explore next
-    (send *fetch* :inverse-kinematics
-          (make-coords :pos (v+ next-pos #f(0 0 200)) :rpy (float-vector 0 pi/2 0)) :use-torso nil)
+  (let ((target-coords (make-coords :rpy (float-vector 0 pi/2 0)))) ;; where to move fetch's hand
+    ;; decide where to grope from now
+    (setf (aref (send target-coords :worldpos) 0) (+ *min-x* (random (- *max-x* *min-x*))))
+    (setf (aref (send target-coords :worldpos) 1) (+ *min-y* (random (- *max-y* *min-y*))))
+    (setf (aref (send target-coords :worldpos) 2) *max-z*)
+    ;; start moving hand down
+    (send *fetch* :inverse-kinematics target-coords :use-torso nil)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
     (send *ri* :wait-interpolation)
-    (send *fetch* :rarm :move-end-pos #f(0 0 -200) :world :use-torso nil)
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
-    (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
-    (detect ec :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
-    (send *irtviewer* :draw-objects :flush t)
-    (unix:sleep 4)
-    )
-  )
+    (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* *min-z*)) :use-torso nil)
+    (setq target-coords (send *fetch* :rarm :worldcoords :copy-worldcoords))
+    (detect target-coords :close-frame-list (list (list "/left" "/top") (list "/right" "/top")))
+    (unix:sleep 1) ;; make sure that robot stops motion by :cancel-angle-vector
+    ;; move hand randomly until detecting object
+    (let* ((region-x (- *max-x* *min-x*)) (region-y (- *max-y* *min-y*))
+           ((par (random (* 2 (+ region-x region-y)))))
+           target-x target-y ec direction wrist-rotate-angle)
+      (if (<= par region-x)
+        (progn
+          (setq target-x (- *max-x* par))
+          (setq target-y *max-y*)))
+      (if (<= region-x par (+ region-x region-y))
+        (progn
+          (setq target-x *min-x*)
+          (setq target-y (- *max-y* (- par region-x)))))
+      (if (<= (+ region-x region-y) par (+ (* 2 region-x) region-y))
+        (progn
+          (setq target-x (+ (- par region-x region-y) *min-x*))
+          (setq target-y *min-y*)))
+      (if (<= (+ (* 2 region-x) region-y) par)
+        (progn
+          (setq target-x *max-x*)
+          (setq target-y (+ (- par (* 2 region-x) region-y) *min-y*))))
+      (setf (aref (send target-coords :worldpos) 0) target-x)
+      (setf (aref (send target-coords :worldpos) 1) target-y)
+      (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
+      (setq direction (send ec :inverse-transform-vector (float-vector target-x target-y (aref (send ec :worldpos) 2))))
+      (setq wrist-rotate-angle (atan2 (aref direction 1) (* -1 (aref direction 2))))
+      (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) wrist-rotate-angle))
+      (send target-coords :rotate wrist-rotate-angle :x)
+      (detect target-coords :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")))
+      (unix:sleep 1) ;; make sure that robot stops motion by :cancel-angle-vector
+      )))
+
+;; (defun create-map ()
+;;   (send *ri* :start-grasp :wait t)
+;;   (ros::spin-once)
+;;   (let ((potential-pc nil) (next-pos nil) (next-pos-cube nil))
+;;     (setq potential-pc (send (get-octo-pointcloud :type "potential") :points))
+;;     ;; TODO decide where to explore next
+;;     (setq next-pos (matrix-row potential-pc (random (car (array-dimensions potential-pc)))))
+;;     (objects (list *fetch* (setq next-pos-cube (send (make-cube 20 20 20) :locate next-pos))))
+;;     (send next-pos-cube :set-color #f(1 0 0))
+;;     ;; TODO decide where to explore next
+;;     (send *fetch* :inverse-kinematics
+;;           (make-coords :pos (v+ next-pos #f(0 0 200)) :rpy (float-vector 0 pi/2 0)) :use-torso nil)
+;;     (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+;;     (send *ri* :wait-interpolation)
+;;     (send *fetch* :rarm :move-end-pos #f(0 0 -200) :world :use-torso nil)
+;;     (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+;;     (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
+;;     (detect ec :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
+;;     (send *irtviewer* :draw-objects :flush t)
+;;     (unix:sleep 4)
+;;     )
+;;   )
 
 
+;; WIP.
 (defun trace (target-coords-world) ;; argument(target-coords) is world coords, rotation of coords is NOT considered.
   (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
   (let* ((ec-world (send *fetch* :rarm :end-coords :copy-worldcoords))
