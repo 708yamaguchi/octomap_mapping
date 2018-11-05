@@ -10,8 +10,9 @@
 (let ((param-list (list "occupancy_min_x" "occupancy_max_x" "occupancy_min_y" "occupancy_max_y" "occupancy_min_z" "occupancy_max_z"))
       (count 0))
   (dolist (param param-list)
+    (setq param (format nil "/~A/~A" "octomap_server_contact" param))
     (if (ros::has-param param)
-      (setf (nth count *region*) (ros::has-param param)))
+      (setf (nth count *region*) (* 1000 (ros::get-param param))))
     (setq count (+ count 1)))
   (setq *min-x* (nth 0 *region*))
   (setq *max-x* (nth 1 *region*))
@@ -54,7 +55,9 @@
     )
   )
 
-
+;; (send *fetch* :reset-pose)
+;; (send *fetch* :inverse-kinematics (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) *max-z*) :rpy (float-vector 0 pi/2 0))) :rotation-axis nil
+;; (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
 ;; TODO: what method is best solution to create map?
 (defun create-map ()
   (let ((target-coords (make-coords :rpy (float-vector 0 pi/2 0)))) ;; where to move fetch's hand
@@ -63,16 +66,18 @@
     (setf (aref (send target-coords :worldpos) 1) (+ *min-y* (random (- *max-y* *min-y*))))
     (setf (aref (send target-coords :worldpos) 2) *max-z*)
     ;; start moving hand down
-    (send *fetch* :inverse-kinematics target-coords :use-torso nil)
+    (send *fetch* :reset-pose)
+    (send *fetch* :inverse-kinematics target-coords)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
     (send *ri* :wait-interpolation)
-    (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* *min-z*)) :use-torso nil)
-    (setq target-coords (send *fetch* :rarm :worldcoords :copy-worldcoords))
+    (send *fetch* :rarm :move-end-pos (float-vector 0 0 -300) :world) ;; 300 is tuned-parameter, needed to modify
+    (setq target-coords (send *fetch* :rarm :end-coords :copy-worldcoords))
+    (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
     (detect target-coords :close-frame-list (list (list "/left" "/top") (list "/right" "/top")))
     (unix:sleep 1) ;; make sure that robot stops motion by :cancel-angle-vector
     ;; move hand randomly until detecting object
     (let* ((region-x (- *max-x* *min-x*)) (region-y (- *max-y* *min-y*))
-           ((par (random (* 2 (+ region-x region-y)))))
+           (par (random (* 2 (+ region-x region-y))))
            target-x target-y ec direction wrist-rotate-angle)
       (if (<= par region-x)
         (progn
@@ -90,14 +95,18 @@
         (progn
           (setq target-x *max-x*)
           (setq target-y (+ (- par (* 2 region-x) region-y) *min-y*))))
-      (setf (aref (send target-coords :worldpos) 0) target-x)
-      (setf (aref (send target-coords :worldpos) 1) target-y)
       (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
       (setq direction (send ec :inverse-transform-vector (float-vector target-x target-y (aref (send ec :worldpos) 2))))
-      (setq wrist-rotate-angle (atan2 (aref direction 1) (* -1 (aref direction 2))))
+      (setq wrist-rotate-angle (rad2deg (atan2 (aref direction 1) (* -1 (aref direction 2)))))
       (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) wrist-rotate-angle))
-      (send target-coords :rotate wrist-rotate-angle :x)
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+      (send *ri* :wait-interpolation)
+      (setq target-coords (send *fetch* :rarm :end-coords :copy-worldcoords))
+      (setf (aref (send target-coords :worldpos) 0) target-x)
+      (setf (aref (send target-coords :worldpos) 1) target-y)
+      (format t "target end-coords is ~A~%" target-coords)
       (detect target-coords :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")))
+      (format t "now, end-coords is ~A~%" (send *fetch* :rarm :end-coords :copy-worldcoords))
       (unix:sleep 1) ;; make sure that robot stops motion by :cancel-angle-vector
       )))
 
