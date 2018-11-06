@@ -50,7 +50,7 @@
 	<param name="sensor_model/max_range" value="5.0" />
     <param name="publish_free_space" value="true"/>
     <param name="publish_unknown_space" value="true"/>
-    <param name="publish_frontier_space" value="true"/>
+    <param name="publish_frontier_space" value="false"/>
     <param name="latch" value="false"/>
 	<!-- data source to integrate (PointCloud2) -->
 	<remap from="/cloud_in" to="camera_in" />
