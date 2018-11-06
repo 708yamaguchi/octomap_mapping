@@ -1,13 +1,4 @@
 <launch>
-  <!--
-      ;; This launch file is copied from jsk_pcl_ros/launch.
-      ;; To use this,
-      $ roslaunch openni_launch openni.launch    ;; start kinect camera
-      $ rosrun rqt_reconfigure rqt_reconfigure   ;; parameter settings
-      $ roslaunch jsk_pcl_ros hsi_color_filter.launch DEFAULT_NAMESPACE:=/camera/depth_registered INPUT:=points
-      ;; subscribe camera/depth_registered/hsi_output
-      ;; subscribe tf and find /target
-  -->
   <arg name="INPUT" default="hsi_input"/>
   <arg name="CENTROID_FRAME" default="target"/>
   <arg name="DEFAULT_NAMESPACE" default="HSI_color_filter"/>
@@ -29,9 +20,34 @@
           pkg="nodelet" type="nodelet" name="$(arg manager)"
           args="manager" output="screen"/>
 
+    <node name="attention_clipper" pkg="nodelet" type="nodelet"
+          args="load jsk_pcl/AttentionClipper $(arg manager)" output="screen">
+      <remap from="~input/points" to="$(arg INPUT)" />
+      <rosparam>
+        initial_pos: [0.55, 0.0, 0.4]
+        initial_rot: [0, 0, 0.05]
+        dimension_x: 0.8
+        dimension_y: 0.4
+        dimension_z: 0.8
+        frame_id: base_link
+      </rosparam>
+    </node>
+
+    <node name="extract_indices"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_pcl/ExtractIndices $(arg manager)">
+      <remap from="~input" to="$(arg INPUT)" />  <!-- depth timestamp -->
+      <remap from="~indices" to="attention_clipper/output/point_indices" />  <!-- rgb timestamp -->
+      <rosparam>
+        approximate_sync: true
+        queue_size: 100
+        keep_organized: true
+      </rosparam>
+    </node>
+
     <node pkg="nodelet" type="nodelet" name="hsi_filter$(arg FILTER_NAME_SUFFIX)"
           args="load jsk_pcl/HSIColorFilter $(arg manager)" output="screen">
-      <remap from="~input" to="$(arg INPUT)" />
+      <remap from="~input" to="extract_indices/output" />
       <remap from="~output" to="$(arg OUTPUT)" />
       <rosparam>
         use_indices: false
@@ -43,14 +59,15 @@
       <param name="i_limit_max" value="$(arg i_max)" />
       <param name="i_limit_min" value="$(arg i_min)" />
     </node>
-    <node pkg="nodelet" type="nodelet" name="euclidean_clustering$(arg FILTER_NAME_SUFFIX)"
-          args="load jsk_pcl/EuclideanClustering $(arg manager)" output="screen">
-      <remap from="~input" to="$(arg OUTPUT)" />
-      <rosparam>
-        tolerance: 0.02
-        min_size: 100
-      </rosparam>
-    </node>
+
+    <!-- <node pkg="nodelet" type="nodelet" name="euclidean_clustering$(arg FILTER_NAME_SUFFIX)" -->
+    <!--       args="load jsk_pcl/EuclideanClustering $(arg manager)" output="screen"> -->
+    <!--   <remap from="~input" to="$(arg OUTPUT)" /> -->
+    <!--   <rosparam> -->
+    <!--     tolerance: 0.02 -->
+    <!--     min_size: 100 -->
+    <!--   </rosparam> -->
+    <!-- </node> -->
 
     <node pkg="nodelet" type="nodelet"
           name="cluster_decomposer$(arg FILTER_NAME_SUFFIX)"
@@ -63,7 +80,6 @@
       <rosparam>
       </rosparam>
     </node>
-
 
   </group>
 
