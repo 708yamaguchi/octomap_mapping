@@ -65,7 +65,12 @@
     (setf (aref (send target-coords :worldpos) 0) (+ *min-x* (random (- *max-x* *min-x*))))
     (setf (aref (send target-coords :worldpos) 1) (+ *min-y* (random (- *max-y* *min-y*))))
     (setf (aref (send target-coords :worldpos) 2) *max-z*)
-    ;; start moving hand down
+    ;; first, moving hand up
+    (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+    (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* (aref (send *fetch* :rarm :end-coords :worldpos) 2))) :world)
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+    (send *ri* :wait-interpolation)
+    ;; then move hand to target coords
     (send *fetch* :reset-pose)
     (send *fetch* :inverse-kinematics target-coords)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
@@ -74,7 +79,7 @@
     (setq target-coords (send *fetch* :rarm :end-coords :copy-worldcoords))
     (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
     (detect target-coords :close-frame-list (list (list "/left" "/top") (list "/right" "/top")))
-    (unix:sleep 1) ;; make sure that robot stops motion by :cancel-angle-vector
+    (unix:sleep 3) ;; make sure that robot stops motion by :cancel-angle-vector, and wait for updating octomap
     ;; move hand randomly until detecting object
     (let* ((region-x (- *max-x* *min-x*)) (region-y (- *max-y* *min-y*))
            (par (random (* 2 (+ region-x region-y))))
@@ -105,7 +110,7 @@
       (setf (aref (send target-coords :worldpos) 0) target-x)
       (setf (aref (send target-coords :worldpos) 1) target-y)
       (format t "target end-coords is ~A~%" target-coords)
-      (detect target-coords :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")))
+      (detect target-coords :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")) :thre 30)
       (format t "now, end-coords is ~A~%" (send *fetch* :rarm :end-coords :copy-worldcoords))
       (unix:sleep 1) ;; make sure that robot stops motion by :cancel-angle-vector
       )))
