@@ -107,6 +107,11 @@
   <!-- publish frontier grid in octomap -->
   <!-- <node pkg="octomap_server" type="get_frontier.py" name="get_frontier" output="screen" /> -->
 
+  <!-- color recognition for detecting box's top side -->
+  <include file="$(find jsk_octomap_server)/launch/box_recog.launch">
+    <arg name="INPUT" value="/camera_remote/depth_registered/points"/>
+  </include>
+
   <!-- rviz -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/octomap_frontier.rviz"/>
 
