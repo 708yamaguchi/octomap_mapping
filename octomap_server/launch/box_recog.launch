@@ -2,7 +2,6 @@
   <arg name="INPUT" default="hsi_input"/>
   <arg name="CENTROID_FRAME" default="target"/>
   <arg name="DEFAULT_NAMESPACE" default="HSI_color_filter"/>
-  <arg name="FILTER_NAME_SUFFIX" default=""/>
 
   <arg name="h_max" default="127" doc="maximum hue 127 corresponds to pi. When we define M as (max r g b), m as (r g b) and c as M-m, hue is calculated as 1. undifined (if c=0) 2. (((g-b)/6)*mod6)*60-180 (if M=r) 3. (((b-r)/c)+2)*60-180 (if M=g) 4. (((r-g)/c)+4)*60-180 (if M=b)"/>
   <arg name="h_min" default="-128" doc="minimum hue -128 corresponds to -pi. When we define M as (max r g b), m as (r g b) and c as M-m, hue is calculated as 1. undifined (if c=0) 2. (((g-b)/6)*mod6)*60-180 (if M=r) 3. (((b-r)/c)+2)*60-180 (if M=g) 4. (((r-g)/c)+4)*60-180 (if M=b)" />
@@ -12,8 +11,9 @@
   <arg name="i_min" default="0" doc="minimum intensity 0 corresponds to 0. Intensity is calculated as (r + g + b)/3"/>
 
   <arg name="create_manager" default="true" />
-  <arg name="manager" default="hsi_filter_manager$(arg FILTER_NAME_SUFFIX)" />
+  <arg name="manager" default="hsi_filter_manager" />
 
+  <!-- goal of this launch is publishing boundingbox of box's green edge -->
   <group ns="$(arg DEFAULT_NAMESPACE)">
     <node if="$(arg create_manager)"
           pkg="nodelet" type="nodelet" name="$(arg manager)"
@@ -49,9 +49,9 @@
       </rosparam>
     </node>
 
-    <!-- <node pkg="nodelet" type="nodelet" name="hsi_filter$(arg FILTER_NAME_SUFFIX)" -->
+    <!-- <node pkg="nodelet" type="nodelet" name="hsi_filter" -->
     <!--       args="load jsk_pcl/HSIColorFilter $(arg manager)" output="screen"> -->
-    <node pkg="nodelet" type="nodelet" name="hsi_filter$(arg FILTER_NAME_SUFFIX)"
+    <node pkg="nodelet" type="nodelet" name="hsi_filter"
           args="standalone jsk_pcl/HSIColorFilter" output="screen">
       <remap from="~input" to="extract_indices/output" />
       <rosparam>
@@ -65,15 +65,6 @@
       <param name="i_limit_min" value="$(arg i_min)" />
     </node>
 
-    <!-- <node pkg="nodelet" type="nodelet" name="euclidean_clustering$(arg FILTER_NAME_SUFFIX)" -->
-    <!--       args="load jsk_pcl/EuclideanClustering $(arg manager)" output="screen"> -->
-    <!--   <remap from="~input" to="$(arg OUTPUT)" /> -->
-    <!--   <rosparam> -->
-    <!--     tolerance: 0.02 -->
-    <!--     min_size: 100 -->
-    <!--   </rosparam> -->
-    <!-- </node> -->
-
     <!-- <node pkg="nodelet" type="nodelet" name="pointcloud_to_indices" -->
     <!--       args="load jsk_pcl/PointCloudToClusterPointIndices $(arg manager)" -->
     <!--       output="screen" > -->
@@ -84,18 +75,22 @@
     </node>
 
     <!-- <node pkg="nodelet" type="nodelet" -->
-    <!--       name="cluster_decomposer$(arg FILTER_NAME_SUFFIX)" -->
-    <!--       args="load jsk_pcl/ClusterPointIndicesDecomposerZAxis $(arg manager)" -->
+    <!--       name="cluster_decomposer" -->
+    <!--       args="load jsk_pcl/ClusterPointIndicesDecomposer $(arg manager)" -->
     <!--       output="screen" clear_params="true"> -->
     <node pkg="nodelet" type="nodelet"
-          name="cluster_decomposer$(arg FILTER_NAME_SUFFIX)"
+          name="cluster_decomposer"
           args="standalone jsk_pcl/ClusterPointIndicesDecomposer"
           output="screen" clear_params="true">
       <remap from="~input" to="hsi_filter/output" />
       <remap from="~target" to="pointcloud_to_indices/output" />
-      <!-- <remap from="~debug_output" to="debug_output$(arg FILTER_NAME_SUFFIX)" /> -->
-      <remap from="~boxes" to="boxes$(arg FILTER_NAME_SUFFIX)" />
-      <rosparam>
+      <remap from="~debug_output" to="debug_output" />
+      <remap from="~boxes" to="boxes" />
+      <rosparam>  <!-- align boxes with z axis of base_link -->
+        align_boxes: true
+        align_boxes_with_plane: false
+        target_frame_id: base_link
+        use_pca: true
       </rosparam>
     </node>
 

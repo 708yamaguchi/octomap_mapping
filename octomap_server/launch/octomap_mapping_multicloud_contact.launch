@@ -110,12 +110,12 @@
   <!-- color recognition for detecting box's top side -->
   <include file="$(find octomap_server)/launch/box_recog.launch">
     <arg name="INPUT" value="/camera_remote/depth_registered/points"/>
-    <arg name="h_min" value="127"/>
-    <arg name="h_max" value="52"/>
-    <arg name="s_min" value="255"/>
-    <arg name="s_max" value="66"/>
-    <arg name="i_min" value="157"/>
-    <arg name="i_max" value="80"/>
+    <arg name="h_min" value="114"/>
+    <arg name="h_max" value="54"/>
+    <arg name="s_min" value="222"/>
+    <arg name="s_max" value="123"/>
+    <arg name="i_min" value="158"/>
+    <arg name="i_max" value="79"/>
   </include>
 
   <!-- rviz -->
