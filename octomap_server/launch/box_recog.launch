@@ -3,7 +3,6 @@
   <arg name="CENTROID_FRAME" default="target"/>
   <arg name="DEFAULT_NAMESPACE" default="HSI_color_filter"/>
   <arg name="FILTER_NAME_SUFFIX" default=""/>
-  <arg name="OUTPUT" default="hsi_output$(arg FILTER_NAME_SUFFIX)"/>
 
   <arg name="h_max" default="127" doc="maximum hue 127 corresponds to pi. When we define M as (max r g b), m as (r g b) and c as M-m, hue is calculated as 1. undifined (if c=0) 2. (((g-b)/6)*mod6)*60-180 (if M=r) 3. (((b-r)/c)+2)*60-180 (if M=g) 4. (((r-g)/c)+4)*60-180 (if M=b)"/>
   <arg name="h_min" default="-128" doc="minimum hue -128 corresponds to -pi. When we define M as (max r g b), m as (r g b) and c as M-m, hue is calculated as 1. undifined (if c=0) 2. (((g-b)/6)*mod6)*60-180 (if M=r) 3. (((b-r)/c)+2)*60-180 (if M=g) 4. (((r-g)/c)+4)*60-180 (if M=b)" />
@@ -20,8 +19,10 @@
           pkg="nodelet" type="nodelet" name="$(arg manager)"
           args="manager" output="screen"/>
 
+    <!-- <node name="attention_clipper" pkg="nodelet" type="nodelet" -->
+    <!--       args="load jsk_pcl/AttentionClipper $(arg manager)" output="screen"> -->
     <node name="attention_clipper" pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/AttentionClipper $(arg manager)" output="screen">
+          args="standalone jsk_pcl/AttentionClipper" output="screen">
       <remap from="~input/points" to="$(arg INPUT)" />
       <rosparam>
         initial_pos: [0.55, 0.0, 0.4]
@@ -33,9 +34,12 @@
       </rosparam>
     </node>
 
+    <!-- <node name="extract_indices" -->
+    <!--       pkg="nodelet" type="nodelet" -->
+    <!--       args="load jsk_pcl/ExtractIndices $(arg manager)"> -->
     <node name="extract_indices"
           pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/ExtractIndices $(arg manager)">
+          args="standalone jsk_pcl/ExtractIndices">
       <remap from="~input" to="$(arg INPUT)" />  <!-- depth timestamp -->
       <remap from="~indices" to="attention_clipper/output/point_indices" />  <!-- rgb timestamp -->
       <rosparam>
@@ -45,10 +49,11 @@
       </rosparam>
     </node>
 
+    <!-- <node pkg="nodelet" type="nodelet" name="hsi_filter$(arg FILTER_NAME_SUFFIX)" -->
+    <!--       args="load jsk_pcl/HSIColorFilter $(arg manager)" output="screen"> -->
     <node pkg="nodelet" type="nodelet" name="hsi_filter$(arg FILTER_NAME_SUFFIX)"
-          args="load jsk_pcl/HSIColorFilter $(arg manager)" output="screen">
+          args="standalone jsk_pcl/HSIColorFilter" output="screen">
       <remap from="~input" to="extract_indices/output" />
-      <remap from="~output" to="$(arg OUTPUT)" />
       <rosparam>
         use_indices: false
       </rosparam>
@@ -69,12 +74,25 @@
     <!--   </rosparam> -->
     <!-- </node> -->
 
+    <!-- <node pkg="nodelet" type="nodelet" name="pointcloud_to_indices" -->
+    <!--       args="load jsk_pcl/PointCloudToClusterPointIndices $(arg manager)" -->
+    <!--       output="screen" > -->
+    <node pkg="nodelet" type="nodelet" name="pointcloud_to_indices"
+          args="standalone jsk_pcl/PointCloudToClusterPointIndices"
+          output="screen" >
+      <remap from="~input" to="hsi_filter/output" />
+    </node>
+
+    <!-- <node pkg="nodelet" type="nodelet" -->
+    <!--       name="cluster_decomposer$(arg FILTER_NAME_SUFFIX)" -->
+    <!--       args="load jsk_pcl/ClusterPointIndicesDecomposerZAxis $(arg manager)" -->
+    <!--       output="screen" clear_params="true"> -->
     <node pkg="nodelet" type="nodelet"
           name="cluster_decomposer$(arg FILTER_NAME_SUFFIX)"
-          args="load jsk_pcl/ClusterPointIndicesDecomposerZAxis $(arg manager)"
+          args="standalone jsk_pcl/ClusterPointIndicesDecomposer"
           output="screen" clear_params="true">
-      <remap from="~input" to="$(arg OUTPUT)" />
-      <remap from="~target" to="euclidean_clustering$(arg FILTER_NAME_SUFFIX)/output" />
+      <remap from="~input" to="hsi_filter/output" />
+      <remap from="~target" to="pointcloud_to_indices/output" />
       <!-- <remap from="~debug_output" to="debug_output$(arg FILTER_NAME_SUFFIX)" /> -->
       <remap from="~boxes" to="boxes$(arg FILTER_NAME_SUFFIX)" />
       <rosparam>
