@@ -5,7 +5,7 @@
 
 
 ;; set working region
-(setq *region* (list (* 0.4 1000) (* 0.8 1000) (* -0.25 1000) (* 0.25 1000) (* 0.6 1000) (* 1.0 1000)))
+(setq *region* (list (* 0.4 1000) (* 0.7 1000) (* -0.15 1000) (* 0.15 1000) (* 0.3 1000) (* 0.6 1000)))
 (setq *resolution* 0.01)
 (let ((param-list (list "occupancy_min_x" "occupancy_max_x" "occupancy_min_y" "occupancy_max_y" "occupancy_min_z" "occupancy_max_z"))
       (count 0))
@@ -61,52 +61,61 @@
 ;; TODO: what method is best solution to create map?
 (defun create-map ()
   (let ((target-coords (make-coords :rpy (float-vector 0 pi/2 0))) ;; where to move fetch's hand
-        (direction (rad2deg (random pi))) (count 5))
+        (direction (rad2deg (random pi))) (count 0))
     ;; decide where to grope from now
     (setf (aref (send target-coords :worldpos) 0) (+ *min-x* (random (- *max-x* *min-x*))))
     (setf (aref (send target-coords :worldpos) 1) (+ *min-y* (random (- *max-y* *min-y*))))
     (setf (aref (send target-coords :worldpos) 2) *max-z*)
     ;; first, moving hand up
+    (format t "move hand up. preparing...~%")
     (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
     (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* (aref (send *fetch* :rarm :end-coords :worldpos) 2))) :world)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
     (send *ri* :wait-interpolation)
     ;; then move hand to target coords
+    (format t "move hand to target coords~%")
     (send *fetch* :reset-pose)
     (send *fetch* :inverse-kinematics target-coords)
     (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) direction)) ;; rotate arm randomly
     (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
     (send *ri* :wait-interpolation)
-    (send *fetch* :rarm :move-end-pos (float-vector 0 0 -300) :world) ;; 300 is tuned-parameter, needed to modify
-    (setq target-coords (send *fetch* :rarm :end-coords :copy-worldcoords))
-    (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-    (detect target-coords :close-frame-list (list (list "/left" "/top") (list "/right" "/top")))
-    (unix:sleep 3) ;; make sure that robot stops motion by :cancel-angle-vector, and wait for updating octomap
+    ;; (send *fetch* :rarm :move-end-pos (float-vector 0 0 -300) :world) ;; 300 is tuned-parameter, needed to modify
+    ;; (setq target-coords (send *fetch* :rarm :end-coords :copy-worldcoords))
+    ;; (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+    ;; (detect target-coords :close-frame-list (list (list "/left" "/top") (list "/right" "/top")))
+    ;; (unix:sleep 3) ;; make sure that robot stops motion by :cancel-angle-vector, and wait for updating octomap
+    (format t "start tracing~%")
     ;; move hand until detecting object. move-end-pos 10cm, 10cm, 10cm ...  gradually.
+    ;; TODO: make this while loop more intelligent. more smooth tracing is needed.
     (while (< count 3) ;; vertical hand move and horizontal hand move, alternately
+      (format t "count: ~A~%" count)
+      ;; move hand down
       (while t
+        (format t "move hand down~%")
         (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
-                           *min-x* *max-x* *min-y* *max-y* *min-z* *max-z*)
-          (progn
-            (format t "move hand until missing object~%")
-            (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(0 0 -100))
-                  :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")) :thre 30))
-          (progn
-            (format t "robot hand is outside of target region~%")
-            (return-from create-map t))))
-      (send *fetch* :rarm :move-end-pos :local #f(0 0 -40))
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
-      (send *ri* :wait-interpolation)
-      (while t
-        (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
-                           *min-x* *max-x* *min-y* *max-y* *min-z* *max-z*)
+                           *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
           (progn
             (format t "move hand until detecting object~%")
-            (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
-                    :away-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30))
+            (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
+                        :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
+              (return)))
           (progn
             (format t "robot hand is outside of target region~%")
             (return-from create-map t))))
+      ;; move hand horizontally
+      (while t
+        (format t "move hand sideway~%")
+        (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
+                           *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
+          (progn
+            (format t "move hand until missing object~%")
+            (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(0 0 -100))
+                        :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")) :thre 30)
+              (return)))
+          (progn
+            (format t "robot hand is outside of target region~%")
+            (return-from create-map t))))
+      (setq count (+ 1 count))
       )
 
     ;; ;; before version
@@ -425,13 +434,13 @@
     (unix:sleep 4)
     ))
 
-(defun inside-region (coords x-min x-max y-min y-max z-min z-max)
+(defun inside-region (coords x-min x-max y-min y-max z-min z-max &optional (margin 0))
   (let ((x (aref (send coords :worldpos) 0))
         (y (aref (send coords :worldpos) 1))
         (z (aref (send coords :worldpos) 2)))
-    (and (<= x-min x x-max)
-         (<= y-min y y-max)
-         (<= z-min z z-max))))
+    (and (<= (- x-min margin) x (+ x-max margin))
+         (<= (- y-min margin) y (+ y-max margin))
+         (<= (- z-min margin) z (+ z-max margin)))))
 
 ;; do not return pointcloud when loading this file
 nil
