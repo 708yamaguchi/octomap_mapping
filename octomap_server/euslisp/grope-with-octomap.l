@@ -94,6 +94,11 @@
                            *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
           (progn
             (format t "move hand until detecting object~%")
+            ;; if side1 is near object, stop moving hand down
+            (ros::spin-once)
+            (if (and (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side1")) :data) cons)) 50)
+                     (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side1")) :data) cons)) 50))
+              (return))
             (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
                         :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
               (return)))
@@ -110,7 +115,7 @@
             (let ((result (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(0 0 -100))
                                     :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3"))
                                     :away-frame-list (list (list "/left" "/top") (list "/right" "/top"))
-                                    :thre 30)))
+                                    :thre 50)))
               (when (equal (car result) :close-frame-list)
                 (format t "find something around gripper~%")
                 (return))
@@ -133,6 +138,11 @@
                          *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
         (progn
           (format t "move hand until detecting object~%")
+          ;; if side1 is near object, stop moving hand down
+          (ros::spin-once)
+          (if (and (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side1")) :data) cons)) 50)
+                   (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side1")) :data) cons)) 50))
+            (return))
           (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
                       :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
             (return)))
