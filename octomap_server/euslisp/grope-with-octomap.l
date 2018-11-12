@@ -79,18 +79,18 @@
     (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) direction)) ;; rotate arm randomly
     (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
     (send *ri* :wait-interpolation)
-    ;; (send *fetch* :rarm :move-end-pos (float-vector 0 0 -300) :world) ;; 300 is tuned-parameter, needed to modify
-    ;; (setq target-coords (send *fetch* :rarm :end-coords :copy-worldcoords))
-    ;; (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-    ;; (detect target-coords :close-frame-list (list (list "/left" "/top") (list "/right" "/top")))
-    ;; (unix:sleep 3) ;; make sure that robot stops motion by :cancel-angle-vector, and wait for updating octomap
     (format t "start tracing~%")
     ;; move hand until detecting object. move-end-pos 10cm, 10cm, 10cm ...  gradually.
-    ;; TODO: make this while loop more intelligent. more smooth tracing is needed.
     (while (< count 3) ;; vertical hand move and horizontal hand move, alternately
       (format t "count: ~A~%" count)
       ;; move hand down
       (while t
+        ;; if gripper is surrounded by objects, return from this function
+        ;; (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+        ;; (let ((ec (send *fetch* :rarm :end-coords :copy-worldcoords)))
+        ;;   (if (and (detect ec :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :tm 1000)
+        ;;            (detect ec :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")) :tm 1000))
+        ;;     (return-from create-map t)))
         (format t "move hand down~%")
         (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
                            *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
@@ -104,19 +104,53 @@
             (return-from create-map t))))
       ;; move hand horizontally
       (while t
+        ;; if gripper is surrounded by objects, return from this function
+        ;; (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+        ;; (let ((ec (send *fetch* :rarm :end-coords :copy-worldcoords)))
+        ;;   (if (and (detect ec :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :tm 1000)
+        ;;            (detect ec :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")) :tm 1000))
+        ;;     (return-from create-map t)))
         (format t "move hand sideway~%")
         (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
                            *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
           (progn
             (format t "move hand until missing object~%")
-            (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(0 0 -100))
-                        :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")) :thre 30)
-              (return)))
+            ;; (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(0 0 -100))
+            ;;             :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")) :thre 30)
+            ;; TODO check whether :away-from-list work properly
+            (let ((result (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(0 0 -100))
+                                    :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3"))
+                                    :away-frame-list (list (list "/left" "/top") (list "/right" "/top"))
+                                    :thre 30)))
+              (when (equal (car result) :close-frame-list)
+                (format t "find something around gripper~%")
+                (return))
+              (when (equal (car result) :away-frame-list)
+                (format t "missing object at the top of the gripper~%")
+                (send *fetch* :rarm :move-end-pos #f(0 0 -40) :local)
+                (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+                (send *ri* :wait-interpolation)
+                (return))))
           (progn
             (format t "robot hand is outside of target region~%")
             (return-from create-map t))))
       (setq count (+ 1 count))
       )
+
+    ;; at last, move hand down
+    (format t "at last, move hand down~%")
+    (while t
+      (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
+                         *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
+        (progn
+          (format t "move hand until detecting object~%")
+          (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
+                      :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
+            (return)))
+        (progn
+          (format t "robot hand is outside of target region~%")
+          (return-from create-map t))))
+
 
     ;; ;; before version
     ;; (let* ((region-x (- *max-x* *min-x*)) (region-y (- *max-y* *min-y*))
