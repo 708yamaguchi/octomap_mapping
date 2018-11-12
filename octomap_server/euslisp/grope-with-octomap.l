@@ -69,6 +69,10 @@
     ;; first, moving hand up
     (format t "move hand up. preparing...~%")
     (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+    (send *fetch* :torso :waist-z :joint-angle 400)
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
+    (send *ri* :wait-interpolation)
+    (send *fetch* :torso :waist-z :joint-angle 50)
     (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* (aref (send *fetch* :rarm :end-coords :worldpos) 2))) :world)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
     (send *ri* :wait-interpolation)
