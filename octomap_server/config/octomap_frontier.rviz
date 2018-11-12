@@ -211,6 +211,36 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: false
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: RGB8
+      Decay Time: 0
+      Enabled: false
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: ClippedPointCloud
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.001
+      Style: Flat Squares
+      Topic: /HSI_color_filter/extract_indices/output
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: false
     - Class: rviz/TF
       Enabled: false
       Frame Timeout: 15
@@ -519,7 +549,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: RGB8
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -536,13 +566,13 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Class: jsk_rviz_plugin/BoundingBoxArray
-      Enabled: true
+      Enabled: false
       Name: HSI_BoundingBox
       Topic: /HSI_color_filter/boxes
       Unreliable: false
-      Value: true
+      Value: false
       alpha: 0.8
       color: 25; 255; 0
       coloring: Auto
@@ -573,22 +603,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.76507
+      Distance: 2.77737
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.786888
-        Y: 0.0235566
-        Z: 0.578246
+        X: 0.740209
+        Y: 0.0331805
+        Z: 0.545306
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.570202
+      Pitch: 0.490202
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.85632
+      Yaw: 4.13132
     Saved: ~
 Window Geometry:
   Displays:
