@@ -85,12 +85,6 @@
       (format t "count: ~A~%" count)
       ;; move hand down
       (while t
-        ;; if gripper is surrounded by objects, return from this function
-        ;; (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-        ;; (let ((ec (send *fetch* :rarm :end-coords :copy-worldcoords)))
-        ;;   (if (and (detect ec :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :tm 1000)
-        ;;            (detect ec :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")) :tm 1000))
-        ;;     (return-from create-map t)))
         (format t "move hand down~%")
         (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
                            *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
@@ -104,20 +98,11 @@
             (return-from create-map t))))
       ;; move hand horizontally
       (while t
-        ;; if gripper is surrounded by objects, return from this function
-        ;; (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-        ;; (let ((ec (send *fetch* :rarm :end-coords :copy-worldcoords)))
-        ;;   (if (and (detect ec :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :tm 1000)
-        ;;            (detect ec :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")) :tm 1000))
-        ;;     (return-from create-map t)))
         (format t "move hand sideway~%")
         (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
                            *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
           (progn
             (format t "move hand until missing object~%")
-            ;; (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(0 0 -100))
-            ;;             :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")) :thre 30)
-            ;; TODO check whether :away-from-list work properly
             (let ((result (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(0 0 -100))
                                     :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3"))
                                     :away-frame-list (list (list "/left" "/top") (list "/right" "/top"))
@@ -150,43 +135,6 @@
         (progn
           (format t "robot hand is outside of target region~%")
           (return-from create-map t))))
-
-
-    ;; ;; before version
-    ;; (let* ((region-x (- *max-x* *min-x*)) (region-y (- *max-y* *min-y*))
-    ;;        (par (random (* 2 (+ region-x region-y))))
-    ;;        target-x target-y ec direction wrist-rotate-angle)
-    ;;   (if (<= par region-x)
-    ;;     (progn
-    ;;       (setq target-x (- *max-x* par))
-    ;;       (setq target-y *max-y*)))
-    ;;   (if (<= region-x par (+ region-x region-y))
-    ;;     (progn
-    ;;       (setq target-x *min-x*)
-    ;;       (setq target-y (- *max-y* (- par region-x)))))
-    ;;   (if (<= (+ region-x region-y) par (+ (* 2 region-x) region-y))
-    ;;     (progn
-    ;;       (setq target-x (+ (- par region-x region-y) *min-x*))
-    ;;       (setq target-y *min-y*)))
-    ;;   (if (<= (+ (* 2 region-x) region-y) par)
-    ;;     (progn
-    ;;       (setq target-x *max-x*)
-    ;;       (setq target-y (+ (- par (* 2 region-x) region-y) *min-y*))))
-    ;;   (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
-    ;;   (setq direction (send ec :inverse-transform-vector (float-vector target-x target-y (aref (send ec :worldpos) 2))))
-    ;;   (setq wrist-rotate-angle (rad2deg (atan2 (aref direction 1) (* -1 (aref direction 2)))))
-    ;;   (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) wrist-rotate-angle))
-    ;;   (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
-    ;;   (send *ri* :wait-interpolation)
-    ;;   (setq target-coords (send *fetch* :rarm :end-coords :copy-worldcoords))
-    ;;   (setf (aref (send target-coords :worldpos) 0) target-x)
-    ;;   (setf (aref (send target-coords :worldpos) 1) target-y)
-    ;;   (format t "target end-coords is ~A~%" target-coords)
-    ;;   (detect target-coords :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")) :thre 30)
-    ;;   (format t "now, end-coords is ~A~%" (send *fetch* :rarm :end-coords :copy-worldcoords))
-    ;;   (unix:sleep 1) ;; make sure that robot stops motion by :cancel-angle-vector
-    ;;   )
-    ;; ;; before version
     ))
 
 
