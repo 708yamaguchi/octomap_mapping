@@ -62,6 +62,7 @@
 (defun create-map ()
   (let ((target-coords (make-coords :rpy (float-vector 0 pi/2 0))) ;; where to move fetch's hand
         (direction (rad2deg (random pi))) (count 0))
+    (send *ri* :start-grasp :wait t)
     ;; decide where to grope from now
     (setf (aref (send target-coords :worldpos) 0) (+ *min-x* (random (- *max-x* *min-x*))))
     (setf (aref (send target-coords :worldpos) 1) (+ *min-y* (random (- *max-y* *min-y*))))
