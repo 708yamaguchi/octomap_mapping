@@ -26,6 +26,9 @@
 ;; torso length
 (setq *torso* 20)
 
+;; service name for stop/request of pointcloud from camera
+(setq *camera-request-service* "/camera_passthrough/request")
+(setq *camera-stop-service* "/camera_passthrough/stop")
 
 (unless (boundp '*ri*)
   (set-fetch))
@@ -442,6 +445,14 @@
     (and (<= (- x-min margin) x (+ x-max margin))
          (<= (- y-min margin) y (+ y-max margin))
          (<= (- z-min margin) z (+ z-max margin)))))
+
+(defun camera-request ()
+  (ros::wait-for-service *camera-request-service*)
+  (ros::service-call *camera-request-service* (instance std_srvs::EmptyRequest :init)))
+
+(defun camera-stop ()
+  (ros::wait-for-service *camera-stop-service*)
+  (ros::service-call *camera-stop-service* (instance std_srvs::EmptyRequest :init)))
 
 ;; do not return pointcloud when loading this file
 nil
