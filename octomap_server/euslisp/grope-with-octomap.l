@@ -270,7 +270,7 @@
 (setq *pc2* (cadr av-and-groped-pc1))
 ;; TODO decide grope point based on height map. hint is in (calc-grope-point)
 ;; TODO use pyramid algorithm when searching grope point
-(defun search-graspable-point (pc &key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000))
+(defun search-graspable-point (pc &key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (iter-count 1000))
   (let* (stick-l stick-r
          random-x random-y random-rot
          best-x best-y best-z best-rot
@@ -297,7 +297,7 @@
     (send gripper-l :set-color #f(1 0 0))
     (send gripper-r :set-color #f(0 1 0))
     (send gripper-inside :set-color #f(0 0 1))
-    ;; stick is thexy-plane field occupied by gripper
+    ;; stick is the xy-plane field occupied by gripper
     (setq stick-l (send (make-cube gr-x gr-y (- max-z min-z)) :locate (float-vector 0 (/ gr-open -2) (/ (+ max-z min-z) 2.0))))
     (send stick-l :set-color #f(1 0 0 0.5))
     (setq stick-r (send (make-cube gr-x gr-y (- max-z min-z)) :locate (float-vector 0 (/ gr-open 2) (/ (+ max-z min-z) 2.0))))
@@ -311,7 +311,7 @@
     ;; (sort) is destructively sort
     (sort point-list-sorted #'(lambda (x y) (> (aref x 2) (aref y 2))))
     ;; search for most graspable point
-    (dotimes (i 1000)
+    (dotimes (i iter-count)
       ;; reset variables
       (setq highest-z nil)
       (setq inside-point 0)
