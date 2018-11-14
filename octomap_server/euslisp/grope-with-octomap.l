@@ -416,7 +416,7 @@
         (send gripper-inside :locate (float-vector best-x best-y (+ best-z (/ gr-z 2.0))) :world) ;; change position absolutely
         (send gripper-inside :orient best-rot :z :world) ;; change rotation absolutely
         (objects (append (list *fetch* pc) region)))
-      (fotmat t "cannot find graspable point.~%"))
+      (format t "cannot find graspable point.~%"))
     ))
 
 
