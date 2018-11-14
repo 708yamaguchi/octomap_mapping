@@ -6,7 +6,7 @@
 
 ;; set working region
 (setq *region* (list (* 0.4 1000) (* 0.7 1000) (* -0.15 1000) (* 0.15 1000) (* 0.3 1000) (* 0.6 1000)))
-(setq *resolution* 0.01)
+(setq *resolution* 10)
 (let ((param-list (list "occupancy_min_x" "occupancy_max_x" "occupancy_min_y" "occupancy_max_y" "occupancy_min_z" "occupancy_max_z"))
       (count 0))
   (dolist (param param-list)
