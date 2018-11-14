@@ -379,6 +379,25 @@
     ))
 
 
+(defun decide-grope-point (pc)
+  (let ((hand-pos nil) (x nil) (y nil) (z nil) (fetch1 nil) (fetch2 nil) (fetch3 nil))
+    (search-graspable-point pc :iter-count 500)
+    (setq fetch1 (copy-object *fetch*))
+    (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
+    (setq x (aref hand-pos 0))
+    (setq y (aref hand-pos 1))
+    (setq z (aref hand-pos 2))
+    (search-graspable-point pc :min-x (- x 200) :max-x (+ x 200) :min-y (- y 200) :max-y (+ y 200) :min-z (- z 200) :max-z (+ z 200) :iter-count 800)
+    (setq fetch2 (copy-object *fetch*))
+    (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
+    (setq x (aref hand-pos 0))
+    (setq y (aref hand-pos 1))
+    (setq z (aref hand-pos 2))
+    (search-graspable-point pc :min-x (- x 100) :max-x (+ x 100) :min-y (- y 100) :max-y (+ y 100) :min-z (- z 100) :max-z (+ z 100) :iter-count 1000)
+    (setq fetch3 (copy-object *fetch*))
+    ))
+
+
 ;; This is trial function, and do not use at experiment stage.
 ;; randomly extend hand to surface of table.
 (defun random-grope ()
