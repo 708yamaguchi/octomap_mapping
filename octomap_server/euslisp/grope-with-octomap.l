@@ -380,9 +380,11 @@
     ))
 
 
-(defun decide-grope-point (pc)
+;; sample
+;; (decide-grope-point *pc2*)
+(defun decide-grope-point (pc &key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000))
   (let ((hand-pos nil) (x nil) (y nil) (z nil) (fetch-copy nil) (points 0) (max-points 0))
-    (setq max-points (search-graspable-point pc :iter-count 500))
+    (setq max-points (search-graspable-point pc :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z :iter-count 500))
     (setq fetch-copy (copy-object *fetch*))
     (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
     (print hand-pos)
