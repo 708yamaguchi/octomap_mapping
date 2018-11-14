@@ -453,6 +453,11 @@
     ))
 
 
+(defun pre-grasp ()
+  ;; if grasp is succeeded, return t. else, return nil
+  )
+
+
 ;; This is trial function, and do not use at experiment stage.
 ;; randomly extend hand to surface of table.
 (defun random-grope ()
