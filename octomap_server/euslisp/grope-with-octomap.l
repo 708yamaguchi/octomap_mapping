@@ -45,7 +45,6 @@
   (camera-stop)
   (octomap-reset)
 
-
   ;; set initial pose for experiment
   (send *fetch* :reset-pose)
   (send *fetch* :torso :waist-z :joint-angle *torso*)
@@ -128,6 +127,7 @@
     (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* (aref (send *fetch* :rarm :end-coords :worldpos) 2))) :world)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
     (send *ri* :wait-interpolation)
+    (send *ri* :set-init-proximities) ;; calibration proximity sensor's param. TODO Is this method needed here?
     ;; then move hand to target coords
     (format t "move hand to target coords~%")
     (send *fetch* :reset-pose)
