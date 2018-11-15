@@ -425,7 +425,9 @@
           (send gripper-inside :orient best-rot :z :world) ;; change rotation absolutely
           (objects (append (list *fetch* pc) region))
           max-inside-point)
-        (format t "cannot find graspable point.~%"))
+        (progn
+          (format t "cannot find graspable point.~%")
+          0))
       )))
 
 
