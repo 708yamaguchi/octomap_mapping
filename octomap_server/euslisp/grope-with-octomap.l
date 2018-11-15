@@ -280,7 +280,7 @@
 ;; before calling this function, necessary to subscribe "/unknown(frontier)_cells_vis_array"
 ;; (load "package://octomap_server/euslisp/occupied-and-unknown-cloud1.l")
 ;; (load "package://octomap_server/euslisp/occupied-and-unknown-cloud2.l")
-;; only occupied pointcloud can be got.
+;; only occupied and unknown pointcloud can be gotten from this function.
 (defun get-octo-pointcloud (&key (type nil))
   (let ((octo-cloud nil) (eus-octo-cloud nil) (color nil) (colors nil))
     ;; subscribe octomap pointcloud
