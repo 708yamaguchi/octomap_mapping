@@ -40,6 +40,12 @@
 
 
 (defun main ()
+  ;; settings for experiment
+  ;; TODO use camera and decide target region
+  (camera-stop)
+  (octomap-reset)
+
+
   ;; set initial pose for experiment
   (send *fetch* :reset-pose)
   (send *fetch* :torso :waist-z :joint-angle *torso*)
