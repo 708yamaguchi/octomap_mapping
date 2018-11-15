@@ -29,6 +29,8 @@
 ;; service name for stop/request of pointcloud from camera
 (setq *camera-request-service* "/camera_passthrough/request")
 (setq *camera-stop-service* "/camera_passthrough/stop")
+;; service name for reset octomap
+(setq *octomap-reset-service* "/octomap_server_contact/reset")
 
 (unless (boundp '*ri*)
   (set-fetch))
@@ -491,6 +493,10 @@
 (defun camera-stop ()
   (ros::wait-for-service *camera-stop-service*)
   (ros::service-call *camera-stop-service* (instance std_srvs::EmptyRequest :init)))
+
+(defun octomap-reset ()
+  (ros::wait-for-service *octomap-reset-service*)
+  (ros::service-call *octomap-reset-service* (instance std_srvs::EmptyRequest :init)))
 
 ;; do not return pointcloud when loading this file
 nil
