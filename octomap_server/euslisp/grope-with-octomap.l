@@ -123,18 +123,19 @@
     (send *fetch* :torso :waist-z :joint-angle 350)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
     (send *ri* :wait-interpolation)
-    (send *fetch* :torso :waist-z :joint-angle 50)
-    (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* (aref (send *fetch* :rarm :end-coords :worldpos) 2))) :world)
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
-    (send *ri* :wait-interpolation)
     (send *ri* :set-init-proximities) ;; calibration proximity sensor's param. TODO Is this method needed here?
-    ;; then move hand to target coords
-    (format t "move hand to target coords~%")
-    (send *fetch* :reset-pose)
-    (send *fetch* :inverse-kinematics target-coords)
+    ;; move hand above the target object
+    (send target-coords :translate (float-vector 0 0 (- 350 50)) :world)
+    (send *fetch* :inverse-kinematics target-coords :use-torso nil)
     (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) direction)) ;; rotate arm randomly
     (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
     (send *ri* :wait-interpolation)
+    ;; move hand down to target coords
+    (format t "move hand to target coords~%")
+    (send *fetch* :torso :waist-z :joint-angle 50)
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+    (send *ri* :wait-interpolation)
+
     (format t "start tracing~%")
     ;; move hand until detecting object. move-end-pos 10cm, 10cm, 10cm ...  gradually.
     (while (< count 3) ;; vertical hand move and horizontal hand move, alternately
