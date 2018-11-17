@@ -531,10 +531,9 @@
         (dotimes (l (cadr (array-dimensions dist-mat)))
           (setq cube (make-cube (/ (- max-x min-x) x-size) (/ (- max-y min-y) y-size) *resolution*))
           (send cube :set-color (float-vector (/ (aref dist-mat k l) (float max-unknown)) 0 0))
-          (send cube :translate (float-vector (+ (* k (/ (- max-x min-x) x-size)) *min-x*) (+ (* l (/ (- max-y min-y) y-size)) *min-y*) *min-z*) :world)
+          (send cube :translate (float-vector (+ (* k (/ (- max-x min-x) x-size)) min-x) (+ (* l (/ (- max-y min-y) y-size)) min-y) *min-z*) :world)
           (setq dist-vis-list (append dist-vis-list (list cube)))))
       (objects (append (list *fetch*) dist-vis-list)))
-
     1
     ))
 
