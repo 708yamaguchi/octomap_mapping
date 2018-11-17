@@ -474,22 +474,38 @@
   (let* ((occupied-pc (get-octo-pointcloud :type "occupied"))
          (unknown-pc (get-octo-pointcloud :type "unknown"))
          (octomap-2d (apply #'matrix (make-list (round (/ (- *max-x* *min-x*) *resolution*)) :initial-element (make-list (round (/ (- *max-y* *min-y*) *resolution*)) :initial-element 0))))
-         (x-size (floor (/ (- max-x min-x) block-size))) ;; x-size of target region, not octomap region
-         (y-size (floor (/ (- max-y min-y) block-size))) ;; y-size of target region, not octomap region
+         (x-size (floor (/ (- max-x min-x) block-size))) ;; x-size of target region, not octomap region.
+         (y-size (floor (/ (- max-y min-y) block-size))) ;; y-size of target region, not octomap region.
          (dist-mat (apply #'matrix (make-list x-size :initial-element (make-list y-size :initial-element 0)))))
     (dotimes (i (send occupied-pc :size))
       (let* ((occupied (matrix-row (send occupied-pc :points) i))
-             (x (round (/ (- (aref occupied 0) *min-x* (/ *resolution* 2.0)) x-size)))
-             (y (round (/ (- (aref occupied 1) *min-y* (/ *resolution* 2.0)) y-size)))) ;; x and y are index
+             (x (round (/ (- (aref occupied 0) *min-x* (/ *resolution* 2.0)) *resolution*)))
+             (y (round (/ (- (aref occupied 1) *min-y* (/ *resolution* 2.0)) *resolution*)))) ;; x and y are index
         (setf (aref octomap-2d x y) -1)))
     (dotimes (j (send unknown-pc :size))
       (let* ((unknown (matrix-row (send unknown-pc :points) j))
-             (x (round (/ (- (aref unknown 0) *min-x* *resolution*) x-size)))
-             (y (round (/ (- (aref unknown 1) *min-y* *resolution*) y-size)))) ;; x and y are index
+             (x (/ (round (- (aref unknown 0) *min-x* *resolution*)) *resolution*))
+             (y (/ (round (- (aref unknown 1) *min-y* *resolution*)) *resolution*))) ;; x and y are index
         (if (not (eq (aref octomap-2d x y) -1))
-          (setf (aref octomap-2d x y) (+ 1 (aref octomap-2d x y))))))
-    octomap-2d
+          (setf (aref octomap-2d x y) (+ 1 (aref octomap-2d x y)))
+          )))
+
+    (setq aaa octomap-2d)
+
+    ;; visualization of octomap-2d
+    (let ((cube nil) (vis-list nil))
+      (setq *resolution* 10)
+      (dotimes (i (car (array-dimensions octomap-2d)))
+        (dotimes (j (cadr (array-dimensions octomap-2d)))
+          (setq cube (make-cube *resolution* *resolution* *resolution*))
+          (send cube :set-color (float-vector (/ (max 0 (aref octomap-2d i j)) (/ (- *max-z* *min-z*) *resolution*)) 0 0))
+          (send cube :translate (float-vector (+ (* *resolution* i) *min-x*) (+ (* *resolution* j) *min-y*) *min-z*) :world)
+          (setq vis-list (append vis-list (list cube)))))
+      (setq *resolution* 10)
+      (objects (append (list *fetch*) vis-list)))
+    1
     ))
+
 
 
 (defun pre-grasp ()
