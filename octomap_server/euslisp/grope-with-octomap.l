@@ -510,5 +510,22 @@
   (ros::wait-for-service *octomap-reset-service*)
   (ros::service-call *octomap-reset-service* (instance std_srvs::EmptyRequest :init)))
 
+(defun sensor-calib (&optional (thre 90))
+  (dotimes (i 100)
+    (let ((min-temp *inf*) (min *inf*))
+      (send *ri* :set-init-proximities)
+      (unix:usleep (* 100 1000))
+      (ros::spin-once)
+      (dolist (l/r (list "/left" "/right"))
+        (dolist (frame (list "/top" "/side1" "/side2" "/side3"))
+          (setq min-temp (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance l/r frame)) :data) cons)))
+          (when (< min-temp min)
+            (setq min min-temp))))
+      (print min)
+      (when (< thre min)
+        (format t "calibration succeeded~%")
+        (return-from sensor-calib t))))
+  (format t "failed to calibrate sensor~%"))
+
 ;; do not return pointcloud when loading this file
 nil
