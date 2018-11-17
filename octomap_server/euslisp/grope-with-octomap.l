@@ -123,7 +123,7 @@
     (send *fetch* :torso :waist-z :joint-angle 350)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
     (send *ri* :wait-interpolation)
-    (send *ri* :set-init-proximities) ;; calibration proximity sensor's param. TODO Is this method needed here?
+    (sensor-calib) ;; calibration proximity sensor's param. TODO Is this method needed here?
     ;; move hand above the target object
     (send target-coords :translate (float-vector 0 0 (- 350 50)) :world)
     (send *fetch* :inverse-kinematics target-coords :use-torso nil)
@@ -521,7 +521,6 @@
           (setq min-temp (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance l/r frame)) :data) cons)))
           (when (< min-temp min)
             (setq min min-temp))))
-      (print min)
       (when (< thre min)
         (format t "calibration succeeded~%")
         (return-from sensor-calib t))))
