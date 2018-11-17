@@ -467,6 +467,31 @@
     ))
 
 
+;; NOTE arguments of this function means region of the target space, not octomap region.
+;; return map of where is not explored very much
+(defun unknown-distribution (&key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (block-size 50.0))
+  (ros::spin-once)
+  (let* ((occupied-pc (get-octo-pointcloud :type "occupied"))
+         (unknown-pc (get-octo-pointcloud :type "unknown"))
+         (octomap-2d (apply #'matrix (make-list (round (/ (- *max-x* *min-x*) *resolution*)) :initial-element (make-list (round (/ (- *max-y* *min-y*) *resolution*)) :initial-element 0))))
+         (x-size (floor (/ (- max-x min-x) block-size))) ;; x-size of target region, not octomap region
+         (y-size (floor (/ (- max-y min-y) block-size))) ;; y-size of target region, not octomap region
+         (dist-mat (apply #'matrix (make-list x-size :initial-element (make-list y-size :initial-element 0)))))
+    (dotimes (i (send occupied-pc :size))
+      (let* ((occupied (matrix-row (send occupied-pc :points) i))
+             (x (round (/ (- (aref occupied 0) *min-x* (/ *resolution* 2.0)) x-size)))
+             (y (round (/ (- (aref occupied 1) *min-y* (/ *resolution* 2.0)) y-size)))) ;; x and y are index
+        (setf (aref octomap-2d x y) -1)))
+    (dotimes (j (send unknown-pc :size))
+      (let* ((unknown (matrix-row (send unknown-pc :points) j))
+             (x (round (/ (- (aref unknown 0) *min-x* *resolution*) x-size)))
+             (y (round (/ (- (aref unknown 1) *min-y* *resolution*) y-size)))) ;; x and y are index
+        (if (not (eq (aref octomap-2d x y) -1))
+          (setf (aref octomap-2d x y) (+ 1 (aref octomap-2d x y))))))
+    octomap-2d
+    ))
+
+
 (defun pre-grasp ()
   ;; if grasp is succeeded, return t. else, return nil
   )
