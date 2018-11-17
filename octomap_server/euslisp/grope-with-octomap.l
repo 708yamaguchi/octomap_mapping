@@ -473,10 +473,7 @@
   (ros::spin-once)
   (let* ((occupied-pc (get-octo-pointcloud :type "occupied"))
          (unknown-pc (get-octo-pointcloud :type "unknown"))
-         (octomap-2d (apply #'matrix (make-list (round (/ (- *max-x* *min-x*) *resolution*)) :initial-element (make-list (round (/ (- *max-y* *min-y*) *resolution*)) :initial-element 0))))
-         (x-size (floor (/ (- max-x min-x) block-size))) ;; x-size of target region, not octomap region.
-         (y-size (floor (/ (- max-y min-y) block-size))) ;; y-size of target region, not octomap region.
-         (dist-mat (apply #'matrix (make-list x-size :initial-element (make-list y-size :initial-element 0)))))
+         (octomap-2d (apply #'matrix (make-list (round (/ (- *max-x* *min-x*) *resolution*)) :initial-element (make-list (round (/ (- *max-y* *min-y*) *resolution*)) :initial-element 0)))))
     (dotimes (i (send occupied-pc :size))
       (let* ((occupied (matrix-row (send occupied-pc :points) i))
              (x (round (/ (- (aref occupied 0) *min-x* (/ *resolution* 2.0)) *resolution*)))
@@ -490,19 +487,41 @@
           (setf (aref octomap-2d x y) (+ 1 (aref octomap-2d x y)))
           )))
 
-    (setq aaa octomap-2d)
+    ;; visualization of octomap-2d, NOTE this is important for debug, please do not remove this lines
+    ;; (let ((cube nil) (vis-list nil))
+    ;;   (setq *resolution* 10)
+    ;;   (dotimes (i (car (array-dimensions octomap-2d)))
+    ;;     (dotimes (j (cadr (array-dimensions octomap-2d)))
+    ;;       (setq cube (make-cube *resolution* *resolution* *resolution*))
+    ;;       (send cube :set-color (float-vector (/ (max 0 (aref octomap-2d i j)) (/ (- *max-z* *min-z*) *resolution*)) 0 0))
+    ;;       (send cube :translate (float-vector (+ (* *resolution* i) *min-x*) (+ (* *resolution* j) *min-y*) *min-z*) :world)
+    ;;       (setq vis-list (append vis-list (list cube)))))
+    ;;   (setq *resolution* 10)
+    ;;   (objects (append (list *fetch*) vis-list))
+    ;;   )
 
-    ;; visualization of octomap-2d
-    (let ((cube nil) (vis-list nil))
-      (setq *resolution* 10)
+    ;; calculate unknown-distribution matrix. this shows rough distribution of unknown area, and visualize it.
+    (let* ((x-size (round (/ (- max-x min-x) block-size))) ;; x-size of target region, not octomap region. divide octomap area into (x-size * y-size) areas
+           (y-size (round (/ (- max-y min-y) block-size))) ;; y-size of target region, not octomap region.
+           (dist-mat (apply #'matrix (make-list x-size :initial-element (make-list y-size :initial-element 0))))
+           (max-unknown 0) dist-vis-list cube)
+      ;; octomap-2d is composed of very fine grids, so make it rougher and create dist-mat (distribution matrix of unknown grids)
       (dotimes (i (car (array-dimensions octomap-2d)))
         (dotimes (j (cadr (array-dimensions octomap-2d)))
-          (setq cube (make-cube *resolution* *resolution* *resolution*))
-          (send cube :set-color (float-vector (/ (max 0 (aref octomap-2d i j)) (/ (- *max-z* *min-z*) *resolution*)) 0 0))
-          (send cube :translate (float-vector (+ (* *resolution* i) *min-x*) (+ (* *resolution* j) *min-y*) *min-z*) :world)
-          (setq vis-list (append vis-list (list cube)))))
-      (setq *resolution* 10)
-      (objects (append (list *fetch*) vis-list)))
+          (setf (aref dist-mat (/ i x-size) (/ j y-size)) (+ (aref octomap-2d i j) (aref dist-mat (/ i x-size) (/ j y-size))))))
+      (dotimes (k (car (array-dimensions dist-mat)))
+        (dotimes (l (cadr (array-dimensions dist-mat)))
+          (print (aref dist-mat k l))
+          (if (< max-unknown (aref dist-mat k l))
+            (setq max-unknown (aref dist-mat k l)))))
+      (dotimes (k (car (array-dimensions dist-mat)))
+        (dotimes (l (cadr (array-dimensions dist-mat)))
+          (setq cube (make-cube (/ (- max-x min-x) x-size) (/ (- max-y min-y) y-size) *resolution*))
+          (send cube :set-color (float-vector (/ (aref dist-mat k l) (float max-unknown)) 0 0))
+          (send cube :translate (float-vector (+ (* k (/ (- max-x min-x) x-size)) min-x) (+ (* l (/ (- max-y min-y) y-size)) min-y) min-z) :world)
+          (setq dist-vis-list (append dist-vis-list (list cube)))))
+      (objects (append (list *fetch*) dist-vis-list)))
+
     1
     ))
 
