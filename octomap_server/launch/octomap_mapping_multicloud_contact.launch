@@ -10,11 +10,14 @@
   <!-- publish pointcloud with proximity and camera sensor -->
   <arg name="real_sensor" default="true"/>
   <arg name="fcn" default="false"/>
+  <arg name="octomap_with_proximity" default="true"/>
   <!-- publish pointcloud with proximity sensor -->
-  <include file="$(find euslib)/launch/proximity.launch">
-    <arg name="real_sensor" value="$(arg real_sensor)"/>
-    <arg name="use_fetch" value="$(arg real_sensor)"/>
-  </include>
+  <group if="$(arg octomap_with_proximity)">
+    <include file="$(find euslib)/launch/proximity.launch">
+      <arg name="real_sensor" value="$(arg real_sensor)"/>
+      <arg name="use_fetch" value="$(arg real_sensor)"/>
+    </include>
+  </group>
   <!-- Do not forget to rosservice call /proximitycloud_passthrough/request -->
   <node pkg="jsk_topic_tools" type="passthrough" name="proximitycloud_passthrough">
     <remap from="~input" to="/proximity_pointcloud/all" />
