@@ -445,7 +445,9 @@
 
 ;; NOTE arguments of this function means region of the target space, not octomap region.
 ;; return map of where is not explored very much
-(defun unknown-distribution (&key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (block-size 50.0) (debug-view nil))
+;; (unknown-distribution :min-x *min-x* :max-x *max-x* :min-y *min-y* :max-y *max-y* :min-z *min-z* :max-z *max-z* :block-size 20.0)
+(defun unknown-distribution (&key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (block-size 50.0)
+                                  (view-octomap-2d nil) (view-unknown-distribution t))
   (ros::spin-once)
   (let* ((occupied-pc (get-octo-pointcloud :type "occupied"))
          (unknown-pc (get-octo-pointcloud :type "unknown"))
@@ -471,13 +473,17 @@
           )))
 
     ;; visualization of octomap-2d
-    (if debug-view
-      (let ((cube nil) (vis-list nil))
+    (when view-octomap-2d
+      (let ((cube nil) (vis-list nil) (max-num 0))
         (setq *resolution* 10)
+        (dotimes (k (car (array-dimensions octomap-2d)))
+          (dotimes (l (cadr (array-dimensions octomap-2d)))
+            (if (< max-num (aref octomap-2d k l))
+              (setq max-num (aref octomap-2d k l)))))
         (dotimes (i (car (array-dimensions octomap-2d)))
           (dotimes (j (cadr (array-dimensions octomap-2d)))
             (setq cube (make-cube *resolution* *resolution* *resolution*))
-            (send cube :set-color (float-vector (/ (max 0 (aref octomap-2d i j)) (/ (- *max-z* *min-z*) *resolution*)) 0 0))
+            (send cube :set-color (float-vector (/ (max 0 (aref octomap-2d i j)) max-num) 0 0))
             (send cube :translate (float-vector (+ (* *resolution* i) *min-x*) (+ (* *resolution* j) *min-y*) *min-z*) :world)
             (setq vis-list (append vis-list (list cube)))))
         (setq *resolution* 10)
@@ -494,25 +500,24 @@
           (if (and (< (/ (- min-x *min-x* *resolution*) *resolution*) i (/ (- max-x *min-x* *resolution*) *resolution*))
                    (< (/ (- min-y *min-y* *resolution*) *resolution*) j (/ (- max-y *min-y* *resolution*) *resolution*)))
             (progn
-              (print (list i j x-size y-size))
-              (print (list (floor (/ (- i (/ (- min-x *min-x*) *resolution*)) (round (/ block-size *resolution*)))) (floor (/ (- j (/ (- min-y *min-y*) *resolution*)) (round (/ block-size *resolution*))))))
               (setf (aref dist-mat (floor (/ (- i (/ (- min-x *min-x*) *resolution*)) (round (/ block-size *resolution*)))) (floor (/ (- j (/ (- min-y *min-y*) *resolution*)) (round (/ block-size *resolution*)))))
                     (+ (aref octomap-2d i j) (aref dist-mat (floor (/ (- i (/ (- min-x *min-x*) *resolution*)) (round (/ block-size *resolution*)))) (floor (/ (- j (/ (- min-y *min-y*) *resolution*)) (round (/ block-size *resolution*)))))))
               )
             )))
-      (dotimes (k (car (array-dimensions dist-mat)))
-        (dotimes (l (cadr (array-dimensions dist-mat)))
-          (if (< max-unknown (aref dist-mat k l))
-            (setq max-unknown (aref dist-mat k l)))))
-      (dotimes (k (car (array-dimensions dist-mat)))
-        (dotimes (l (cadr (array-dimensions dist-mat)))
-          (setq cube (make-cube (/ (- max-x min-x) x-size) (/ (- max-y min-y) y-size) *resolution*))
-          (send cube :set-color (float-vector (/ (aref dist-mat k l) (float max-unknown)) 0 0))
-          (send cube :translate (float-vector (+ (* k (/ (- max-x min-x) x-size)) min-x) (+ (* l (/ (- max-y min-y) y-size)) min-y) *min-z*) :world)
-          (setq dist-vis-list (append dist-vis-list (list cube)))))
-      (if (null debug-view)
-        (objects (append (list *fetch*) dist-vis-list))))
-    dis-vis-list
+      (when view-unknown-distribution
+        (dotimes (k (car (array-dimensions dist-mat)))
+          (dotimes (l (cadr (array-dimensions dist-mat)))
+            (if (< max-unknown (aref dist-mat k l))
+              (setq max-unknown (aref dist-mat k l)))))
+        (dotimes (k (car (array-dimensions dist-mat)))
+          (dotimes (l (cadr (array-dimensions dist-mat)))
+            (setq cube (make-cube (/ (- max-x min-x) x-size) (/ (- max-y min-y) y-size) *resolution*))
+            (send cube :set-color (float-vector (max (/ (aref dist-mat k l) (float max-unknown)) 0) 0 0))
+            (send cube :translate (float-vector (+ (* k (/ (- max-x min-x) x-size)) min-x) (+ (* l (/ (- max-y min-y) y-size)) min-y) *min-z*) :world)
+            (setq dist-vis-list (append dist-vis-list (list cube)))))
+        (objects (append (list *fetch*) dist-vis-list))
+        (send *irtviewer* :change-background #f(0.3 0.3 0.1)))
+      dist-mat)
     ))
 
 
