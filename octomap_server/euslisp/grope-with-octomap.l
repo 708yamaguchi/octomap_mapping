@@ -445,7 +445,7 @@
 
 ;; NOTE arguments of this function means region of the target space, not octomap region.
 ;; return map of where is not explored very much
-(defun unknown-distribution (&key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (block-size 50.0))
+(defun unknown-distribution (&key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (block-size 50.0) (debug-view nil))
   (ros::spin-once)
   (let* ((occupied-pc (get-octo-pointcloud :type "occupied"))
          (unknown-pc (get-octo-pointcloud :type "unknown"))
@@ -469,18 +469,18 @@
           (setf (aref octomap-2d x y) (+ 1 (aref octomap-2d x y)))
           )))
 
-    ;; visualization of octomap-2d, NOTE this is important for debug, please do not remove this lines
-    ;; (let ((cube nil) (vis-list nil))
-    ;;   (setq *resolution* 10)
-    ;;   (dotimes (i (car (array-dimensions octomap-2d)))
-    ;;     (dotimes (j (cadr (array-dimensions octomap-2d)))
-    ;;       (setq cube (make-cube *resolution* *resolution* *resolution*))
-    ;;       (send cube :set-color (float-vector (/ (max 0 (aref octomap-2d i j)) (/ (- *max-z* *min-z*) *resolution*)) 0 0))
-    ;;       (send cube :translate (float-vector (+ (* *resolution* i) *min-x*) (+ (* *resolution* j) *min-y*) *min-z*) :world)
-    ;;       (setq vis-list (append vis-list (list cube)))))
-    ;;   (setq *resolution* 10)
-    ;;   (objects (append (list *fetch*) vis-list))
-    ;;   )
+    ;; visualization of octomap-2d
+    (if debug-view
+      (let ((cube nil) (vis-list nil))
+        (setq *resolution* 10)
+        (dotimes (i (car (array-dimensions octomap-2d)))
+          (dotimes (j (cadr (array-dimensions octomap-2d)))
+            (setq cube (make-cube *resolution* *resolution* *resolution*))
+            (send cube :set-color (float-vector (/ (max 0 (aref octomap-2d i j)) (/ (- *max-z* *min-z*) *resolution*)) 0 0))
+            (send cube :translate (float-vector (+ (* *resolution* i) *min-x*) (+ (* *resolution* j) *min-y*) *min-z*) :world)
+            (setq vis-list (append vis-list (list cube)))))
+        (setq *resolution* 10)
+        (objects (append (list *fetch*) vis-list))))
 
     ;; calculate unknown-distribution matrix. this shows rough distribution of unknown area, and visualize it.
     (let* ((x-size (round (/ (- max-x min-x) block-size))) ;; x-size of target region, not octomap region. divide octomap area into (x-size * y-size) areas
@@ -509,8 +509,9 @@
           (send cube :set-color (float-vector (/ (aref dist-mat k l) (float max-unknown)) 0 0))
           (send cube :translate (float-vector (+ (* k (/ (- max-x min-x) x-size)) min-x) (+ (* l (/ (- max-y min-y) y-size)) min-y) *min-z*) :world)
           (setq dist-vis-list (append dist-vis-list (list cube)))))
-      (objects (append (list *fetch*) dist-vis-list)))
-    1
+      (if (null debug-view)
+        (objects (append (list *fetch*) dist-vis-list))))
+    dis-vis-list
     ))
 
 
