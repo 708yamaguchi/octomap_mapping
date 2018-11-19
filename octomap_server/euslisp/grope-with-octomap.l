@@ -487,7 +487,9 @@
             (send cube :translate (float-vector (+ (* *resolution* i) *min-x*) (+ (* *resolution* j) *min-y*) *min-z*) :world)
             (setq vis-list (append vis-list (list cube)))))
         (setq *resolution* 10)
-        (objects (append (list *fetch*) vis-list))))
+        (objects (append (list *fetch*) vis-list))
+        (send *irtviewer* :change-background #f(0.3 0.3 0.1))
+        (send *irtviewer* :redraw)))
 
     ;; calculate unknown-distribution matrix. this shows rough distribution of unknown area, and visualize it.
     (let* ((x-size (round (/ (- max-x min-x) block-size))) ;; x-size of target region, not octomap region. divide octomap area into (x-size * y-size) areas
@@ -516,7 +518,8 @@
             (send cube :translate (float-vector (+ (* k (/ (- max-x min-x) x-size)) min-x) (+ (* l (/ (- max-y min-y) y-size)) min-y) *min-z*) :world)
             (setq dist-vis-list (append dist-vis-list (list cube)))))
         (objects (append (list *fetch*) dist-vis-list))
-        (send *irtviewer* :change-background #f(0.3 0.3 0.1)))
+        (send *irtviewer* :change-background #f(0.3 0.3 0.1))
+        (send *irtviewer* :redraw))
       dist-mat)
     ))
 
