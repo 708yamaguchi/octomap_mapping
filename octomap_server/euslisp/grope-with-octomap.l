@@ -209,50 +209,50 @@
     ))
 
 
-;; WIP.
-(defun trace (target-coords-world) ;; argument(target-coords) is world coords, rotation of coords is NOT considered.
-  (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-  (let* ((ec-world (send *fetch* :rarm :end-coords :copy-worldcoords))
-         (target-coords-local (send (send ec-world :transformation (make-coords)) :transform (copy-object target-coords-world)))
-         (move-pos (send target-coords-local :pos)) ;; move-pos is based on local coords
-         (close-target-list nil) (away-target-list nil)) ;; sensor frame which is considered detection during tracing
-    (print target-coords-world)
-    (print ec-world)
-    (print move-pos)
-    (if (> (aref move-pos 0) 20) ;; if move direction is x-axis positive
-      (setq close-target-list (append close-target-list (list (list "/left" "/top")) (list (list "/right" "/top")))))
-    (if (> (aref move-pos 1) 20) ;; if move direction is y-axis positive
-      (setq close-target-list (append close-target-list (list (list "/right" "/side2")))))
-    (if (< (aref move-pos 1) -20) ;; if move direction is y-axis negative
-      (setq close-target-list (append close-target-list (list (list "/left" "/side2")))))
-    (if (> (aref move-pos 2) 20) ;; if move direction is z-axis positive
-      (setq close-target-list (append close-target-list (list (list "/left" "/side1")) (list (list "/right" "/side1")))))
-    (if (< (aref move-pos 2) -20) ;; if move direction is z-axis negative
-      (setq close-target-list (append close-target-list (list (list "/left" "/side3")) (list (list "/right" "/side3")))))
+;; ;; WIP.
+;; (defun trace (target-coords-world) ;; argument(target-coords) is world coords, rotation of coords is NOT considered.
+;;   (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+;;   (let* ((ec-world (send *fetch* :rarm :end-coords :copy-worldcoords))
+;;          (target-coords-local (send (send ec-world :transformation (make-coords)) :transform (copy-object target-coords-world)))
+;;          (move-pos (send target-coords-local :pos)) ;; move-pos is based on local coords
+;;          (close-target-list nil) (away-target-list nil)) ;; sensor frame which is considered detection during tracing
+;;     (print target-coords-world)
+;;     (print ec-world)
+;;     (print move-pos)
+;;     (if (> (aref move-pos 0) 20) ;; if move direction is x-axis positive
+;;       (setq close-target-list (append close-target-list (list (list "/left" "/top")) (list (list "/right" "/top")))))
+;;     (if (> (aref move-pos 1) 20) ;; if move direction is y-axis positive
+;;       (setq close-target-list (append close-target-list (list (list "/right" "/side2")))))
+;;     (if (< (aref move-pos 1) -20) ;; if move direction is y-axis negative
+;;       (setq close-target-list (append close-target-list (list (list "/left" "/side2")))))
+;;     (if (> (aref move-pos 2) 20) ;; if move direction is z-axis positive
+;;       (setq close-target-list (append close-target-list (list (list "/left" "/side1")) (list (list "/right" "/side1")))))
+;;     (if (< (aref move-pos 2) -20) ;; if move direction is z-axis negative
+;;       (setq close-target-list (append close-target-list (list (list "/left" "/side3")) (list (list "/right" "/side3")))))
 
-    ;; trace flow:
-    ;; 1. move toward the destination, 2. when detecting at side of gripper, move hand up, 3. when there is nothing under gripper, move hand down
-    ;; repeat 1~3 above until hand reach the destinationv
-    (print close-target-list)
-    (setq target-coords-local target-coords-world)
-    (setq away-target-list nil)
+;;     ;; trace flow:
+;;     ;; 1. move toward the destination, 2. when detecting at side of gripper, move hand up, 3. when there is nothing under gripper, move hand down
+;;     ;; repeat 1~3 above until hand reach the destinationv
+;;     (print close-target-list)
+;;     (setq target-coords-local target-coords-world)
+;;     (setq away-target-list nil)
 
-    ;; TODO : decide target-coords-local & close/away-target-list automatically
-    (dotimes (i 2)
-      (detect target-coords-local :close-frame-list close-target-list :away-frame-list )
-      ;; (setq close-target-list hogehoge)
-      (setq away-target-list close-frame-list)
-      ;; calculate goal coords view from hand coords
-      (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-      (setq ec-world (send *fetch* :rarm :end-coords :copy-worldcoords))
-      (setq target-coords-local (send (send ec-world :transformation (make-coords)) :transform (copy-object target-coords-world)))
-      )
-    ;; TODO  end
-    ;; test code
-    ;; (progn (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-    ;;        (send *fetch* :rarm :move-end-pos #f(100 0 0) :world :use-torso nil)
-    ;;        (trace (send *fetch* :rarm :end-coords :copy-worldcoords)))
-    ))
+;;     ;; TODO : decide target-coords-local & close/away-target-list automatically
+;;     (dotimes (i 2)
+;;       (detect target-coords-local :close-frame-list close-target-list :away-frame-list )
+;;       ;; (setq close-target-list hogehoge)
+;;       (setq away-target-list close-frame-list)
+;;       ;; calculate goal coords view from hand coords
+;;       (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+;;       (setq ec-world (send *fetch* :rarm :end-coords :copy-worldcoords))
+;;       (setq target-coords-local (send (send ec-world :transformation (make-coords)) :transform (copy-object target-coords-world)))
+;;       )
+;;     ;; TODO  end
+;;     ;; test code
+;;     ;; (progn (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+;;     ;;        (send *fetch* :rarm :move-end-pos #f(100 0 0) :world :use-torso nil)
+;;     ;;        (trace (send *fetch* :rarm :end-coords :copy-worldcoords)))
+;;     ))
 
 ;; before calling this function, necessary to subscribe "/unknown(frontier)_cells_vis_array"
 ;; (load "package://octomap_server/euslisp/occupied-and-unknown-cloud1.l")
