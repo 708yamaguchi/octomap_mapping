@@ -138,12 +138,9 @@
           (when (not (or (and (eq x 0) (eq y 0)) ;; when ((+ (car max-place) x), (+ (cadr max-place) y)) is not out of unknown-dist
                          (< (+ (car max-place) x) 0) (<= (car (array-dimensions unknown-dist)) (+ (car max-place) x))
                          (< (+ (cadr max-place) y) 0) (<= (cadr (array-dimensions unknown-dist)) (+ (cadr max-place) y))))
-            (print (list (+ (car max-place) x) (+ (cadr max-place) y)))
             (when (< adjacent-max-val (aref unknown-dist (+ (car max-place) x) (+ (cadr max-place) y)))
               (setq adjacent-max-val (aref unknown-dist (+ (car max-place) x) (+ (cadr max-place) y)))
               (setq adjacent-max-place (list x y))))))
-      (print (list max-val adjacent-max-val))
-      (print (list max-place adjacent-max-place))
       (setq direction (+ 180 (* -1 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place))))))
       )
     ;; calibration proximity sensor's param every time before groping. TODO Is this method needed here?
@@ -151,7 +148,7 @@
     ;; move hand above the target object
     (send target-coords :translate (float-vector 0 0 (- 350 50)) :world)
     (send *fetch* :inverse-kinematics target-coords :use-torso nil)
-    (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) direction)) ;; rotate arm randomly
+    (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) direction)) ;; rotate arm
     (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
     (send *ri* :wait-interpolation)
     ;; move hand down to target coords
