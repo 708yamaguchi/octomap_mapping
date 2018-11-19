@@ -9,7 +9,7 @@
 <launch>
   <!-- publish pointcloud with proximity and camera sensor -->
   <arg name="real_sensor" default="true"/>
-  <arg name="fcn" default="true"/>
+  <arg name="fcn" default="false"/>
   <!-- publish pointcloud with proximity sensor -->
   <include file="$(find euslib)/launch/proximity.launch">
     <arg name="real_sensor" value="$(arg real_sensor)"/>
