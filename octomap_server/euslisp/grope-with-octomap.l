@@ -119,8 +119,9 @@
     (send *fetch* :torso :waist-z :joint-angle 350)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
     ;; calculate where to grope, during moving hand up
-    (let ((max-val -1) (max-place nil)
+    (let ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
           (min-x *min-x*) (max-x *max-x*) (min-y *min-y*) (max-y *max-y*) (min-z *min-z*) (max-z *max-z*) (block-size 50.0))
+      ;; calculate position of hand, x and y
       (setq unknown-dist (unknown-distribution :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z
                                                :block-size block-size))
       (dotimes (i (car (array-dimensions unknown-dist)))
@@ -130,7 +131,21 @@
             (setq max-place (list i j)))))
       (setf (aref (send target-coords :worldpos) 0) (+ min-x (/ block-size 2.0) (* (car max-place) block-size)))
       (setf (aref (send target-coords :worldpos) 1) (+ min-y (/ block-size 2.0) (* (cadr max-place) block-size)))
-      (setf (aref (send target-coords :worldpos) 2) max-z))
+      (setf (aref (send target-coords :worldpos) 2) max-z)
+      ;; calculate angle of wrist, theta
+      (dolist (x (list -1 0 1))
+        (dolist (y (list -1 0 1))
+          (when (not (or (and (eq x 0) (eq y 0)) ;; when ((+ (car max-place) x), (+ (cadr max-place) y)) is not out of unknown-dist
+                         (< (+ (car max-place) x) 0) (<= (car (array-dimensions unknown-dist)) (+ (car max-place) x))
+                         (< (+ (cadr max-place) y) 0) (<= (cadr (array-dimensions unknown-dist)) (+ (cadr max-place) y))))
+            (print (list (+ (car max-place) x) (+ (cadr max-place) y)))
+            (when (< adjacent-max-val (aref unknown-dist (+ (car max-place) x) (+ (cadr max-place) y)))
+              (setq adjacent-max-val (aref unknown-dist (+ (car max-place) x) (+ (cadr max-place) y)))
+              (setq adjacent-max-place (list x y))))))
+      (print (list max-val adjacent-max-val))
+      (print (list max-place adjacent-max-place))
+      (setq direction (+ 180 (* -1 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place))))))
+      )
     ;; calibration proximity sensor's param every time before groping. TODO Is this method needed here?
     (sensor-calib)
     ;; move hand above the target object
