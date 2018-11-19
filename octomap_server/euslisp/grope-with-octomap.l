@@ -458,12 +458,13 @@
     (when (eq unknown-pc nil)
       (format t "cannot find unknown grids~%")
       (setq unknown-pc (instance pointcloud :init)))
+    ;; look up occupied pointcloud firstly
     (dotimes (i (send occupied-pc :size))
       (let* ((occupied (matrix-row (send occupied-pc :points) i))
              (x (round (/ (- (aref occupied 0) *min-x* (/ *resolution* 2.0)) *resolution*)))
              (y (round (/ (- (aref occupied 1) *min-y* (/ *resolution* 2.0)) *resolution*)))) ;; x and y are index
         (setf (aref octomap-2d x y) -1)))
-
+    ;; look up unknown pointcloud secondly
     (dotimes (j (send unknown-pc :size))
       (let* ((unknown (matrix-row (send unknown-pc :points) j))
              (x (/ (round (- (aref unknown 0) *min-x* *resolution*)) *resolution*))
@@ -499,13 +500,13 @@
       ;; octomap-2d is composed of very fine grids, so make it rougher and create dist-mat (distribution matrix of unknown grids)
       (dotimes (i (car (array-dimensions octomap-2d)))
         (dotimes (j (cadr (array-dimensions octomap-2d)))
-          (if (and (<= (/ (- min-x *min-x* *resolution*) *resolution*) i (/ (- max-x *min-x* *resolution*) *resolution*))
-                   (<= (/ (- min-y *min-y* *resolution*) *resolution*) j (/ (- max-y *min-y* *resolution*) *resolution*)))
+          (if (and (<= (/ (- min-x *min-x*) *resolution*) i) (< i (/ (- max-x *min-x*) *resolution*))
+                   (<= (/ (- min-y *min-y*) *resolution*) j) (< j (/ (- max-y *min-y*) *resolution*)))
             (progn
               (let ((x-index (floor (/ (- i (/ (- min-x *min-x*) *resolution*)) (/ block-size *resolution*))))
                     (y-index (floor (/ (- j (/ (- min-y *min-y*) *resolution*)) (/ block-size *resolution*)))))
-              (setf (aref dist-mat x-index y-index)
-                    (+ (aref octomap-2d i j) (aref dist-mat x-index y-index)))))
+                (setf (aref dist-mat x-index y-index)
+                      (+ (aref octomap-2d i j) (aref dist-mat x-index y-index)))))
             )))
       (when view-unknown-distribution
         (dotimes (k (car (array-dimensions dist-mat)))
