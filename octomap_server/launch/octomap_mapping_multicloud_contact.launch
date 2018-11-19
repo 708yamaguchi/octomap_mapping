@@ -11,6 +11,8 @@
   <arg name="real_sensor" default="true"/>
   <arg name="fcn" default="false"/>
   <arg name="octomap_with_proximity" default="true"/>
+  <arg name="rviz" default="true"/>
+
   <!-- publish pointcloud with proximity sensor -->
   <group if="$(arg octomap_with_proximity)">
     <include file="$(find euslib)/launch/proximity.launch">
@@ -122,6 +124,8 @@
   </include>
 
   <!-- rviz -->
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/octomap_frontier.rviz"/>
+  <group if="$(arg rviz)">
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/octomap_frontier.rviz"/>
+  </group>
 
 </launch>
