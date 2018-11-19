@@ -128,8 +128,8 @@
           (when (< max-val (aref unknown-dist i j))
             (setq max-val (aref unknown-dist i j))
             (setq max-place (list i j)))))
-      (setf (aref (send target-coords :worldpos) 0) (+ min-x (/ block-size 2.0) (* i block-size)))
-      (setf (aref (send target-coords :worldpos) 1) (+ min-y (/ block-size 2.0) (* j block-size)))
+      (setf (aref (send target-coords :worldpos) 0) (+ min-x (/ block-size 2.0) (* (car max-place) block-size)))
+      (setf (aref (send target-coords :worldpos) 1) (+ min-y (/ block-size 2.0) (* (cadr max-place) block-size)))
       (setf (aref (send target-coords :worldpos) 2) max-z))
     ;; calibration proximity sensor's param every time before groping. TODO Is this method needed here?
     (sensor-calib)
