@@ -209,30 +209,6 @@
     ))
 
 
-;; (defun create-map ()
-;;   (send *ri* :start-grasp :wait t)
-;;   (ros::spin-once)
-;;   (let ((potential-pc nil) (next-pos nil) (next-pos-cube nil))
-;;     (setq potential-pc (send (get-octo-pointcloud :type "potential") :points))
-;;     ;; TODO decide where to explore next
-;;     (setq next-pos (matrix-row potential-pc (random (car (array-dimensions potential-pc)))))
-;;     (objects (list *fetch* (setq next-pos-cube (send (make-cube 20 20 20) :locate next-pos))))
-;;     (send next-pos-cube :set-color #f(1 0 0))
-;;     ;; TODO decide where to explore next
-;;     (send *fetch* :inverse-kinematics
-;;           (make-coords :pos (v+ next-pos #f(0 0 200)) :rpy (float-vector 0 pi/2 0)) :use-torso nil)
-;;     (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
-;;     (send *ri* :wait-interpolation)
-;;     (send *fetch* :rarm :move-end-pos #f(0 0 -200) :world :use-torso nil)
-;;     (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
-;;     (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
-;;     (detect ec :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
-;;     (send *irtviewer* :draw-objects :flush t)
-;;     (unix:sleep 4)
-;;     )
-;;   )
-
-
 ;; WIP.
 (defun trace (target-coords-world) ;; argument(target-coords) is world coords, rotation of coords is NOT considered.
   (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
