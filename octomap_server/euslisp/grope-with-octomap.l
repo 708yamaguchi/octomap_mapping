@@ -445,7 +445,7 @@
 
 ;; NOTE arguments of this function means region of the target space, not octomap region.
 ;; return map of where is not explored very much
-;; (unknown-distribution :min-x *min-x* :max-x *max-x* :min-y *min-y* :max-y *max-y* :min-z *min-z* :max-z *max-z* :block-size 20.0)
+;; (unknown-distribution :min-x *min-x* :max-x *max-x* :min-y *min-y* :max-y *max-y* :min-z *min-z* :max-z *max-z* :block-size 50.0)
 (defun unknown-distribution (&key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (block-size 50.0)
                                   (view-octomap-2d nil) (view-unknown-distribution t))
   (ros::spin-once)
