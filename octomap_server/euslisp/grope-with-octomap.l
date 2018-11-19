@@ -461,11 +461,12 @@
              (x (round (/ (- (aref occupied 0) *min-x* (/ *resolution* 2.0)) *resolution*)))
              (y (round (/ (- (aref occupied 1) *min-y* (/ *resolution* 2.0)) *resolution*)))) ;; x and y are index
         (setf (aref octomap-2d x y) -1)))
+
     (dotimes (j (send unknown-pc :size))
       (let* ((unknown (matrix-row (send unknown-pc :points) j))
              (x (/ (round (- (aref unknown 0) *min-x* *resolution*)) *resolution*))
              (y (/ (round (- (aref unknown 1) *min-y* *resolution*)) *resolution*))) ;; x and y are index
-        (if (not (eq (aref octomap-2d x y) -1))
+        (if (not (eq (aref octomap-2d x y) -1.0))
           (setf (aref octomap-2d x y) (+ 1 (aref octomap-2d x y)))
           )))
 
