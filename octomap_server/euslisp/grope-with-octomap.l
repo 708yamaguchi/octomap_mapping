@@ -499,12 +499,13 @@
       ;; octomap-2d is composed of very fine grids, so make it rougher and create dist-mat (distribution matrix of unknown grids)
       (dotimes (i (car (array-dimensions octomap-2d)))
         (dotimes (j (cadr (array-dimensions octomap-2d)))
-          (if (and (< (/ (- min-x *min-x* *resolution*) *resolution*) i (/ (- max-x *min-x* *resolution*) *resolution*))
-                   (< (/ (- min-y *min-y* *resolution*) *resolution*) j (/ (- max-y *min-y* *resolution*) *resolution*)))
+          (if (and (<= (/ (- min-x *min-x* *resolution*) *resolution*) i (/ (- max-x *min-x* *resolution*) *resolution*))
+                   (<= (/ (- min-y *min-y* *resolution*) *resolution*) j (/ (- max-y *min-y* *resolution*) *resolution*)))
             (progn
-              (setf (aref dist-mat (floor (/ (- i (/ (- min-x *min-x*) *resolution*)) (round (/ block-size *resolution*)))) (floor (/ (- j (/ (- min-y *min-y*) *resolution*)) (round (/ block-size *resolution*)))))
-                    (+ (aref octomap-2d i j) (aref dist-mat (floor (/ (- i (/ (- min-x *min-x*) *resolution*)) (round (/ block-size *resolution*)))) (floor (/ (- j (/ (- min-y *min-y*) *resolution*)) (round (/ block-size *resolution*)))))))
-              )
+              (let ((x-index (floor (/ (- i (/ (- min-x *min-x*) *resolution*)) (/ block-size *resolution*))))
+                    (y-index (floor (/ (- j (/ (- min-y *min-y*) *resolution*)) (/ block-size *resolution*)))))
+              (setf (aref dist-mat x-index y-index)
+                    (+ (aref octomap-2d i j) (aref dist-mat x-index y-index)))))
             )))
       (when view-unknown-distribution
         (dotimes (k (car (array-dimensions dist-mat)))
