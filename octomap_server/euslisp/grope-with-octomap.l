@@ -111,19 +111,28 @@
 ;; TODO: what method is best solution to create map?
 (defun create-map ()
   (let ((target-coords (make-coords :rpy (float-vector 0 pi/2 0))) ;; where to move fetch's hand
-        (direction (rad2deg (random pi))) (count 0))
+        (direction (rad2deg (random pi))) (count 0) (unknown-dist nil))
     (send *ri* :start-grasp :wait t)
-    ;; decide where to grope from now
-    (setf (aref (send target-coords :worldpos) 0) (+ *min-x* (random (- *max-x* *min-x*))))
-    (setf (aref (send target-coords :worldpos) 1) (+ *min-y* (random (- *max-y* *min-y*))))
-    (setf (aref (send target-coords :worldpos) 2) *max-z*)
     ;; first, moving hand up
     (format t "move hand up. preparing...~%")
     (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
     (send *fetch* :torso :waist-z :joint-angle 350)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
-    (send *ri* :wait-interpolation)
-    (sensor-calib) ;; calibration proximity sensor's param. TODO Is this method needed here?
+    ;; calculate where to grope, during moving hand up
+    (let ((max-val -1) (max-place nil)
+          (min-x *min-x*) (max-x *max-x*) (min-y *min-y*) (max-y *max-y*) (min-z *min-z*) (max-z *max-z*) (block-size 50.0))
+      (setq unknown-dist (unknown-distribution :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z
+                                               :block-size block-size))
+      (dotimes (i (car (array-dimensions unknown-dist)))
+        (dotimes (j (cadr (array-dimensions unknown-dist)))
+          (when (< max-val (aref unknown-dist i j))
+            (setq max-val (aref unknown-dist i j))
+            (setq max-place (list i j)))))
+      (setf (aref (send target-coords :worldpos) 0) (+ min-x (/ block-size 2.0) (* i block-size)))
+      (setf (aref (send target-coords :worldpos) 1) (+ min-y (/ block-size 2.0) (* j block-size)))
+      (setf (aref (send target-coords :worldpos) 2) max-z))
+    ;; calibration proximity sensor's param every time before groping. TODO Is this method needed here?
+    (sensor-calib)
     ;; move hand above the target object
     (send target-coords :translate (float-vector 0 0 (- 350 50)) :world)
     (send *fetch* :inverse-kinematics target-coords :use-torso nil)
@@ -490,7 +499,7 @@
           (dotimes (j (cadr (array-dimensions octomap-2d)))
             (setq cube (make-cube *resolution* *resolution* *resolution*))
             (send cube :set-color (float-vector (/ (max 0 (aref octomap-2d i j)) max-num) 0 0))
-            (send cube :translate (float-vector (+ (* *resolution* i) *min-x*) (+ (* *resolution* j) *min-y*) *min-z*) :world)
+            (send cube :translate (float-vector (+ (* *resolution* (+ i 0.5)) *min-x*) (+ (* *resolution* (+ j 0.5)) *min-y*) *min-z*) :world)
             (setq vis-list (append vis-list (list cube)))))
         (setq *resolution* 10)
         (objects (append (list *fetch*) vis-list))
@@ -522,7 +531,7 @@
           (dotimes (l (cadr (array-dimensions dist-mat)))
             (setq cube (make-cube (/ (- max-x min-x) x-size) (/ (- max-y min-y) y-size) *resolution*))
             (send cube :set-color (float-vector (max (/ (aref dist-mat k l) (float max-unknown)) 0) 0 0))
-            (send cube :translate (float-vector (+ (* k (/ (- max-x min-x) x-size)) min-x) (+ (* l (/ (- max-y min-y) y-size)) min-y) *min-z*) :world)
+            (send cube :translate (float-vector (+ (* (/ (- max-x min-x) x-size) (+ k 0.5)) min-x) (+ (* (/ (- max-y min-y) y-size) (+ l 0.5)) min-y) *min-z*) :world)
             (setq dist-vis-list (append dist-vis-list (list cube)))))
         (objects (append (list *fetch*) dist-vis-list))
         (send *irtviewer* :change-background #f(0.3 0.3 0.1))
