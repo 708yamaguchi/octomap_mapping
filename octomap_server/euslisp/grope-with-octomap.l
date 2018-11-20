@@ -142,6 +142,7 @@
               (setq adjacent-max-place (list x y))))))
       (setq direction (+ 180 (* -1 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place))))))
       )
+    (send *ri* :wait-interpolation)
     ;; calibration proximity sensor's param every time before groping. TODO Is this method needed here?
     (sensor-calib)
     ;; move hand above the target object
