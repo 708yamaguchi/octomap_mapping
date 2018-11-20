@@ -105,8 +105,7 @@
   (format "grope succeeded~%")
   )
 
-;; (send *fetch* :reset-pose)
-;; (send *fetch* :inverse-kinematics (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) *max-z*) :rpy (float-vector 0 pi/2 0))) :rotation-axis nil
+;; (progn (send *fetch* :reset-pose) (send *fetch* :inverse-kinematics (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) *max-z*) :rpy (float-vector 0 pi/2 0)))) :rotation-axis nil
 ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
 ;; TODO: what method is best solution to create map?
 (defun create-map ()
