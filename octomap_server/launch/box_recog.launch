@@ -76,6 +76,7 @@
         align_boxes_with_plane: false
         target_frame_id: base_link
         use_pca: true
+        sort_by: -cloud_size <!-- descending order of cloud_size. (first element is biggest cloud) -->
       </rosparam>
     </node>
   </group>
