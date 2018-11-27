@@ -41,69 +41,74 @@
 
 (defun main ()
   ;; settings for experiment
-  ;; TODO use camera and decide target region
-  (camera-stop)
   (octomap-reset)
+  ;; TODO use camera and decide target region
+  (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
+    (setq boxes (one-shot-subscribe "/HSI_color_filter/pointcloud_to_indices/output" jsk_recognition_msgs::BoundingBoxArray))
+    ;; TODO ROS BoundingBox -> eus cube, then set
+    ;; TODO (search-graspable-point) and (decide-grope-point)' argument should be cube, not x-min, x-max, y-min ...
+    ;; TODO add argument to (create-map) to restrict movable region, based on the cube mentioned above
+    (camera-stop)
 
-  ;; set initial pose for experiment
-  (send *fetch* :reset-pose)
-  (send *fetch* :torso :waist-z :joint-angle *torso*)
-  (send *fetch* :inverse-kinematics
-        (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) *max-z*) :rpy (float-vector 0 pi/2 0)))
-  (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
-  (send *ri* :wait-interpolation)
-  (send *ri* :start-grasp :wait t)
-  (unix:usleep (* 500 1000))
-  (send *ri* :set-init-proximities)
+    ;; set initial pose for experiment
+    (send *fetch* :reset-pose)
+    (send *fetch* :torso :waist-z :joint-angle *torso*)
+    (send *fetch* :inverse-kinematics
+          (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) *max-z*) :rpy (float-vector 0 pi/2 0)))
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
+    (send *ri* :wait-interpolation)
+    (send *ri* :start-grasp :wait t)
+    (unix:usleep (* 500 1000))
+    (send *ri* :set-init-proximities)
 
-  ;; grasp object with octomap and grope. TODO simultaneous execution of (create-map) and (decide-grope-point) may be needed.
-  ;; flowchart of this (do-until-key) is loop of following steps:
-  ;; 1. first create octomap, and then try to grasp the target object with the same octomap up to 5 times.
-  ;; 2. if success, lift the object and finish. else, retry from the first step.
-  (do-until-key ;; do not return from this loop until the robot succeeds to grasp the target object
-   (let ((detectp nil) (graspp nil))
-     ;; create octomap by tracing environment, using proximity sensors on finger.
-     (dotimes (i 30)
-       (create-map))
+    ;; grasp object with octomap and grope. TODO simultaneous execution of (create-map) and (decide-grope-point) may be needed.
+    ;; flowchart of this (do-until-key) is loop of following steps:
+    ;; 1. first create octomap, and then try to grasp the target object with the same octomap up to 5 times.
+    ;; 2. if success, lift the object and finish. else, retry from the first step.
+    (do-until-key ;; do not return from this loop until the robot succeeds to grasp the target object
+     (let ((detectp nil) (graspp nil))
+       ;; create octomap by tracing environment, using proximity sensors on finger.
+       (dotimes (i 30)
+         (create-map))
 
-     ;; calculate the most graspable point. In the function below, *fetch* is set.
-     (dotimes (i 5) ;; try to grasp the target object with the same octomap, up to 5 times.
-       (decide-grope-point (get-octo-pointcloud :type "occupied")
-                           :min-x *min-x* :max-x *max-x* :min-y *min-y* :max-y *max-y* :min-z *min-z* :max-z *max-z*)
+       ;; calculate the most graspable point. In the function below, *fetch* is set.
+       (dotimes (i 5) ;; try to grasp the target object with the same octomap, up to 5 times.
+         (decide-grope-point (get-octo-pointcloud :type "occupied")
+                             :min-x *min-x* :max-x *max-x* :min-y *min-y* :max-y *max-y* :min-z *min-z* :max-z *max-z*)
 
-       ;; extend hand to target object with pre-grasp motion by proximity sensors
-       ;; first, move hand up
-       (let ((ec-z (aref (send (send *fetch* :rarm :end-coords :copy-worldcoords) :worldpos) 2)))
-         (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* ec-z)) :world)
-         (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
-         (send *ri* :wait-interpolation))
-       ;; second, extend hand to target object with pre-grasp motion
-       (while t
-         (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
-                            *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
-           (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
-                       :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
-             (progn ;; if something is in front of the gripper, return from this while loop and try to pre-grasp
-               (setq detectp t)
-               (return)))
-           (progn ;; if nothing is found, retry (decide-grope-point)
-             (format t "cannot find object~%")
-             (setq detectp nil)
+         ;; extend hand to target object with pre-grasp motion by proximity sensors
+         ;; first, move hand up
+         (let ((ec-z (aref (send (send *fetch* :rarm :end-coords :copy-worldcoords) :worldpos) 2)))
+           (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* ec-z)) :world)
+           (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+           (send *ri* :wait-interpolation))
+         ;; second, extend hand to target object with pre-grasp motion
+         (while t
+           (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
+                              *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
+             (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
+                         :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
+               (progn ;; if something is in front of the gripper, return from this while loop and try to pre-grasp
+                 (setq detectp t)
+                 (return)))
+             (progn ;; if nothing is found, retry (decide-grope-point)
+               (format t "cannot find object~%")
+               (setq detectp nil)
+               (return))))
+         ;; TODO PLEASE WRITE (pre-grasp) function
+         (if detectp ;; if something is in front of gripper, do pre-grasp
+           (setq graspp (pre-grasp))
+           (if graspp
              (return))))
-       ;; TODO PLEASE WRITE (pre-grasp) function
-       (if detectp ;; if something is in front of gripper, do pre-grasp
-         (setq graspp (pre-grasp))
-         (if graspp
-           (return))))
-     (if graspp ;; if pre-grasp is succeeded and the robot can grasp the target object, return from do-until-key loop
-       (return))
-     ))
+       (if graspp ;; if pre-grasp is succeeded and the robot can grasp the target object, return from do-until-key loop
+         (return))
+       ))
 
-  ;; finally, lift the target object up
-  (send *fetch* :rarm :move-end-pos #f(0 0 300) :world)
-  (send *ri* :angle-vector (send *fetch* :angle-vector) 7000)
-  (format "grope succeeded~%")
-  )
+    ;; finally, lift the target object up
+    (send *fetch* :rarm :move-end-pos #f(0 0 300) :world)
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 7000)
+    (format "grope succeeded~%")
+    ))
 
 ;; (progn (send *fetch* :reset-pose) (send *fetch* :inverse-kinematics (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) *max-z*) :rpy (float-vector 0 pi/2 0)))) :rotation-axis nil
 ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
