@@ -46,6 +46,13 @@
   (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
     (setq boxes (one-shot-subscribe "/HSI_color_filter/pointcloud_to_indices/output" jsk_recognition_msgs::BoundingBoxArray))
     ;; TODO ROS BoundingBox -> eus cube, then set
+    (let* ((box (car (send boxes :boxes)))
+           (dims (ros::tf-point->pos (send box :dimensions))))
+      (setq target-region (make-cube (elt dims 0) (elt dims 1) (elt dims 2)))
+      (send target-region :newcoords
+            (send (send *tfl* :lookup-transform "/base_link" (send boxes :header :frame_id) (ros::time 0))
+                  :transform (ros::tf-pose->coords (send box :pose)))))
+
     ;; TODO (search-graspable-point) and (decide-grope-point)' argument should be cube, not x-min, x-max, y-min ...
     ;; TODO add argument to (create-map) to restrict movable region, based on the cube mentioned above
     (camera-stop)
