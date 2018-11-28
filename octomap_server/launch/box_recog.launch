@@ -22,10 +22,10 @@
           args="load jsk_pcl/AttentionClipper $(arg manager)" output="screen">
       <remap from="~input/points" to="$(arg INPUT)" />
       <rosparam>
-        initial_pos: [0.55, 0.0, 0.4]
-        initial_rot: [0, 0, 0.05]
-        dimension_x: 0.8
-        dimension_y: 0.4
+        initial_pos: [0.6, 0.0, 0.6]
+        initial_rot: [0, 0, 0]
+        dimension_x: 0.6
+        dimension_y: 0.6
         dimension_z: 0.8
         frame_id: base_link
       </rosparam>
