@@ -48,6 +48,8 @@
     (let* ((box (car (send boxes :boxes)))
            (dims (ros::tf-point->pos (send box :dimensions))))
       (setq target-region (make-cube (elt dims 0) (elt dims 1) (elt dims 2)))
+      (if (not (and (boundp '*tfl*) *tfl*))
+        (setq *tfl* (instance ros::transform-listener :init)))
       (send target-region :newcoords
             (send (send *tfl* :lookup-transform "/base_link" (send boxes :header :frame_id) (ros::time 0))
                   :transform (ros::tf-pose->coords (send box :pose)))))
