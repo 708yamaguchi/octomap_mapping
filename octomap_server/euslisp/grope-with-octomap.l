@@ -22,6 +22,7 @@
   (setq *max-z* (nth 5 *region*)))
 (if (ros::has-param "resolution")
   (setq *resolution* (* (ros::get-param "resolution") 1000)))
+(setq *target-region* nil)
 
 ;; torso length
 (setq *torso* 20)
@@ -41,30 +42,42 @@
 
 (defun main ()
   ;; settings for experiment
+  (send *fetch* :reset-pose)
+  (send *fetch* :torso :waist-z :joint-angle 400)
+  (send *fetch* :inverse-kinematics
+        (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) 950) :rpy (float-vector 0 pi/2 0))) ;; 950 is tuned parameter
+  (send *fetch* :head :look-at (float-vector (/ (+ *max-x* *min-x*) 2.0) (/ (+ *max-y* *min-y*) 2.0) (/ (+ *max-z* *min-z*) 2.0)))
+  (send *fetch* :rarm :move-end-pos #f(0 -200 0) :world :use-torso nil) ;; move hand sideway to avoid occlusion
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
+  (send *ri* :wait-interpolation)
+  (send *ri* :start-grasp :wait t)
+  (unix:usleep (* 500 1000))
+  (send *ri* :set-init-proximities)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
+  (camera-stop)
   (octomap-reset)
-  ;; TODO use camera and decide target region
+  (send *ri* :wait-interpolation)
+  (camera-request)
+  (unix:sleep 1)
+
+  ;; use camera and decide target region
   (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
-    (setq boxes (one-shot-subscribe "/HSI_color_filter/pointcloud_to_indices/output" jsk_recognition_msgs::BoundingBoxArray))
+    (setq boxes (one-shot-subscribe "/HSI_color_filter/boxes" jsk_recognition_msgs::BoundingBoxArray))
     (let* ((box (car (send boxes :boxes)))
            (dims (ros::tf-point->pos (send box :dimensions))))
-      (setq target-region (make-cube (elt dims 0) (elt dims 1) (elt dims 2)))
+      (setq target-region (make-cube (elt dims 0) (elt dims 1) (- *max-z* *min-z*)))
       (if (not (and (boundp '*tfl*) *tfl*))
         (setq *tfl* (instance ros::transform-listener :init)))
       (send target-region :newcoords
             (send (send *tfl* :lookup-transform "/base_link" (send boxes :header :frame_id) (ros::time 0))
-                  :transform (ros::tf-pose->coords (send box :pose)))))
+                  :transform (ros::tf-pose->coords (send box :pose))))
+      (send target-region :translate (float-vector 0 0 (- (* 0.5 (+ *max-z* *min-z*)) (aref (send target-region :worldpos) 2))) :world)
+      (setq *target-region* (copy-object target-region)))
     (camera-stop)
-
-    ;; set initial pose for experiment
-    (send *fetch* :reset-pose)
-    (send *fetch* :torso :waist-z :joint-angle *torso*)
-    (send *fetch* :inverse-kinematics
-          (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) *max-z*) :rpy (float-vector 0 pi/2 0)))
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
+    ;; set hand to initial experiment pose
+    (send *fetch* :rarm :move-end-pos #f(0 200 0) :world :use-torso nil)
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
     (send *ri* :wait-interpolation)
-    (send *ri* :start-grasp :wait t)
-    (unix:usleep (* 500 1000))
-    (send *ri* :set-init-proximities)
 
     ;; grasp object with octomap and grope. TODO simultaneous execution of (create-map) and (decide-grope-point) may be needed.
     ;; flowchart of this (do-until-key) is loop of following steps:
@@ -127,15 +140,27 @@
     (send *fetch* :torso :waist-z :joint-angle 350)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
     ;; calculate where to grope, during moving hand up
-    (let ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
-          (min-x (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))))
-          (max-x (reduce #'max (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))))
-          (min-y (reduce #'min (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))))
-          (max-y (reduce #'max (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))))
-          (min-z (reduce #'min (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))))
-          (max-z (reduce #'max (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))))
-          (block-size 50.0))
+    (let* ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
+           (min-x (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))))
+           (max-x (reduce #'max (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))))
+           (min-y (reduce #'min (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))))
+           (max-y (reduce #'max (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))))
+           (min-z (reduce #'min (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))))
+           (max-z (reduce #'max (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))))
+           (min-x-round (round min-x))
+           (max-x-round (round max-x))
+           (min-y-round (round min-y))
+           (max-y-round (round max-y))
+           (block-size 50.0)
+           (diff-x (/ (- (* (+ 1 (floor (/ (- max-x-round min-x-round) block-size))) block-size) (- max-x-round min-x-round)) 2.0))
+           (diff-y (/ (- (* (+ 1 (floor (/ (- max-y-round min-y-round) block-size))) block-size) (- max-y-round min-y-round)) 2.0))
+           )
       ;; calculate position of hand, x and y
+      ;; correct min/max-x/y/z in order to adapt to (unknown-distribution)
+      (setq min-x-round (- min-x-round diff-x))
+      (setq max-x-round (+ max-x-round diff-x))
+      (setq min-y-round (+ min-y-round diff-y))
+      (setq max-y-round (+ max-y-round diff-y))
       (setq unknown-dist (unknown-distribution :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z
                                                :block-size block-size))
       (dotimes (i (car (array-dimensions unknown-dist)))
@@ -161,16 +186,16 @@
     ;; calibration proximity sensor's param every time before groping. TODO Is this method needed here?
     (sensor-calib)
     ;; move hand above the target object
-    (send target-coords :translate (float-vector 0 0 (- 350 50)) :world)
+    (send target-coords :translate (float-vector 0 0 (- 950 (aref (send target-coords :pos) 2))) :world)
     (send *fetch* :inverse-kinematics target-coords :use-torso nil)
     (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) direction)) ;; rotate arm
     (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
     (send *ri* :wait-interpolation)
-    ;; move hand down to target coords
-    (format t "move hand to target coords~%")
-    (send *fetch* :torso :waist-z :joint-angle 50)
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
-    (send *ri* :wait-interpolation)
+    ;; move hand down to target coords ;; these functions may not be needed any more
+    ;; (format t "move hand to target coords~%")
+    ;; (send *fetch* :torso :waist-z :joint-angle 50)
+    ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+    ;; (send *ri* :wait-interpolation)
 
     (format t "start tracing~%")
     ;; move hand until detecting object. move-end-pos 10cm, 10cm, 10cm ...  gradually.
