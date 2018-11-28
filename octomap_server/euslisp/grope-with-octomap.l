@@ -45,7 +45,6 @@
   ;; TODO use camera and decide target region
   (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
     (setq boxes (one-shot-subscribe "/HSI_color_filter/pointcloud_to_indices/output" jsk_recognition_msgs::BoundingBoxArray))
-    ;; TODO ROS BoundingBox -> eus cube, then set
     (let* ((box (car (send boxes :boxes)))
            (dims (ros::tf-point->pos (send box :dimensions))))
       (setq target-region (make-cube (elt dims 0) (elt dims 1) (elt dims 2)))
@@ -53,7 +52,6 @@
             (send (send *tfl* :lookup-transform "/base_link" (send boxes :header :frame_id) (ros::time 0))
                   :transform (ros::tf-pose->coords (send box :pose)))))
 
-    ;; TODO (search-graspable-point) and (decide-grope-point)' argument should be cube, not x-min, x-max, y-min ...
     ;; TODO add argument to (create-map) to restrict movable region, based on the cube mentioned above
     (camera-stop)
 
@@ -80,8 +78,7 @@
 
        ;; calculate the most graspable point. In the function below, *fetch* is set.
        (dotimes (i 5) ;; try to grasp the target object with the same octomap, up to 5 times.
-         (decide-grope-point (get-octo-pointcloud :type "occupied")
-                             :min-x *min-x* :max-x *max-x* :min-y *min-y* :max-y *max-y* :min-z *min-z* :max-z *max-z*)
+         (decide-grope-point (get-octo-pointcloud :type "occupied") target-region)
 
          ;; extend hand to target object with pre-grasp motion by proximity sensors
          ;; first, move hand up
@@ -443,8 +440,14 @@
 
 ;; sample
 ;; (decide-grope-point *pc2*)
-(defun decide-grope-point (pc &key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000))
-  (let ((hand-pos nil) (x nil) (y nil) (z nil) (fetch-copy nil) (points 0) (max-points 0))
+(defun decide-grope-point (pc target-region)
+  (let ((hand-pos nil) (x nil) (y nil) (z nil) (fetch-copy nil) (points 0) (max-points 0)
+        (min-x (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))))
+        (max-x (reduce #'max (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))))
+        (min-y (reduce #'min (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))))
+        (max-y (reduce #'max (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))))
+        (min-z (reduce #'min (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))))
+        (max-z (reduce #'max (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices)))))
     (setq max-points (search-graspable-point pc :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z :iter-count 500))
     (setq fetch-copy (copy-object *fetch*))
     (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
