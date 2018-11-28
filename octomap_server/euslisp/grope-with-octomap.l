@@ -51,8 +51,6 @@
       (send target-region :newcoords
             (send (send *tfl* :lookup-transform "/base_link" (send boxes :header :frame_id) (ros::time 0))
                   :transform (ros::tf-pose->coords (send box :pose)))))
-
-    ;; TODO add argument to (create-map) to restrict movable region, based on the cube mentioned above
     (camera-stop)
 
     ;; set initial pose for experiment
@@ -74,7 +72,7 @@
      (let ((detectp nil) (graspp nil))
        ;; create octomap by tracing environment, using proximity sensors on finger.
        (dotimes (i 30)
-         (create-map))
+         (create-map target-region))
 
        ;; calculate the most graspable point. In the function below, *fetch* is set.
        (dotimes (i 5) ;; try to grasp the target object with the same octomap, up to 5 times.
@@ -117,7 +115,7 @@
 ;; (progn (send *fetch* :reset-pose) (send *fetch* :inverse-kinematics (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) *max-z*) :rpy (float-vector 0 pi/2 0)))) :rotation-axis nil
 ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
 ;; TODO: what method is best solution to create map?
-(defun create-map ()
+(defun create-map (target-region)
   (let ((target-coords (make-coords :rpy (float-vector 0 pi/2 0))) ;; where to move fetch's hand
         (direction (rad2deg (random pi))) (count 0) (unknown-dist nil))
     (send *ri* :start-grasp :wait t)
@@ -128,7 +126,13 @@
     (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
     ;; calculate where to grope, during moving hand up
     (let ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
-          (min-x *min-x*) (max-x *max-x*) (min-y *min-y*) (max-y *max-y*) (min-z *min-z*) (max-z *max-z*) (block-size 50.0))
+          (min-x (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))))
+          (max-x (reduce #'max (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))))
+          (min-y (reduce #'min (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))))
+          (max-y (reduce #'max (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))))
+          (min-z (reduce #'min (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))))
+          (max-z (reduce #'max (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))))
+          (block-size 50.0))
       ;; calculate position of hand, x and y
       (setq unknown-dist (unknown-distribution :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z
                                                :block-size block-size))
