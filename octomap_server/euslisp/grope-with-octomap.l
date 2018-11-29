@@ -198,7 +198,7 @@
       (setq direction (+ 180 (* -1 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place))))))
       )
     (send *ri* :wait-interpolation)
-    ;; calibration proximity sensor's param every time before groping. TODO Is this method needed here?
+    ;; calibration proximity sensor's param every time before groping.
     (sensor-calib)
     ;; move hand above the target object
     (send target-coords :translate (float-vector 0 0 (- 950 (aref (send target-coords :pos) 2))) :world)
@@ -226,6 +226,10 @@
             (let ((min-distance nil))
 
               ;; TODO do all side detection all in (detect) function
+              ;; TODO change detect funtion and give argument like below:
+              ;; TODO (detect :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre (list 50 30))
+              ;; TODO use close-sensor-num and away-sensor-num in (detect) function to achieve API above.
+              ;; TODO change (detect) function used in other areas
               ;; check pre-collision at /side1
               (ros::spin-once)
               (setq min-distance (min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side1")) :data) cons))
