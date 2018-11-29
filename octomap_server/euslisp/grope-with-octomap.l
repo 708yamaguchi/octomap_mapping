@@ -62,22 +62,13 @@
 
   ;; use camera and decide target region
   (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
-    ;; TODO make function to get target-region
     (while t ;; wait for /HSI_color_filter/boxes comes once
       (setq boxes (one-shot-subscribe "/HSI_color_filter/boxes" jsk_recognition_msgs::BoundingBoxArray))
       (when (send boxes :boxes)
         (return))
       (unix:usleep (* 100 1000)))
-    (let* ((box (car (send boxes :boxes)))
-           (dims (ros::tf-point->pos (send box :dimensions))))
-      (setq target-region (make-cube (elt dims 0) (elt dims 1) (- *max-z* *min-z*)))
-      (if (not (and (boundp '*tfl*) *tfl*))
-        (setq *tfl* (instance ros::transform-listener :init)))
-      (send target-region :newcoords
-            (send (send *tfl* :lookup-transform "/base_link" (send boxes :header :frame_id) (ros::time 0))
-                  :transform (ros::tf-pose->coords (send box :pose))))
-      (send target-region :translate (float-vector 0 0 (- (* 0.5 (+ *max-z* *min-z*)) (aref (send target-region :worldpos) 2))) :world)
-      (setq *target-region* (copy-object target-region)))
+    (setq target-region (box-recog boxes))
+
     (camera-stop)
     ;; set hand to initial experiment pose
     (send *fetch* :rarm :move-end-pos #f(0 200 0) :world :use-torso nil)
@@ -131,6 +122,22 @@
     (send *ri* :angle-vector (send *fetch* :angle-vector) 7000)
     (format "grope succeeded~%")
     ))
+
+
+(defun box-recog (boxes)
+  (let* ((box (car (send boxes :boxes)))
+         (dims (ros::tf-point->pos (send box :dimensions)))
+         (target-region nil))
+    (setq target-region (make-cube (elt dims 0) (elt dims 1) (- *max-z* *min-z*)))
+    (if (not (and (boundp '*tfl*) *tfl*))
+      (setq *tfl* (instance ros::transform-listener :init)))
+    (send target-region :newcoords
+          (send (send *tfl* :lookup-transform "/base_link" (send boxes :header :frame_id) (ros::time 0))
+                :transform (ros::tf-pose->coords (send box :pose))))
+    (send target-region :translate (float-vector 0 0 (- (* 0.5 (+ *max-z* *min-z*)) (aref (send target-region :worldpos) 2))) :world)
+    (setq *target-region* (copy-object target-region))
+    target-region))
+
 
 ;; (progn (send *fetch* :reset-pose) (send *fetch* :inverse-kinematics (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) *max-z*) :rpy (float-vector 0 pi/2 0)))) :rotation-axis nil
 ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
