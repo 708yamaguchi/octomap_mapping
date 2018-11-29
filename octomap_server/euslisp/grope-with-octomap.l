@@ -217,6 +217,8 @@
           (progn
             (format t "move hand until detecting object~%")
             (let ((min-distance nil))
+
+              ;; TODO do all side detection all in (detect) function
               ;; check pre-collision at /side1
               (ros::spin-once)
               (setq min-distance (min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side1")) :data) cons))
@@ -255,6 +257,9 @@
             (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
                         :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
               (return)))
+
+          ;; TODO do all side detection all in (detect) function
+
           (progn
             (format t "robot hand is outside of target region~%")
             (return-from create-map t))))
