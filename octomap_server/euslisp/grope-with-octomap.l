@@ -62,7 +62,12 @@
 
   ;; use camera and decide target region
   (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
-    (setq boxes (one-shot-subscribe "/HSI_color_filter/boxes" jsk_recognition_msgs::BoundingBoxArray))
+    ;; TODO make function to get target-region
+    (while t ;; wait for /HSI_color_filter/boxes comes once
+      (setq boxes (one-shot-subscribe "/HSI_color_filter/boxes" jsk_recognition_msgs::BoundingBoxArray))
+      (when (send boxes :boxes)
+        (return))
+      (unix:usleep (* 100 1000)))
     (let* ((box (car (send boxes :boxes)))
            (dims (ros::tf-point->pos (send box :dimensions))))
       (setq target-region (make-cube (elt dims 0) (elt dims 1) (- *max-z* *min-z*)))
@@ -131,6 +136,9 @@
 ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
 ;; TODO: what method is best solution to create map?
 (defun create-map (target-region)
+  (unless target-region
+    (format t "target-region is not set~%")
+    (break))
   (let ((target-coords (make-coords :rpy (float-vector 0 pi/2 0))) ;; where to move fetch's hand
         (direction (rad2deg (random pi))) (count 0) (unknown-dist nil))
     (send *ri* :start-grasp :wait t)
