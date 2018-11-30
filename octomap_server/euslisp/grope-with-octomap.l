@@ -22,7 +22,8 @@
   (setq *max-z* (nth 5 *region*)))
 (if (ros::has-param "resolution")
   (setq *resolution* (* (ros::get-param "resolution") 1000)))
-(setq *target-region* nil)
+(if (not (boundp '*target-region*))
+  (setq *target-region* nil))
 
 ;; torso length
 (setq *torso* 20)
