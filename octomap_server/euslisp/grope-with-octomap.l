@@ -54,7 +54,7 @@
             (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) 950) :rpy (float-vector 0 pi/2 0))) ;; 950 is tuned parameter
       (send *fetch* :head :look-at (float-vector (/ (+ *max-x* *min-x*) 2.0) (/ (+ *max-y* *min-y*) 2.0) (/ (+ *max-z* *min-z*) 2.0)))
       (send *fetch* :rarm :move-end-pos #f(0 -200 0) :world :use-torso nil) ;; move hand sideway to avoid occlusion
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
       (send *ri* :wait-interpolation)
       (send *ri* :start-grasp :wait t)
       (unix:usleep (* 500 1000))
@@ -184,7 +184,8 @@
       (setq max-x-round (+ max-x-round diff-x))
       (setq min-y-round (+ min-y-round diff-y))
       (setq max-y-round (+ max-y-round diff-y))
-      (setq unknown-dist (unknown-distribution :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z
+      (print (list min-x-round max-x-round min-y-round max-y-round *min-z* *max-z*))
+      (setq unknown-dist (unknown-distribution :min-x min-x-round :max-x max-x-round :min-y min-y-round :max-y max-y-round :min-z *min-z* :max-z *max-z*
                                                :block-size block-size))
       (dotimes (i (car (array-dimensions unknown-dist)))
         (dotimes (j (cadr (array-dimensions unknown-dist)))
