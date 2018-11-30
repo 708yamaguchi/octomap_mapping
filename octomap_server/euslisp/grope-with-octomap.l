@@ -239,7 +239,7 @@
                                                      :close-frame-list (list (list "/left" "/top") (list "/right" "/top")
                                                                              (list "/left" "/side1") (list "/right" "/side1")
                                                                              (list "/left" "/side2") (list "/right" "/side2"))
-                                                     :close-thre (list 30 30 60 60 35 35))))
+                                                     :close-thre (list 30 30 50 50 35 35)))) ;; 60 is desiable, but not reliable. so use 50.
                 (cond
                  ((or (equal detected-frame (list "/left" "/top")) (equal detected-frame (list "/right" "/top"))) ;; object is near top
                   (return))
