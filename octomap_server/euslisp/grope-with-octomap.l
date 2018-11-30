@@ -100,7 +100,7 @@
            (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
                               *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
              (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
-                         :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
+                         :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre 30)
                (progn ;; if something is in front of the gripper, return from this while loop and try to pre-grasp
                  (setq detectp t)
                  (return)))
@@ -284,7 +284,7 @@
             (let ((result (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(0 0 -100))
                                     :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3"))
                                     :away-frame-list (list (list "/left" "/top") (list "/right" "/top"))
-                                    :thre 50)))
+                                    :close-thre 50 :away-thre 50)))
               (when (equal (car result) :close-frame-list)
                 (format t "find something around gripper~%")
                 (return))
@@ -315,7 +315,7 @@
                   (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side2")) :data) cons)) 50))
             (progn (format t "detecting object at the side of the gripper ~%") (return-from create-map t)))
           (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
-                      :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
+                      :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre 30)
             (return)))
         (progn
           (format t "robot hand is outside of target region~%")
@@ -656,7 +656,7 @@
 (defun pre-grasp (target-coords)
   (let ((l-min *inf*) (r-min *inf*) (target-finger nil) (another-finger nil) (rotate-min *inf*) (rotate-angle 0) (interpolatingp nil))
     ;; first, find object
-    (detect target-coords :close-frame-list (list (list "/left" "/top" ) (list "/right" "/top")) :thre 40)
+    (detect target-coords :close-frame-list (list (list "/left" "/top" ) (list "/right" "/top")) :close-thre 40)
 
     ;; open gripper and detect edge
     (send *ri* :grasp-with-condition
@@ -701,7 +701,7 @@
       (unix:usleep (* 200 1000)))
 
     ;; move hand down and grasp object
-    (detect target-coords :close-frame-list (list (list "/left" "/top" ) (list "/right" "/top")) :thre 30)
+    (detect target-coords :close-frame-list (list (list "/left" "/top" ) (list "/right" "/top")) :close-thre 30)
     (send *ri* :start-grasp)
   ))
 
@@ -720,7 +720,7 @@
     (send *ri* :wait-interpolation)
     (send *fetch* :rarm :move-end-pos #f(0 0 -200) :world :use-torso nil)
     (setq ec (send *fetch* :rarm :end-coords :copy-worldcoords))
-    (detect ec :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :thre 30)
+    (detect ec :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre 30)
     (unix:sleep 4)
     ))
 
