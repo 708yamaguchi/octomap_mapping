@@ -161,7 +161,7 @@
     ;; first, moving hand up
     (format t "move hand up. preparing...~%")
     (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-    (send *fetch* :torso :waist-z :joint-angle 350)
+    (send *fetch* :torso :waist-z :joint-angle 400)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
     ;; calculate where to grope, during moving hand up
     (let* ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
@@ -211,6 +211,7 @@
     ;; calibration proximity sensor's param every time before groping.
     (sensor-calib)
     ;; move hand above the target object
+    (send *fetch* :torso :waist-z :joint-angle 200)
     (send target-coords :translate (float-vector 0 0 (- 950 (aref (send target-coords :pos) 2))) :world)
     (send *fetch* :inverse-kinematics target-coords :use-torso nil)
     (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) direction)) ;; rotate arm
