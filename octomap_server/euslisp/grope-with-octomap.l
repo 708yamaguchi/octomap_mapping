@@ -235,8 +235,7 @@
             (format t "move hand until detecting object~%")
             ;; check if there is object near top of the grippers
             (let ((detected-frame nil) (min-distance nil))
-              (print (send *fetch* :rarm :end-coords :copy-worldcoords))
-              (if (setq detected-frame (cadr (detect (print (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0)))
+              (if (setq detected-frame (cadr (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
                                                      :close-frame-list (list (list "/left" "/top") (list "/right" "/top")
                                                                              (list "/left" "/side1") (list "/right" "/side1")
                                                                              (list "/left" "/side2") (list "/right" "/side2"))
