@@ -40,40 +40,48 @@
   (objects (list *fetch*)))
 
 
-(defun main ()
-  ;; settings for experiment
-  (send *fetch* :reset-pose)
-  (send *fetch* :torso :waist-z :joint-angle 400)
-  (send *fetch* :inverse-kinematics
-        (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) 950) :rpy (float-vector 0 pi/2 0))) ;; 950 is tuned parameter
-  (send *fetch* :head :look-at (float-vector (/ (+ *max-x* *min-x*) 2.0) (/ (+ *max-y* *min-y*) 2.0) (/ (+ *max-z* *min-z*) 2.0)))
-  (send *fetch* :rarm :move-end-pos #f(0 -200 0) :world :use-torso nil) ;; move hand sideway to avoid occlusion
-  (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
-  (send *ri* :wait-interpolation)
-  (send *ri* :start-grasp :wait t)
-  (unix:usleep (* 500 1000))
-  (send *ri* :set-init-proximities)
-  (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
-  (camera-stop)
-  (octomap-reset)
-  (send *ri* :wait-interpolation)
-  (camera-request)
-  (unix:sleep 1)
-
-  ;; use camera and decide target region
+;; type is :setting, :main or :all
+;; :setting does setting of this function, :main does main part of this function and :all does both of them.
+(defun main (&key (type :all))
+  (if (not (or (equal type :setting) (equal type :main) (equal type :all)))
+    (progn (format t "argument :type is not correctly set~%") (return-from main nil)))
   (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
-    (while t ;; wait for /HSI_color_filter/boxes comes once
-      (setq boxes (one-shot-subscribe "/HSI_color_filter/boxes" jsk_recognition_msgs::BoundingBoxArray))
-      (when (send boxes :boxes)
-        (return))
-      (unix:usleep (* 100 1000)))
-    (setq target-region (box-recog boxes))
+    (when (or (equal type :all) (equal type :setting))
+      ;; settings for experiment
+      (send *fetch* :reset-pose)
+      (send *fetch* :torso :waist-z :joint-angle 400)
+      (send *fetch* :inverse-kinematics
+            (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) 950) :rpy (float-vector 0 pi/2 0))) ;; 950 is tuned parameter
+      (send *fetch* :head :look-at (float-vector (/ (+ *max-x* *min-x*) 2.0) (/ (+ *max-y* *min-y*) 2.0) (/ (+ *max-z* *min-z*) 2.0)))
+      (send *fetch* :rarm :move-end-pos #f(0 -200 0) :world :use-torso nil) ;; move hand sideway to avoid occlusion
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
+      (send *ri* :wait-interpolation)
+      (send *ri* :start-grasp :wait t)
+      (unix:usleep (* 500 1000))
+      (send *ri* :set-init-proximities)
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
+      (camera-stop)
+      (octomap-reset)
+      (send *ri* :wait-interpolation)
+      (camera-request)
+      (unix:sleep 1)
 
-    (camera-stop)
-    ;; set hand to initial experiment pose
-    (send *fetch* :rarm :move-end-pos #f(0 200 0) :world :use-torso nil)
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
-    (send *ri* :wait-interpolation)
+      ;; use camera and decide target region
+      (while t ;; wait for /HSI_color_filter/boxes comes once
+        (setq boxes (one-shot-subscribe "/HSI_color_filter/boxes" jsk_recognition_msgs::BoundingBoxArray))
+        (when (send boxes :boxes)
+          (return))
+        (unix:usleep (* 100 1000)))
+      (setq target-region (box-recog boxes))
+
+      (camera-stop)
+      ;; set hand to initial experiment pose
+      (send *fetch* :rarm :move-end-pos #f(0 200 0) :world :use-torso nil)
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
+      (send *ri* :wait-interpolation))
+
+    (if (equal type :setting)
+      (return-from main t))
 
     ;; grasp object with octomap and grope. TODO simultaneous execution of (create-map) and (decide-grope-point) may be needed.
     ;; flowchart of this (do-until-key) is loop of following steps:
