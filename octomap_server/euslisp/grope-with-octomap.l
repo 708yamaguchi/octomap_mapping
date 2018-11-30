@@ -183,7 +183,7 @@
       ;; correct min/max-x/y/z in order to adapt to (unknown-distribution)
       (setq min-x-round (- min-x-round diff-x))
       (setq max-x-round (+ max-x-round diff-x))
-      (setq min-y-round (+ min-y-round diff-y))
+      (setq min-y-round (- min-y-round diff-y))
       (setq max-y-round (+ max-y-round diff-y))
       (print (list min-x-round max-x-round min-y-round max-y-round *min-z* *max-z*))
       (setq unknown-dist (unknown-distribution :min-x min-x-round :max-x max-x-round :min-y min-y-round :max-y max-y-round :min-z *min-z* :max-z *max-z*
