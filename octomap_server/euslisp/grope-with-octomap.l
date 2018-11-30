@@ -185,8 +185,8 @@
       (setq max-x-round (+ max-x-round diff-x))
       (setq min-y-round (- min-y-round diff-y))
       (setq max-y-round (+ max-y-round diff-y))
-      (print (list min-x-round max-x-round min-y-round max-y-round *min-z* *max-z*))
-      (setq unknown-dist (unknown-distribution :min-x min-x-round :max-x max-x-round :min-y min-y-round :max-y max-y-round :min-z *min-z* :max-z *max-z*
+      (print (list min-x-round max-x-round min-y-round max-y-round min-z max-z))
+      (setq unknown-dist (unknown-distribution :min-x min-x-round :max-x max-x-round :min-y min-y-round :max-y max-y-round :min-z min-z :max-z max-z
                                                :block-size block-size))
       (dotimes (i (car (array-dimensions unknown-dist)))
         (dotimes (j (cadr (array-dimensions unknown-dist)))
@@ -595,7 +595,7 @@
       (let* ((unknown (matrix-row (send unknown-pc :points) j))
              (x (/ (round (- (aref unknown 0) *min-x* *resolution*)) *resolution*))
              (y (/ (round (- (aref unknown 1) *min-y* *resolution*)) *resolution*))) ;; x and y are index
-        (if (not (eq (aref octomap-2d x y) -1.0))
+        (if (and (not (eq (aref octomap-2d x y) -1.0)) (< min-z (aref unknown 2) max-z))
           (setf (aref octomap-2d x y) (+ 1 (aref octomap-2d x y)))
           )))
 
