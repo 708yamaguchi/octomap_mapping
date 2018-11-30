@@ -197,6 +197,8 @@
       (setf (aref (send target-coords :worldpos) 1) (+ min-y (/ block-size 2.0) (* (cadr max-place) block-size)))
       (setf (aref (send target-coords :worldpos) 2) max-z)
       ;; calculate angle of wrist, theta
+      ;; TODO do not move hand angle of 45 degrees
+      ;; TODO record accumulated rotation angle and reset the angle regularly.
       (dolist (x (list -1 0 1))
         (dolist (y (list -1 0 1))
           (when (not (or (and (eq x 0) (eq y 0)) ;; when ((+ (car max-place) x), (+ (cadr max-place) y)) is not out of unknown-dist
