@@ -478,11 +478,17 @@
         (setq random-rot (- (random pi) pi/2))
         (send gripper-inside :locate (float-vector random-x random-y 0) :world) ;; change position absolutely
         (send gripper-inside :orient random-rot :z :world) ;; change rotation absolutely
-        ;; calc point at which the gripper collides with pointcloud
-        (dolist (point point-list-sorted)
+        ;; calc point at which the gripper and the hand collides with pointcloud
+        (dolist (point point-list-sorted) ;; consider gripper collision
           (when (or (equal (send stick-l :insidep point) :inside)
                     (equal (send stick-r :insidep point) :inside))
             (setq highest-z (aref point 2))
+            (return)))
+        (dolist (point point-list-sorted) ;; consider hand collision
+          (when (equal (send stick-center :insidep point) :inside)
+            (if highest-z
+              (setq highest-z (max highest-z (- (aref point 2) gr-z)))
+              (setq highest-z (- (aref point 2) gr-z)))
             (return)))
 
         (when highest-z
