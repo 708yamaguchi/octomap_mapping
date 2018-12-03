@@ -548,12 +548,13 @@
                 (make-coords :pos (float-vector best-x best-y (+ best-z (/ gr-z 2.0)))
                              :rpy (float-vector 0 pi/2 (* -1 best-rot))
                              :use-torso nil))
-          (send gripper-inside :dissoc stick-l)
-          (send gripper-inside :dissoc stick-r)
-          (send gripper-inside :dissoc stick-center)
           (send gripper-inside :locate (float-vector best-x best-y (+ best-z (/ gr-z 2.0))) :world) ;; change position absolutely
           (send gripper-inside :orient best-rot :z :world) ;; change rotation absolutely
-          (objects (append (list *fetch* pc stick-l stick-r stick-center) region))
+          (send stick-l :translate (float-vector 0 0 (- (/ (+ max-z min-z) 2.0) (aref (send stick-l :worldpos) 2))) :world)
+          (send stick-r :translate (float-vector 0 0 (- (/ (+ max-z min-z) 2.0) (aref (send stick-r :worldpos) 2))) :world)
+          (send stick-center :translate (float-vector 0 0 (- (/ (+ max-z min-z) 2.0) (aref (send stick-center :worldpos) 2))) :world)
+          ;; (objects (append (list *fetch* pc stick-l stick-r stick-center) region)) ;; for debug view
+          (objects (append (list *fetch* pc) region))
           max-inside-point)
         (progn
           (format t "cannot find graspable point.~%")
