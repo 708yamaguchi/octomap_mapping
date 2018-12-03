@@ -415,7 +415,7 @@
 ;; TODO decide grope point based on height map. hint is in (calc-grope-point)
 ;; TODO use pyramid algorithm when searching grope point
 (defun search-graspable-point (pc &key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (iter-count 1000))
-  (let* (stick-l stick-r
+  (let* (stick-l stick-r stick-center
          random-x random-y random-rot
          best-x best-y best-z best-rot
          (gr-x 40.0) (gr-y 30.0) (gr-z 60.0) (gr-open 100.0)
@@ -446,10 +446,13 @@
       (send stick-l :set-color #f(1 0 0 0.5))
       (setq stick-r (send (make-cube gr-x gr-y (- max-z min-z)) :locate (float-vector 0 (/ gr-open 2) (/ (+ max-z min-z) 2.0))))
       (send stick-r :set-color #f(0 1 0 0.5))
+      (setq stick-center (send (make-cube gr-x (- gr-open gr-y) (- max-z min-z)) :locate (float-vector 0 0 (/ (+ max-z min-z) 2.0))))
+      (send stick-center :set-color #f(0 0 1 0.5))
       (send gripper-inside :assoc gripper-l)
       (send gripper-inside :assoc gripper-r)
       (send gripper-inside :assoc stick-l)
       (send gripper-inside :assoc stick-r)
+      (send gripper-inside :assoc stick-center)
 
       ;; sort points in the order of z-height
       ;; exclude points which is out of target region
@@ -467,6 +470,7 @@
         ;; update objects related counting pointcloud
         (send stick-l :worldcoords)
         (send stick-r :worldcoords)
+        (send stick-center :worldcoords)
         (send gripper-inside :worldcoords)
         ;; set random point to grope
         (setq random-x (+ (random (- max-x min-x)) min-x))
@@ -485,13 +489,15 @@
           ;; move the hand down until collision with the highest point, and count the points inside the gripper.
           (send gripper-inside :dissoc stick-l)
           (send gripper-inside :dissoc stick-r)
+          (send gripper-inside :dissoc stick-center)
           (send gripper-inside :locate (float-vector 0 0 (+ highest-z (/ gr-z 2.0))) :local)
           ;; for visualization
           ;; (send *fetch* :inverse-kinematics
           ;;       (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
           ;;                    :rpy (float-vector 0 pi/2 (* -1 random-rot))
           ;;                    :use-torso nil))
-          ;; (objects (append (list *fetch* pc stick-l stick-r gripper-inside) region))
+          ;; (objects (append (list *fetch* pc stick-l stick-r stick-center gripper-inside) region))
+
           ;; update objects related counting pointcloud
           (send gripper-inside :worldcoords)
           ;; count the point inside of gripper-inside
@@ -508,8 +514,14 @@
           (send gripper-inside :locate (float-vector 0 0 0) :world)
           (send stick-l :locate (float-vector 0 (/ gr-open -2) (/ (+ max-z min-z) 2.0)) :world)
           (send stick-r :locate (float-vector 0 (/ gr-open 2) (/ (+ max-z min-z) 2.0)) :world)
+          (send stick-center :locate (float-vector 0 0 (/ (+ max-z min-z) 2.0)) :world)
+          (send gripper-inside :orient 0 :z :world) ;; change rotation absolutely
+          (send stick-l :orient 0 :z :world)
+          (send stick-r :orient 0 :z :world)
+          (send stick-center :orient 0 :z :world)
           (send gripper-inside :assoc stick-l)
           (send gripper-inside :assoc stick-r)
+          (send gripper-inside :assoc stick-center)
           ))
       (format t "max-inside-point:~A~%" max-inside-point)
       (if best-z
