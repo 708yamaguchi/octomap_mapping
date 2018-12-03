@@ -423,7 +423,7 @@
          (gripper-r (send (make-cube gr-x gr-y gr-z) :locate (float-vector 0 (/ gr-open 2) 0)))
          (gripper-inside (make-cube gr-x (- gr-open gr-y) gr-z))
          (point-list (send pc :point-list))
-         (point-list-sorted (copy-object point-list))
+         (point-list-sorted nil)
          highest-z
          (inside-point 0) (max-inside-point 0)
          )
@@ -452,6 +452,10 @@
       (send gripper-inside :assoc stick-r)
 
       ;; sort points in the order of z-height
+      ;; exclude points which is out of target region
+      (dolist (point point-list)
+        (if (and (<= min-x (aref point 0) max-x) (<= min-y (aref point 1) max-y) (<= min-z (aref point 2) max-z))
+          (setq point-list-sorted (append point-list-sorted (list point)))))
       ;; (sort) is destructively sort
       (sort point-list-sorted #'(lambda (x y) (> (aref x 2) (aref y 2))))
       ;; search for most graspable point
