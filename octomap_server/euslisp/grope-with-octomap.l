@@ -96,7 +96,7 @@
 
        ;; calculate the most graspable point. In the function below, *fetch* is set.
        (dotimes (i 5) ;; try to grasp the target object with the same octomap, up to 5 times.
-         (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :offset 30)
+         (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 60 :y-offset 60 :z-offset 0)
 
          ;; extend hand to target object with pre-grasp motion by proximity sensors
          ;; first, move hand up
@@ -550,14 +550,14 @@
 
 ;; sample
 ;; (decide-grope-point *pc2*)
-(defun decide-grope-point (pc target-region &key (offset 0))
+(defun decide-grope-point (pc target-region &key (x-offset 0) (y-offset 0) (z-offset 0))
   (let ((hand-pos nil) (x nil) (y nil) (z nil) (fetch-copy nil) (points 0) (max-points 0)
-        (min-x (+ (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))) offset))
-        (max-x (- (reduce #'max (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))) offset))
-        (min-y (+ (reduce #'min (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))) offset))
-        (max-y (- (reduce #'max (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))) offset))
-        (min-z (+ (reduce #'min (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))) offset))
-        (max-z (- (reduce #'max (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))) offset)))
+        (min-x (+ (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))) x-offset))
+        (max-x (- (reduce #'max (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))) x-offset))
+        (min-y (+ (reduce #'min (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))) y-offset))
+        (max-y (- (reduce #'max (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))) y-offset))
+        (min-z (+ (reduce #'min (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))) z-offset))
+        (max-z (- (reduce #'max (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))) z-offset)))
     (setq max-points (search-graspable-point pc :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z :iter-count 500))
     (setq fetch-copy (copy-object *fetch*))
     (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
@@ -565,7 +565,7 @@
     (setq x (aref hand-pos 0))
     (setq y (aref hand-pos 1))
     (setq z (aref hand-pos 2))
-    (setq points (search-graspable-point pc :min-x (max min-x (- x 100)) :max-x (min max-x (+ x 100)) :min-y (max min-y (- y 100)) :max-y (min max-y (+ y 100)) :min-z (max min-z (- z 100)) :max-z (min max-z (+ z 100)) :iter-count 500))
+    (setq points (search-graspable-point pc :min-x (max min-x (- x 100)) :max-x (min max-x (+ x 100)) :min-y (max min-y (- y 100)) :max-y (min max-y (+ y 100)) :min-z min-z :max-z max-z :iter-count 500))
     (when (< max-points points)
       (setq fetch-copy (copy-object *fetch*))
       (setq max-points points))
@@ -574,18 +574,18 @@
     (setq x (aref hand-pos 0))
     (setq y (aref hand-pos 1))
     (setq z (aref hand-pos 2))
-    (search-graspable-point pc :min-x (- x 50) :max-x (+ x 50) :min-y (- y 50) :max-y (+ y 50) :min-z (- z 50) :max-z (+ z 50) :iter-count 500)
+    (search-graspable-point pc :min-x (max min-x (- x 50)) :max-x (min max-x (+ x 50)) :min-y (max min-y (- y 50)) :max-y (min max-y (+ y 50)) :min-z min-z :max-z max-z :iter-count 500)
     (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
     (print hand-pos)
     (when (< max-points points)
       (setq fetch-copy (copy-object *fetch*))
       (setq max-points points))
     (setq *fetch* fetch-copy)
-    (let ((cube (make-cube 200 200 200)) (region nil))
-      (send cube :locate (float-vector x y z) :world)
-      (send cube :worldcoords)
-      (setq region (send cube :edges))
-      (objects (append (list *fetch* pc) region)))
+    ;; (let ((cube (make-cube 200 200 200)) (region nil))
+    ;;   (send cube :locate (float-vector x y z) :world)
+    ;;   (send cube :worldcoords)
+    ;;   (setq region (send cube :edges))
+    ;;   (objects (append (list *fetch* pc) region)))
     ))
 
 
