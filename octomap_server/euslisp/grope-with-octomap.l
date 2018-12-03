@@ -96,7 +96,7 @@
 
        ;; calculate the most graspable point. In the function below, *fetch* is set.
        (dotimes (i 5) ;; try to grasp the target object with the same octomap, up to 5 times.
-         (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 60 :y-offset 60 :z-offset 0)
+         (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 80 :y-offset 80 :z-offset 60)
 
          ;; extend hand to target object with pre-grasp motion by proximity sensors
          ;; first, move hand up
@@ -418,7 +418,7 @@
   (let* (stick-l stick-r stick-center
          random-x random-y random-rot
          best-x best-y best-z best-rot
-         (gr-x 40.0) (gr-y 30.0) (gr-z 60.0) (gr-open 100.0)
+         (gr-x 40.0) (gr-y 30.0) (gr-z 60.0) (gr-open 100.0) (hand-x 70.0)
          (gripper-l (send (make-cube gr-x gr-y gr-z) :locate (float-vector 0 (/ gr-open -2) 0)))
          (gripper-r (send (make-cube gr-x gr-y gr-z) :locate (float-vector 0 (/ gr-open 2) 0)))
          (gripper-inside (make-cube gr-x (- gr-open gr-y) gr-z))
@@ -446,7 +446,8 @@
       (send stick-l :set-color #f(1 0 0 0.5))
       (setq stick-r (send (make-cube gr-x gr-y (- max-z min-z)) :locate (float-vector 0 (/ gr-open 2) (/ (+ max-z min-z) 2.0))))
       (send stick-r :set-color #f(0 1 0 0.5))
-      (setq stick-center (send (make-cube gr-x (- gr-open gr-y) (- max-z min-z)) :locate (float-vector 0 0 (/ (+ max-z min-z) 2.0))))
+      ;; (setq stick-center (send (make-cube gr-x (- gr-open gr-y) (- max-z min-z)) :locate (float-vector 0 0 (/ (+ max-z min-z) 2.0))))
+      (setq stick-center (send (make-cube hand-x (- gr-open gr-y) (- max-z min-z)) :locate (float-vector 0 0 (/ (+ max-z min-z) 2.0))))
       (send stick-center :set-color #f(0 0 1 0.5))
       (send gripper-inside :assoc gripper-l)
       (send gripper-inside :assoc gripper-r)
@@ -458,7 +459,7 @@
       ;; exclude points which is out of target region
       (dolist (point point-list)
         (if (and (<= min-x (aref point 0) max-x) (<= min-y (aref point 1) max-y) (<= min-z (aref point 2) max-z))
-          (setq point-list-sorted (append point-list-sorted (list point)))))
+          (setq point-list-sorted (copy-object (append point-list-sorted (list point))))))
       ;; (sort) is destructively sort
       (sort point-list-sorted #'(lambda (x y) (> (aref x 2) (aref y 2))))
       ;; search for most graspable point
@@ -479,17 +480,25 @@
         (send gripper-inside :locate (float-vector random-x random-y 0) :world) ;; change position absolutely
         (send gripper-inside :orient random-rot :z :world) ;; change rotation absolutely
         ;; calc point at which the gripper and the hand collides with pointcloud
-        (dolist (point point-list-sorted) ;; consider gripper collision
-          (when (or (equal (send stick-l :insidep point) :inside)
-                    (equal (send stick-r :insidep point) :inside))
-            (setq highest-z (aref point 2))
-            (return)))
-        (dolist (point point-list-sorted) ;; consider hand collision
-          (when (equal (send stick-center :insidep point) :inside)
-            (if highest-z
-              (setq highest-z (max highest-z (- (aref point 2) gr-z)))
-              (setq highest-z (- (aref point 2) gr-z)))
-            (return)))
+        (let ((l/r-flag nil) (center-flag nil))
+          (dolist (point point-list-sorted)
+            (when (and (not l/r-flag)
+                       (or (equal (send stick-l :insidep point) :inside)
+                           (equal (send stick-r :insidep point) :inside)))
+              (if highest-z
+                (setq highest-z (max highest-z (aref point 2)))
+                (setq highest-z (aref point 2)))
+              (setq l/r-flag t)
+              (if (and l/r-flag center-flag)
+                (return)))
+            (when (and (not center-flag)
+                       (equal (send stick-center :insidep point) :inside))
+              (if highest-z
+                (setq highest-z (max highest-z (- (aref point 2) gr-z)))
+                (setq highest-z (- (aref point 2) gr-z)))
+              (setq center-flag t)
+              (if (and l/r-flag center-flag)
+                (return)))))
 
         (when highest-z
           ;; move the hand down until collision with the highest point, and count the points inside the gripper.
@@ -503,6 +512,9 @@
           ;;                    :rpy (float-vector 0 pi/2 (* -1 random-rot))
           ;;                    :use-torso nil))
           ;; (objects (append (list *fetch* pc stick-l stick-r stick-center gripper-inside) region))
+          ;; (when (eq i 100)
+          ;;   (print highest-z)
+          ;;   (break))
 
           ;; update objects related counting pointcloud
           (send gripper-inside :worldcoords)
@@ -518,8 +530,8 @@
             (setq best-rot random-rot))
           ;; redo the movement of gripper-l, gripper-r and gripper-inside
           (send gripper-inside :locate (float-vector 0 0 0) :world)
-          (send stick-l :locate (float-vector 0 (/ gr-open -2) (/ (+ max-z min-z) 2.0)) :world)
-          (send stick-r :locate (float-vector 0 (/ gr-open 2) (/ (+ max-z min-z) 2.0)) :world)
+          (send stick-l :locate (float-vector 0 (/ gr-open -2.0) (/ (+ max-z min-z) 2.0)) :world)
+          (send stick-r :locate (float-vector 0 (/ gr-open 2.0) (/ (+ max-z min-z) 2.0)) :world)
           (send stick-center :locate (float-vector 0 0 (/ (+ max-z min-z) 2.0)) :world)
           (send gripper-inside :orient 0 :z :world) ;; change rotation absolutely
           (send stick-l :orient 0 :z :world)
@@ -538,9 +550,10 @@
                              :use-torso nil))
           (send gripper-inside :dissoc stick-l)
           (send gripper-inside :dissoc stick-r)
+          (send gripper-inside :dissoc stick-center)
           (send gripper-inside :locate (float-vector best-x best-y (+ best-z (/ gr-z 2.0))) :world) ;; change position absolutely
           (send gripper-inside :orient best-rot :z :world) ;; change rotation absolutely
-          (objects (append (list *fetch* pc) region))
+          (objects (append (list *fetch* pc stick-l stick-r stick-center) region))
           max-inside-point)
         (progn
           (format t "cannot find graspable point.~%")
@@ -549,7 +562,7 @@
 
 
 ;; sample
-;; (decide-grope-point *pc2*)
+;; decide-grope-point occupied-pointcloud target-region :x-offset 80 :y-offset 80 :z-offset 60
 (defun decide-grope-point (pc target-region &key (x-offset 0) (y-offset 0) (z-offset 0))
   (let ((hand-pos nil) (x nil) (y nil) (z nil) (fetch-copy nil) (points 0) (max-points 0)
         (min-x (+ (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))) x-offset))
