@@ -634,7 +634,8 @@
       (let* ((unknown (matrix-row (send unknown-pc :points) j))
              (x (/ (round (- (aref unknown 0) *min-x* *resolution*)) *resolution*))
              (y (/ (round (- (aref unknown 1) *min-y* *resolution*)) *resolution*))) ;; x and y are index
-        (if (and (not (eq (aref octomap-2d x y) -1.0)) (< min-z (aref unknown 2) max-z))
+        (if (and (not (eq (aref octomap-2d x y) -1))
+                 (< min-x (aref unknown 0) max-x) (< min-y (aref unknown 1) max-y) (< min-z (aref unknown 2) max-z)) ;; target point is inside the target region?
           (setf (aref octomap-2d x y) (+ 1 (aref octomap-2d x y)))
           )))
 
