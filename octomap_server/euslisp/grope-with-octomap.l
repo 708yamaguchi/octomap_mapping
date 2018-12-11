@@ -59,7 +59,7 @@
       (send *fetch* :rarm :move-end-pos #f(0 -200 0) :world :use-torso nil) ;; move hand sideway to avoid occlusion
       (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
       (send *ri* :wait-interpolation)
-      (send *ri* :start-grasp :wait t)
+      (send *ri* :go-grasp :pos 0.03 :wait t)
       (unix:usleep (* 500 1000))
       (send *ri* :set-init-proximities)
       (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
@@ -168,7 +168,7 @@
     (break))
   (let ((target-coords (make-coords :rpy (float-vector 0 pi/2 0))) ;; where to move fetch's hand
         (direction (rad2deg (random pi))) (direction-accum 0) (count 0) (unknown-dist nil))
-    (send *ri* :start-grasp :wait t)
+    (send *ri* :go-grasp :pos 0.03 :wait t)
     ;; first, moving hand up
     (format t "move hand up. preparing...~%")
     (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
