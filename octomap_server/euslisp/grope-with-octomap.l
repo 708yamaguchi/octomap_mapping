@@ -265,12 +265,12 @@
           (progn
             (format t "move hand until detecting object~%")
             ;; check if there is object near top of the grippers
-            (let ((detected-frame nil) (min-distance nil))
+            (let ((detected-frame nil) (min-distance nil) (hand-cover-thick 40) (gripper-handside-distance (- 45 (* 0.5 1000 (- (send *ri* :gripper :position) 0.01)))))
               (if (setq detected-frame (cadr (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
                                                      :close-frame-list (list (list "/left" "/top") (list "/right" "/top")
                                                                              (list "/left" "/side1") (list "/right" "/side1")
                                                                              (list "/left" "/side2") (list "/right" "/side2"))
-                                                     :close-thre (list 30 30 50 50 35 35)))) ;; 60 is desiable, but not reliable. so use 50.
+                                                     :close-thre (list 30 30 hand-cover-thick hand-cover-thick gripper-handside-distance gripper-handside-distance)))) ;; distance between sensor and hand cover top is 40mm
                 (cond
                  ((or (equal detected-frame (list "/left" "/top")) (equal detected-frame (list "/right" "/top"))) ;; object is near top
                   (return))
@@ -280,7 +280,7 @@
                                           (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side1")) :data) cons))))
                   (format t "detect object at side1, so move hand~%")
                   ;; distance between gripper's side1 and back of the hand is about 60mm. move hand at least 10mm.
-                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 0 (* -1 (max 10 (- 60 min-distance)))))
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 0 (* -1 (max 10 (- hand-cover-thick min-distance)))))
                                 :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")) :close-thre 30 :tm 3000)
                     (format t "cannot move hand forward any more~%")
                     (return-from create-map t)))
@@ -289,8 +289,8 @@
                   (setq min-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side2")) :data) cons)))
                   (format t "detect object at left side2, so move hand~%")
                   ;; distance between left gripper's side2 and side of the hand is about 35mm (at start-grasp state). move hand at least 10mm.
-                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (max 10 (- 35 min-distance)) 0))
-                                :close-frame-list (list (list "/left" "/side2")) :close-thre 35 :tm 3000)
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (max 10 (- gripper-handside-distance min-distance)) 0))
+                                :close-frame-list (list (list "/right" "/side2")) :close-thre gripper-handside-distance :tm 3000)
                     (format t "cannot move hand rightside any more~%")
                     (return-from create-map t)))
                  ((equal detected-frame (list "/right" "/side2"))
@@ -298,8 +298,8 @@
                   (setq min-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side2")) :data) cons)))
                   (format t "detect object at right side2, so move hand~%")
                   ;; distance between left gripper's side2 and side of the hand is about 35mm (at start-grasp state). move hand at least 10mm.
-                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (* -1 (max 10 (- 35 min-distance))) 0))
-                                :close-frame-list (list (list "/right" "/side2")) :close-thre 35 :tm 3000)
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (* -1 (max 10 (- gripper-handside-distance min-distance))) 0))
+                                :close-frame-list (list (list "/left" "/side2")) :close-thre gripper-handside-distance :tm 3000)
                     (format t "cannot move hand leftside any more~%")
                     (return-from create-map t)))
                  ))))
@@ -317,6 +317,8 @@
                                     :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3"))
                                     :away-frame-list (list (list "/left" "/top") (list "/right" "/top"))
                                     :close-thre 50 :away-thre 50)))
+              (when (equal result :ik-not-solved)
+                (return-from create-map t))
               (when (equal (car result) :close-frame-list)
                 (format t "find something around gripper~%")
                 (return))
@@ -622,7 +624,7 @@
     (when (< max-points points)
       (setq fetch-copy (copy-object *fetch*))
       (setq max-points points))
-    (setq *fetch* fetch-copy)
+    (list max-points fetch-copy)
     ;; (let ((cube (make-cube 200 200 200)) (region nil))
     ;;   (send cube :locate (float-vector x y z) :world)
     ;;   (send cube :worldcoords)
