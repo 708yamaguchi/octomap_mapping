@@ -75,7 +75,7 @@
         (when (send boxes :boxes)
           (return))
         (unix:usleep (* 100 1000)))
-      (setq target-region (box-recog boxes :offset 10)) ;; offset is to ignore box edge
+      (setq target-region (box-recog boxes :offset 30)) ;; offset is to ignore box edge
 
       (camera-stop)
       ;; set hand to initial experiment pose
@@ -96,7 +96,7 @@
        (dotimes (i 30)
          (create-map target-region)
          (let ((av (send *fetch* :angle-vector)))
-           (when (< 30 (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 80 :y-offset 80 :z-offset 60))
+           (when (< 1000 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 80 :y-offset 80 :z-offset 60)))
              (setq find-grasp-pointp t)
              (format t "find graspable point, so start grasping~%")
              (return))
@@ -159,8 +159,6 @@
     target-region))
 
 
-;; (progn (send *fetch* :reset-pose) (send *fetch* :inverse-kinematics (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) *max-z*) :rpy (float-vector 0 pi/2 0)))) :rotation-axis nil
-;; (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
 ;; TODO: what method is best solution to create map?
 (defun create-map (target-region)
   (unless target-region
@@ -192,6 +190,7 @@
            )
       ;; calculate position of hand, x and y
       ;; correct min/max-x/y/z in order to adapt to (unknown-distribution)
+      ;; TODO min/max-x/y-round should be smaller than the real region
       (setq min-x-round (- min-x-round diff-x))
       (setq max-x-round (+ max-x-round diff-x))
       (setq min-y-round (- min-y-round diff-y))
@@ -232,9 +231,9 @@
     (send *fetch* :inverse-kinematics target-coords :use-torso nil)
     ;; calculate accumulation of rotation angle, to untie USB cable
     (setq direction (round direction)) ;; nearest integer
-    (when (and (<= direction-accum -270) (<= direction 0))
+    (when (and (<= (+ direction direction-accum) -270) (<= direction 0))
       (setq direction (+ 360 direction)))
-    (when (and (<= 270 direction-accum) (<= 0 direction))
+    (when (and (<= 270 (+ direction direction-accum)) (<= 0 direction))
       (setq direction (+ -360 direction)))
     (setq direction-accum (+ direction direction-accum))
     ;; rotate arm twice, to select rotation direction
@@ -243,9 +242,11 @@
       (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) (* 0.5 direction)))
       (setq av2 (send *fetch* :angle-vector))
       (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) (* 0.5 direction)))
-      (send av3 (send *fetch* :angle-vector))
-    (send *ri* :angle-vector-sequence (list av1 av2 av3) (list 4000 1000 1000))
-    (send *ri* :wait-interpolation))
+      (setq av3 (send *fetch* :angle-vector))
+    (send *ri* :angle-vector-sequence (list av1 av2 av3) (list 6000 1500 1500))
+    ;; (send *ri* :wait-interpolation)
+    (unix:sleep 9)
+    )
     ;; move hand down to target coords ;; these functions may not be needed any more
     ;; (format t "move hand to target coords~%")
     ;; (send *fetch* :torso :waist-z :joint-angle 50)
@@ -254,7 +255,7 @@
 
     (format t "start tracing~%")
     ;; move hand until detecting object. move-end-pos 10cm, 10cm, 10cm ...  gradually.
-    (while (< count 3) ;; vertical hand move and horizontal hand move, alternately
+    (while (< count 5) ;; vertical hand move and horizontal hand move, alternately
       (format t "count: ~A~%" count)
       ;; move hand down
       (while t
@@ -636,8 +637,7 @@
 (defun unknown-distribution (&key (min-x *min-x*) (max-x *max-x*) (min-y *min-y*) (max-y *max-y*) (min-z *min-z*) (max-z *max-z*) (block-size 50.0)
                                   (view-octomap-2d nil) (view-unknown-distribution t))
   (unless (and (eq (mod (round (- *max-x* *min-x*)) (round block-size)) 0)
-               (eq (mod (round (- *max-y* *min-y*)) (round block-size)) 0)
-               (eq (mod (round (- *max-z* *min-z*)) (round block-size)) 0))
+               (eq (mod (round (- *max-y* *min-y*)) (round block-size)) 0))
     (format t "target region is not a multiple of block-size~%")
     (return-from unknown-distribution nil))
   (ros::spin-once)
