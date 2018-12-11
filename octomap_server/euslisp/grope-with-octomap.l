@@ -40,8 +40,10 @@
   (fetch)
   (objects (list *fetch*)))
 
-
-;; type is :setting, :main or :all
+;; setup for experiment
+(warning-message 3 (format nil "~%fetch's pre-pose:~%  (progn (send *fetch* :reset-pose) (send *fetch* :inverse-kinematics (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) *max-z*) :rpy (float-vector 0 pi/2 0))) (send *fetch* :head :neck-p :joint-angle 50))~%"))
+(warning-message 3 (format nil "~%send av to *ri*:~%  (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)~%"))
+;; NOTE type is :setting, :main or :all
 ;; :setting does setting of this function, :main does main part of this function and :all does both of them.
 (defun main (&key (type :all))
   (if (not (or (equal type :setting) (equal type :main) (equal type :all)))
