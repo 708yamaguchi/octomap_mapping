@@ -156,14 +156,14 @@
     (format t "target-region is not set~%")
     (break))
   (let ((target-coords (make-coords :rpy (float-vector 0 pi/2 0))) ;; where to move fetch's hand
-        (direction (rad2deg (random pi))) (count 0) (unknown-dist nil))
+        (direction (rad2deg (random pi))) (direction-accum 0) (count 0) (unknown-dist nil))
     (send *ri* :start-grasp :wait t)
     ;; first, moving hand up
     (format t "move hand up. preparing...~%")
     (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
     (send *fetch* :torso :waist-z :joint-angle 400)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
-    ;; calculate where to grope, during moving hand up
+    ;; calculate where to grope, during moving hand up (time saving)
     (let* ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
            (min-x (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))))
            (max-x (reduce #'max (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))))
@@ -199,26 +199,41 @@
       ;; calculate angle of wrist, theta
       ;; TODO do not move hand angle of 45 degrees
       ;; TODO record accumulated rotation angle and reset the angle regularly.
-      (dolist (x (list -1 0 1))
-        (dolist (y (list -1 0 1))
-          (when (not (or (and (eq x 0) (eq y 0)) ;; when ((+ (car max-place) x), (+ (cadr max-place) y)) is not out of unknown-dist
-                         (< (+ (car max-place) x) 0) (<= (car (array-dimensions unknown-dist)) (+ (car max-place) x))
+      (dotimes (i 4)
+        (let ((x nil) (y nil))
+          (cond ((eq i 0) (setq x 1) (setq y 0))
+                ((eq i 1) (setq x 0) (setq y 1))
+                ((eq i 2) (setq x -1) (setq y 0))
+                ((eq i 3) (setq x 0) (setq y -1)))
+          ;; when ((+ (car max-place) x), (+ (cadr max-place) y)) is not out of unknown-dist
+          (when (not (or (< (+ (car max-place) x) 0) (<= (car (array-dimensions unknown-dist)) (+ (car max-place) x))
                          (< (+ (cadr max-place) y) 0) (<= (cadr (array-dimensions unknown-dist)) (+ (cadr max-place) y))))
             (when (< adjacent-max-val (aref unknown-dist (+ (car max-place) x) (+ (cadr max-place) y)))
               (setq adjacent-max-val (aref unknown-dist (+ (car max-place) x) (+ (cadr max-place) y)))
               (setq adjacent-max-place (list x y))))))
-      (setq direction (+ 180 (* -1 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place))))))
-      )
-    (send *ri* :wait-interpolation)
+      (setq direction (+ 180 (* -1 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place)))))))
+    (send *ri* :wait-interpolation) ;; calculate where to grope during arm movement (time saving)
     ;; calibration proximity sensor's param every time before groping.
     (sensor-calib)
     ;; move hand above the target object
     (send *fetch* :torso :waist-z :joint-angle 200)
     (send target-coords :translate (float-vector 0 0 (- 950 (aref (send target-coords :pos) 2))) :world)
     (send *fetch* :inverse-kinematics target-coords :use-torso nil)
-    (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) direction)) ;; rotate arm
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
-    (send *ri* :wait-interpolation)
+    ;; calculate accumulation of rotation angle, to untie USB cable
+    (setq direction (round direction)) ;; nearest integer
+    (when (and (<= direction-accum -270) (<= direction 0))
+      (setq direction (+ 360 direction)))
+    (when (and (<= 270 direction-accum) (<= 0 direction)
+    (setq direction-accum (+ direction direction-accum))
+    ;; rotate arm twice, to select rotation direction
+    (let ((av1 nil) (av2 nil) (av3 nil))
+      (setq av1 (send *fetch* :angle-vector))
+      (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) (* 0.5 direction)))
+      (setq av2 (send *fetch* :angle-vector))
+      (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) (* 0.5 direction)))
+      (send av3 (send *fetch* :angle-vector))
+    (send *ri* :angle-vector-sequence (list av1 av2 av3) (list 4000 1000 1000))
+    (send *ri* :wait-interpolation))
     ;; move hand down to target coords ;; these functions may not be needed any more
     ;; (format t "move hand to target coords~%")
     ;; (send *fetch* :torso :waist-z :joint-angle 50)
@@ -743,7 +758,10 @@
 
     ;; move hand down and grasp object
     (detect target-coords :close-frame-list (list (list "/left" "/top" ) (list "/right" "/top")) :close-thre 30)
-    (send *ri* :start-grasp)
+    (send *ri* :start-grasp :wait nil)
+    (ros::spin-once)
+    (unix:sleep 2)
+    (< 0.2 (send *ri* :gripper :position)) ;; if grasp is succeeded, return t. else, return nil
   ))
 
 
