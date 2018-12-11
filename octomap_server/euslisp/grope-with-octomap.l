@@ -73,7 +73,7 @@
         (when (send boxes :boxes)
           (return))
         (unix:usleep (* 100 1000)))
-      (setq target-region (box-recog boxes))
+      (setq target-region (box-recog boxes :offset 10)) ;; offset is to ignore box edge
 
       (camera-stop)
       ;; set hand to initial experiment pose
@@ -89,14 +89,22 @@
     ;; 1. first create octomap, and then try to grasp the target object with the same octomap up to 5 times.
     ;; 2. if success, lift the object and finish. else, retry from the first step.
     (do-until-key ;; do not return from this loop until the robot succeeds to grasp the target object
-     (let ((detectp nil) (graspp nil))
+     (let ((find-grasp-pointp nil) (detectp nil) (graspp nil))
        ;; create octomap by tracing environment, using proximity sensors on finger.
        (dotimes (i 30)
-         (create-map target-region))
+         (create-map target-region)
+         (let ((av (send *fetch* :angle-vector)))
+           (when (< 30 (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 80 :y-offset 80 :z-offset 60))
+             (setq find-grasp-pointp t)
+             (format t "find graspable point, so start grasping~%")
+             (return))
+           (send *fetch* :angle-vector av)))
 
        ;; calculate the most graspable point. In the function below, *fetch* is set.
        (dotimes (i 5) ;; try to grasp the target object with the same octomap, up to 5 times.
-         (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 80 :y-offset 80 :z-offset 60)
+         (unless find-grasp-pointp
+           (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 80 :y-offset 80 :z-offset 60)
+           (setq find-grasp-pointp nil))
 
          ;; extend hand to target object with pre-grasp motion by proximity sensors
          ;; first, move hand up
@@ -133,11 +141,12 @@
     ))
 
 
-(defun box-recog (boxes)
+(defun box-recog (boxes &key (offset 0))
   (let* ((box (car (send boxes :boxes)))
          (dims (ros::tf-point->pos (send box :dimensions)))
          (target-region nil))
-    (setq target-region (make-cube (elt dims 0) (elt dims 1) (- *max-z* *min-z*)))
+    (setq target-region
+          (make-cube (- (elt dims 0) offset) (- (elt dims 1) offset) (- *max-z* *min-z* offset)))
     (if (not (and (boundp '*tfl*) *tfl*))
       (setq *tfl* (instance ros::transform-listener :init)))
     (send target-region :newcoords
@@ -223,7 +232,8 @@
     (setq direction (round direction)) ;; nearest integer
     (when (and (<= direction-accum -270) (<= direction 0))
       (setq direction (+ 360 direction)))
-    (when (and (<= 270 direction-accum) (<= 0 direction)
+    (when (and (<= 270 direction-accum) (<= 0 direction))
+      (setq direction (+ -360 direction)))
     (setq direction-accum (+ direction direction-accum))
     ;; rotate arm twice, to select rotation direction
     (let ((av1 nil) (av2 nil) (av3 nil))
