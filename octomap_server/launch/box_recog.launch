@@ -57,10 +57,14 @@
       <param name="i_limit_min" value="$(arg i_min)" />
     </node>
 
-    <node pkg="nodelet" type="nodelet" name="pointcloud_to_indices"
-          args="load jsk_pcl/PointCloudToClusterPointIndices $(arg manager)"
-          output="screen" >
+    <node pkg="nodelet" type="nodelet"
+          name="clustering"
+          args="load jsk_pcl/EuclideanClustering $(arg manager)"
+          output="screen" clear_params="true">
       <remap from="~input" to="hsi_filter/output" />
+      <rosparam>
+        tolerance: 0.1
+      </rosparam>
     </node>
 
     <node pkg="nodelet" type="nodelet"
@@ -68,7 +72,7 @@
           args="load jsk_pcl/ClusterPointIndicesDecomposer $(arg manager)"
           output="screen" clear_params="true">
       <remap from="~input" to="hsi_filter/output" />
-      <remap from="~target" to="pointcloud_to_indices/output" />
+      <remap from="~target" to="clustering/output" />
       <remap from="~debug_output" to="debug_output" />
       <remap from="~boxes" to="boxes" />
       <rosparam>  <!-- align boxes with z axis of base_link -->
