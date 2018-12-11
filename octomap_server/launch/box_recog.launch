@@ -63,7 +63,7 @@
           output="screen" clear_params="true">
       <remap from="~input" to="hsi_filter/output" />
       <rosparam>
-        tolerance: 0.1
+        tolerance: 0.15
       </rosparam>
     </node>
 

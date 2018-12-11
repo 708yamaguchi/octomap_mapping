@@ -68,7 +68,7 @@
     <param name="occupancy_max_x" value="0.9" />
     <param name="occupancy_min_y" value="-0.2" />
     <param name="occupancy_max_y" value="0.2" />
-    <param name="occupancy_min_z" value="0.3" />
+    <param name="occupancy_min_z" value="0.45" />
     <param name="occupancy_max_z" value="1.0" />
     <!-- for right side of fetch -->
     <!-- <param name="occupancy_min_x" value="-0.3" /> -->
@@ -115,8 +115,8 @@
   <!-- color recognition for detecting box's top side -->
   <include file="$(find octomap_server)/launch/box_recog.launch">
     <arg name="INPUT" value="/camera_in"/>
-    <arg name="h_max" value="114"/>
-    <arg name="h_min" value="66"/>
+    <arg name="h_max" value="110"/>
+    <arg name="h_min" value="80"/>
     <arg name="s_max" value="255"/>
     <arg name="s_min" value="31"/>
     <arg name="i_max" value="255"/>
