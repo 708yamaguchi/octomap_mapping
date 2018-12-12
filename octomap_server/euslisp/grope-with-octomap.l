@@ -185,8 +185,8 @@
            (min-y-round (round min-y))
            (max-y-round (round max-y))
            (block-size 50.0)
-           (diff-x (/ (- (* (+ 1 (floor (/ (- max-x-round min-x-round) block-size))) block-size) (- max-x-round min-x-round)) 2.0))
-           (diff-y (/ (- (* (+ 1 (floor (/ (- max-y-round min-y-round) block-size))) block-size) (- max-y-round min-y-round)) 2.0))
+           (diff-x (/ (- (* (floor (/ (- max-x-round min-x-round) block-size)) block-size) (- max-x-round min-x-round)) 2.0))
+           (diff-y (/ (- (* (floor (/ (- max-y-round min-y-round) block-size)) block-size) (- max-y-round min-y-round)) 2.0))
            )
       ;; calculate position of hand, x and y
       ;; correct min/max-x/y/z in order to adapt to (unknown-distribution)
@@ -195,7 +195,10 @@
       (setq max-x-round (+ max-x-round diff-x))
       (setq min-y-round (- min-y-round diff-y))
       (setq max-y-round (+ max-y-round diff-y))
-      (print (list min-x-round max-x-round min-y-round max-y-round min-z max-z))
+      (format t "target bb region:~%x: ~A ~A, y: ~A ~A, z: ~A ~A, size: (~A, ~A, ~A)~%"
+              min-x max-x min-y max-y min-z max-z (- max-x min-x) (- max-y min-y) (- max-z min-z))
+      (format t "clipped bb region:~%x: ~A ~A, y: ~A ~A, z: ~A ~A, size: (~A, ~A, ~A)~%"
+              min-x-round max-x-round min-y-round max-y-round min-z max-z (- max-x-round min-x-round) (- max-y-round min-y-round) (- max-z min-z))
       (setq unknown-dist (unknown-distribution :min-x min-x-round :max-x max-x-round :min-y min-y-round :max-y max-y-round :min-z min-z :max-z max-z
                                                :block-size block-size))
       (dotimes (i (car (array-dimensions unknown-dist)))
