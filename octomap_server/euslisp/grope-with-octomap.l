@@ -206,12 +206,14 @@
           (when (< max-val (aref unknown-dist i j))
             (setq max-val (aref unknown-dist i j))
             (setq max-place (list i j)))))
+      (let ((m (make-random-state t))) ;; set max-place randomly at probability of 0.5
+        (if (< (random 1.0 m) 0.5)
+          (setq max-place (list (random (car (array-dimensions unknown-dist))) (random (cadr (array-dimensions unknown-dist)))))))
       (setf (aref (send target-coords :worldpos) 0) (+ min-x (/ block-size 2.0) (* (car max-place) block-size)))
       (setf (aref (send target-coords :worldpos) 1) (+ min-y (/ block-size 2.0) (* (cadr max-place) block-size)))
       (setf (aref (send target-coords :worldpos) 2) max-z)
       ;; calculate angle of wrist, theta
-      ;; TODO do not move hand angle of 45 degrees
-      ;; TODO record accumulated rotation angle and reset the angle regularly.
+      ;; record accumulated rotation angle and reset the angle regularly.
       (dotimes (i 4)
         (let ((x nil) (y nil))
           (cond ((eq i 0) (setq x 1) (setq y 0))
