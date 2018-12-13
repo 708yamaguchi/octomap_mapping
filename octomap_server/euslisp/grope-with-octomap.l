@@ -67,7 +67,12 @@
       (octomap-reset)
       (send *ri* :wait-interpolation)
       (camera-request)
-      (unix:sleep 1)
+      (send *fetch* :head :neck-p :joint-angle 20)
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
+      (send *ri* :wait-interpolation)
+      (send *fetch* :head :neck-p :joint-angle 50)
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
+      (send *ri* :wait-interpolation)
 
       ;; use camera and decide target region
       (while t ;; wait for /HSI_color_filter/boxes comes once
