@@ -27,6 +27,8 @@
 
 ;; torso length
 (setq *torso* 20)
+;; direction accumulation
+(setq *direction-accum* 0)
 
 ;; service name for stop/request of pointcloud from camera
 (setq *camera-request-service* "/camera_passthrough/request")
@@ -48,6 +50,7 @@
 (defun main (&key (type :all))
   (if (not (or (equal type :setting) (equal type :main) (equal type :all)))
     (progn (format t "argument :type is not correctly set~%") (return-from main nil)))
+  (setq *direction-accum* 0)
   (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
     (when (or (equal type :all) (equal type :setting))
       ;; settings for experiment
@@ -170,7 +173,7 @@
     (format t "target-region is not set~%")
     (break))
   (let ((target-coords (make-coords :rpy (float-vector 0 pi/2 0))) ;; where to move fetch's hand
-        (direction (rad2deg (random pi))) (direction-accum 0) (count 0) (unknown-dist nil))
+        (direction (rad2deg (random pi))) (count 0) (unknown-dist nil))
     (send *ri* :go-grasp :pos 0.03 :wait t)
     ;; first, moving hand up
     (format t "move hand up. preparing...~%")
@@ -243,11 +246,11 @@
     (send *fetch* :inverse-kinematics target-coords :use-torso nil)
     ;; calculate accumulation of rotation angle, to untie USB cable
     (setq direction (round direction)) ;; nearest integer
-    (when (and (<= (+ direction direction-accum) -270) (<= direction 0))
+    (when (and (<= (+ direction *direction-accum*) -270) (<= direction 0))
       (setq direction (+ 360 direction)))
-    (when (and (<= 270 (+ direction direction-accum)) (<= 0 direction))
+    (when (and (<= 270 (+ direction *direction-accum*)) (<= 0 direction))
       (setq direction (+ -360 direction)))
-    (setq direction-accum (+ direction direction-accum))
+    (setq *direction-accum* (+ direction *direction-accum*))
     ;; rotate arm twice, to select rotation direction
     (let ((av1 nil) (av2 nil) (av3 nil))
       (setq av1 (send *fetch* :angle-vector))
@@ -268,9 +271,9 @@
     (format t "start tracing~%")
     ;; move hand until detecting object. move-end-pos 10cm, 10cm, 10cm ...  gradually.
     (while (< count 5) ;; vertical hand move and horizontal hand move, alternately
-      (format t "count: ~A~%" count)
       ;; move hand down
       (while t
+        (format t "count: ~A~%" count)
         (format t "move hand down~%")
         (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
                            *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
@@ -288,13 +291,11 @@
                   (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (+ gripper-handside-distance 10) 0))
                                 :close-frame-list (list (list "/right" "/side2")) :close-thre gripper-handside-distance :tm 3000)
                     (format t "something is right of my gripper~%"))
-                  (setq count (+ 1 count))
                   (return))
                  ((equal detected-frame (list "/right" "/top")) ;; object is near right top
                   (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (* -1 (+ gripper-handside-distance 10)) 0))
                                 :close-frame-list (list (list "/left" "/side2")) :close-thre gripper-handside-distance :tm 3000)
                     (format t "something is left of my finger~%"))
-                  (setq count (+ 1 count))
                   (return))
                  ((or (equal detected-frame (list "/left" "/side1")) (equal detected-frame (list "/right" "/side1"))) ;; object is near side1
                   (ros::spin-once)
@@ -324,12 +325,14 @@
                                 :close-frame-list (list (list "/left" "/side2")) :close-thre gripper-handside-distance :tm 3000)
                     (format t "cannot move hand leftside any more~%")
                     (return-from create-map t)))
-                 ))))
+                 )))
+            (setq count (+ 1 count)))
           (progn
             (format t "robot hand is outside of target region~%")
             (return-from create-map t))))
       ;; move hand horizontally
       (while t
+        (format t "count: ~A~%" count)
         (format t "move hand sideway~%")
         (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
                            *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
@@ -707,7 +710,8 @@
         (setq *resolution* 10)
         (objects (append (list *fetch*) vis-list))
         (send *irtviewer* :change-background #f(0.3 0.3 0.1))
-        (send *irtviewer* :redraw)))
+        (send *irtviewer* :redraw)
+        (x::window-main-one)))
 
     ;; calculate unknown-distribution matrix. this shows rough distribution of unknown area, and visualize it.
     (let* ((x-size (round (/ (- max-x min-x) block-size))) ;; x-size of target region, not octomap region. divide octomap area into (x-size * y-size) areas
