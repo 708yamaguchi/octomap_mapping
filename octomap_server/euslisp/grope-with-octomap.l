@@ -198,7 +198,6 @@
            )
       ;; calculate position of hand, x and y
       ;; correct min/max-x/y/z in order to adapt to (unknown-distribution)
-      ;; TODO min/max-x/y-round should be smaller than the real region
       (setq min-x-round (- min-x-round diff-x))
       (setq max-x-round (+ max-x-round diff-x))
       (setq min-y-round (- min-y-round diff-y))
@@ -670,7 +669,7 @@
   (ros::spin-once)
   (let* ((occupied-pc (get-octo-pointcloud :type "occupied"))
          (unknown-pc (get-octo-pointcloud :type "unknown"))
-         (octomap-2d (apply #'matrix (make-list (round (/ (- *max-x* *min-x*) *resolution*)) :initial-element (make-list (round (/ (- *max-y* *min-y*) *resolution*)) :initial-element 0)))))
+         (octomap-2d (apply #'matrix (make-list (round (/ (- max-x min-x) *resolution*)) :initial-element (make-list (round (/ (- max-y min-y) *resolution*)) :initial-element 0)))))
     (when (eq occupied-pc nil)
       (format t "cannot find occupied grids~%")
       (setq occupied-pc (instance pointcloud :init)))
@@ -680,16 +679,18 @@
     ;; look up occupied pointcloud firstly
     (dotimes (i (send occupied-pc :size))
       (let* ((occupied (matrix-row (send occupied-pc :points) i))
-             (x (round (/ (- (aref occupied 0) *min-x* (/ *resolution* 2.0)) *resolution*)))
-             (y (round (/ (- (aref occupied 1) *min-y* (/ *resolution* 2.0)) *resolution*)))) ;; x and y are index
-        (setf (aref octomap-2d x y) -1)))
+             (x (round (/ (- (aref occupied 0) min-x (/ *resolution* 2.0)) *resolution*)))
+             (y (round (/ (- (aref occupied 1) min-y (/ *resolution* 2.0)) *resolution*)))) ;; x and y are index
+        ;; (if (and (< min-x (aref occupied 0) max-x) (< min-y (aref occupied 1) max-y) (< min-z (aref occupied 2) max-z))
+        (if (and (<= 0 x) (< x (car (array-dimensions octomap-2d))) (<= 0 y) (< y (cadr (array-dimensions octomap-2d))))
+          (setf (aref octomap-2d x y) -1))))
     ;; look up unknown pointcloud secondly
     (dotimes (j (send unknown-pc :size))
       (let* ((unknown (matrix-row (send unknown-pc :points) j))
-             (x (/ (round (- (aref unknown 0) *min-x* *resolution*)) *resolution*))
-             (y (/ (round (- (aref unknown 1) *min-y* *resolution*)) *resolution*))) ;; x and y are index
-        (if (and (not (eq (aref octomap-2d x y) -1))
-                 (< min-x (aref unknown 0) max-x) (< min-y (aref unknown 1) max-y) (< min-z (aref unknown 2) max-z)) ;; target point is inside the target region?
+             (x (/ (round (- (aref unknown 0) min-x *resolution*)) *resolution*))
+             (y (/ (round (- (aref unknown 1) min-y *resolution*)) *resolution*))) ;; x and y are index
+        (if (and (<= 0 x) (< x (car (array-dimensions octomap-2d))) (<= 0 y) (< y (cadr (array-dimensions octomap-2d))) ;; target point is inside the target region?
+                 (not (eq (aref octomap-2d x y) -1)))
           (setf (aref octomap-2d x y) (+ 1 (aref octomap-2d x y)))
           )))
 
@@ -717,18 +718,19 @@
     (let* ((x-size (round (/ (- max-x min-x) block-size))) ;; x-size of target region, not octomap region. divide octomap area into (x-size * y-size) areas
            (y-size (round (/ (- max-y min-y) block-size))) ;; y-size of target region, not octomap region.
            (dist-mat (apply #'matrix (make-list x-size :initial-element (make-list y-size :initial-element 0))))
-           (max-unknown 0) dist-vis-list cube)
+           (max-unknown 0) dist-vis-list cube
+           (region-cube (send (make-cube (- max-x min-x) (- max-y min-y) (- max-z min-z))
+                              :locate (float-vector (* 0.5 (+ max-x min-x)) (* 0.5 (+ max-y min-y)) (* 0.5 (+ max-z min-z)))))
+           (region-edge (progn (send region-cube :worldcoords) (send region-cube :edges))))
       ;; octomap-2d is composed of very fine grids, so make it rougher and create dist-mat (distribution matrix of unknown grids)
       (dotimes (i (car (array-dimensions octomap-2d)))
         (dotimes (j (cadr (array-dimensions octomap-2d)))
-          (if (and (<= (/ (- min-x *min-x*) *resolution*) i) (< i (/ (- max-x *min-x*) *resolution*))
-                   (<= (/ (- min-y *min-y*) *resolution*) j) (< j (/ (- max-y *min-y*) *resolution*)))
-            (progn
-              (let ((x-index (floor (/ (- i (/ (- min-x *min-x*) *resolution*)) (/ block-size *resolution*))))
-                    (y-index (floor (/ (- j (/ (- min-y *min-y*) *resolution*)) (/ block-size *resolution*)))))
-                (setf (aref dist-mat x-index y-index)
-                      (+ (aref octomap-2d i j) (aref dist-mat x-index y-index)))))
-            )))
+          (let ((x-index (/ i (round (/ block-size *resolution*))))
+                (y-index (/ j (round (/ block-size *resolution*)))))
+            (setf (aref dist-mat x-index y-index)
+                  (+ (aref octomap-2d i j) (aref dist-mat x-index y-index)))
+        )))
+
       (when view-unknown-distribution
         (dotimes (k (car (array-dimensions dist-mat)))
           (dotimes (l (cadr (array-dimensions dist-mat)))
@@ -740,9 +742,10 @@
             (send cube :set-color (float-vector (max (/ (aref dist-mat k l) (float max-unknown)) 0) 0 0))
             (send cube :translate (float-vector (+ (* (/ (- max-x min-x) x-size) (+ k 0.5)) min-x) (+ (* (/ (- max-y min-y) y-size) (+ l 0.5)) min-y) *min-z*) :world)
             (setq dist-vis-list (append dist-vis-list (list cube)))))
-        (objects (append (list *fetch*) dist-vis-list))
+        (objects (append (list *fetch*) dist-vis-list region-edge))
         (send *irtviewer* :change-background #f(0.3 0.3 0.1))
-        (send *irtviewer* :redraw))
+        (send *irtviewer* :redraw)
+        (x::window-main-one))
       dist-mat)
     ))
 
