@@ -83,7 +83,7 @@
         (when (send boxes :boxes)
           (return))
         (unix:usleep (* 100 1000)))
-      (setq target-region (box-recog boxes :offset 30)) ;; offset is to ignore box edge
+      (setq target-region (box-recog boxes :offset 0)) ;; offset is to ignore box edge
 
       (camera-stop)
       ;; set hand to initial experiment pose
@@ -104,7 +104,7 @@
        (dotimes (i 30)
          (create-map target-region)
          (let ((av (send *fetch* :angle-vector)))
-           (when (< 1000 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 80 :y-offset 80 :z-offset 60)))
+           (when (< 1000 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 80 :y-offset 80 :z-offset 60))) ;; TODO decide proper threshold : maybe around 50?
              (setq find-grasp-pointp t)
              (format t "find graspable point, so start grasping~%")
              (return))
@@ -172,6 +172,7 @@
   (unless target-region
     (format t "target-region is not set~%")
     (break))
+  (format t "*direction-accum*: ~A~%" *direction-accum*)
   (let ((target-coords (make-coords :rpy (float-vector 0 pi/2 0))) ;; where to move fetch's hand
         (direction (rad2deg (random pi))) (count 0) (unknown-dist nil))
     (send *ri* :go-grasp :pos 0.03 :wait t)
@@ -278,7 +279,7 @@
                            *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
           (progn
             (format t "move hand until detecting object~%")
-            (let ((detected-frame nil) (min-distance nil) (hand-cover-thick 40) (gripper-handside-distance (- 45 (* 0.5 1000 (- (send *ri* :gripper :position) 0.01)))))
+            (let ((detected-frame nil) (min-distance nil) (hand-cover-thick 35) (gripper-handside-distance (- 45 (* 0.5 1000 (- (send *ri* :gripper :position) 0.01)))))
               ;; check if there is object near top of the grippers.
               (if (setq detected-frame (cadr (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
                                                      :close-frame-list (list (list "/left" "/top") (list "/right" "/top")
@@ -324,8 +325,7 @@
                                 :close-frame-list (list (list "/left" "/side2")) :close-thre gripper-handside-distance :tm 3000)
                     (format t "cannot move hand leftside any more~%")
                     (return-from create-map t)))
-                 )))
-            (setq count (+ 1 count)))
+                 ))))
           (progn
             (format t "robot hand is outside of target region~%")
             (return-from create-map t))))
