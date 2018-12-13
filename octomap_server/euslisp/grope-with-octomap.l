@@ -208,7 +208,9 @@
             (setq max-place (list i j)))))
       (let ((m (make-random-state t))) ;; set max-place randomly at probability of 0.5
         (if (< (random 1.0 m) 0.5)
-          (setq max-place (list (random (car (array-dimensions unknown-dist))) (random (cadr (array-dimensions unknown-dist)))))))
+          (progn
+            (format t "randomly decided grope starting position~%")
+            (setq max-place (list (random (car (array-dimensions unknown-dist))) (random (cadr (array-dimensions unknown-dist))))))))
       (setf (aref (send target-coords :worldpos) 0) (+ min-x (/ block-size 2.0) (* (car max-place) block-size)))
       (setf (aref (send target-coords :worldpos) 1) (+ min-y (/ block-size 2.0) (* (cadr max-place) block-size)))
       (setf (aref (send target-coords :worldpos) 2) max-z)
@@ -269,15 +271,25 @@
                            *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
           (progn
             (format t "move hand until detecting object~%")
-            ;; check if there is object near top of the grippers
             (let ((detected-frame nil) (min-distance nil) (hand-cover-thick 40) (gripper-handside-distance (- 45 (* 0.5 1000 (- (send *ri* :gripper :position) 0.01)))))
+              ;; check if there is object near top of the grippers.
               (if (setq detected-frame (cadr (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
                                                      :close-frame-list (list (list "/left" "/top") (list "/right" "/top")
                                                                              (list "/left" "/side1") (list "/right" "/side1")
                                                                              (list "/left" "/side2") (list "/right" "/side2"))
                                                      :close-thre (list 30 30 hand-cover-thick hand-cover-thick gripper-handside-distance gripper-handside-distance)))) ;; distance between sensor and hand cover top is 40mm
                 (cond
-                 ((or (equal detected-frame (list "/left" "/top")) (equal detected-frame (list "/right" "/top"))) ;; object is near top
+                 ((equal detected-frame (list "/left" "/top")) ;; object is near left top
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (+ gripper-handside-distance 10) 0))
+                                :close-frame-list (list (list "/right" "/side2")) :close-thre gripper-handside-distance :tm 3000)
+                    (format t "something is right of my gripper~%"))
+                  (setq count (+ 1 count))
+                  (return))
+                 ((equal detected-frame (list "/right" "/top")) ;; object is near right top
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (* -1 (+ gripper-handside-distance 10)) 0))
+                                :close-frame-list (list (list "/left" "/side2")) :close-thre gripper-handside-distance :tm 3000)
+                    (format t "something is left of my finger~%"))
+                  (setq count (+ 1 count))
                   (return))
                  ((or (equal detected-frame (list "/left" "/side1")) (equal detected-frame (list "/right" "/side1"))) ;; object is near side1
                   (ros::spin-once)
