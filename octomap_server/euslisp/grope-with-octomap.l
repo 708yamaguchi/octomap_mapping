@@ -778,7 +778,8 @@
 ;; NOTE before using this function, make sure that object is in front of top of finger
 ;; this function returns t if grasp is succeeded. Else, return nil.
 (defun pre-grasp ()
-  (let ((l-min *inf*) (r-min *inf*) (target-finger nil) (another-finger nil) (rotate-min *inf*) (rotate-angle 0) (interpolatingp nil))
+  (send *ri* :start-grasp :wait t)
+  (let ((l-min *inf*) (r-min *inf*) (target-finger nil) (another-finger nil) (rotate-max-distance 0) (rotate-angle 0) (interpolatingp nil))
     ;; open gripper and detect edge
     (send *ri* :grasp-with-condition
           0.1 ;; goal pos of gripper
@@ -798,13 +799,14 @@
       (unix:usleep 10000))
     (while (setq interplatingp (send *ri* :interpolatingp))
       (ros::spin-once)
-      (when (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)) rotate-min)
-        (setq rotate-min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
+      (when (< rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
+        (setq rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
         (setq rotate-angle (aref (send *ri* :state :potentio-vector :wait-until-update t) 7))) ;; update wrist-r angle
       (unix:usleep (* 200 1000)))
     (send *fetch* :rarm :wrist-r :joint-angle rotate-angle)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
     (send *ri* :wait-interpolation)
+    (format t "most graspable angle is: ~A~%" rotate-angle)
 
     ;; move hand horizontally such that target object come to center of grippers.
     (if (equal target-finger "/left")
@@ -824,7 +826,8 @@
       (unix:usleep (* 200 1000)))
 
     ;; move hand down and grasp object
-    (detect target-coords :close-frame-list (list (list "/left" "/top" ) (list "/right" "/top")) :close-thre 30)
+    (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(50 0 0) :local)
+            :close-frame-list (list (list "/left" "/top" ) (list "/right" "/top")) :close-thre 20)
     (send *ri* :start-grasp :wait nil)
     (ros::spin-once)
     (unix:sleep 2)
