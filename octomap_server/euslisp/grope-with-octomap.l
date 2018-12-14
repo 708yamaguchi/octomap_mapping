@@ -775,18 +775,17 @@
     ))
 
 
-
+;; NOTE before using this function, make sure that object is in front of top of finger
 ;; this function returns t if grasp is succeeded. Else, return nil.
-(defun pre-grasp (target-coords)
+(defun pre-grasp ()
   (let ((l-min *inf*) (r-min *inf*) (target-finger nil) (another-finger nil) (rotate-min *inf*) (rotate-angle 0) (interpolatingp nil))
-    ;; first, find object
-    (detect target-coords :close-frame-list (list (list "/left" "/top" ) (list "/right" "/top")) :close-thre 40)
-
     ;; open gripper and detect edge
     (send *ri* :grasp-with-condition
           0.1 ;; goal pos of gripper
-          #'(lambda () (or (> (setq l-min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/top")) :data) cons))) 50) ;; condition
-                           (> (setq r-min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons))) 50))))
+          #'(lambda ()
+              (ros::spin-once)
+              (and (< (setq l-min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/top")) :data) cons))) 50) ;; condition
+                   (< (setq r-min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons))) 50))))
     (if (> l-min r-min)
       (setq target-finger "/left")
       (setq target-finger "/right"))
