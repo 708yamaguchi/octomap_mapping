@@ -887,5 +887,15 @@
         (return-from sensor-calib t))))
   (format t "failed to calibrate sensor~%"))
 
+(defun rotate-wrist-r (&optional angle)
+  (ros::spin-once)
+  (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+  (when (numberp angle)
+    (progn
+      (send *fetch* :rarm :wrist-r :joint-angle
+            (+ angle (send *fetch* :rarm :wrist-r :joint-angle)))
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)))
+  (send *fetch* :rarm :wrist-r :joint-angle))
+
 ;; do not return pointcloud when loading this file
 nil
