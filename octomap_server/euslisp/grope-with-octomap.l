@@ -54,10 +54,22 @@
   (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
     (when (or (equal type :all) (equal type :setting))
       ;; settings for experiment
+      ;; below is IK program for stretching wrist_flex_joint
       (send *fetch* :reset-pose)
       (send *fetch* :torso :waist-z :joint-angle 400)
       (send *fetch* :inverse-kinematics
+            (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) 950) :rpy (float-vector 0 pi/2 0))
+            :debug-view :no-message
+            :min-loop 50
+            :revert-if-fail nil
+            :additional-nspace-list (mapcar #'(lambda (link refangle)
+                                                (eval `(list link #'(lambda () (* 0.1 (- ,refangle (send ,link :joint :joint-angle)))))))
+                                            (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link)
+                                            (list 0))
+            )
+      (send *fetch* :inverse-kinematics
             (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) 950) :rpy (float-vector 0 pi/2 0))) ;; 950 is tuned parameter
+      ;; above is IK program for stretching wrist_flex_joint
       (send *fetch* :head :look-at (float-vector (/ (+ *max-x* *min-x*) 2.0) (/ (+ *max-y* *min-y*) 2.0) (/ (+ *max-z* *min-z*) 2.0)))
       (send *fetch* :rarm :move-end-pos #f(0 -200 0) :world :use-torso nil) ;; move hand sideway to avoid occlusion
       (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
@@ -66,24 +78,26 @@
       (unix:usleep (* 500 1000))
       (send *ri* :set-init-proximities)
       (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
+      ;; set octomap
       (camera-stop)
       (octomap-reset)
       (send *ri* :wait-interpolation)
       (camera-request)
-      (send *fetch* :head :neck-p :joint-angle 20)
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
-      (send *ri* :wait-interpolation)
-      (send *fetch* :head :neck-p :joint-angle 50)
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
-      (send *ri* :wait-interpolation)
-
+      (unix:usleep (* 500 1000))
       ;; use camera and decide target region
       (while t ;; wait for /HSI_color_filter/boxes comes once
         (setq boxes (one-shot-subscribe "/HSI_color_filter/boxes" jsk_recognition_msgs::BoundingBoxArray))
         (when (send boxes :boxes)
           (return))
         (unix:usleep (* 100 1000)))
-      (setq target-region (box-recog boxes :offset 0)) ;; offset is to ignore box edge
+      (setq target-region (box-recog boxes :offset 30)) ;; offset is to ignore box edge
+      ;; look at top of target region
+      (send *fetch* :head :neck-p :joint-angle 20)
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
+      (send *ri* :wait-interpolation)
+      (send *fetch* :head :look-at (float-vector (/ (+ *max-x* *min-x*) 2.0) (/ (+ *max-y* *min-y*) 2.0) (/ (+ *max-z* *min-z*) 2.0)))
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
+      (send *ri* :wait-interpolation)
 
       (camera-stop)
       ;; set hand to initial experiment pose
