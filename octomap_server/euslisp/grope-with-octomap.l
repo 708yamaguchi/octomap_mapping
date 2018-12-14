@@ -43,7 +43,18 @@
   (objects (list *fetch*)))
 
 ;; setup for experiment
-(warning-message 3 (format nil "~%fetch's pre-pose:~%  (progn (send *fetch* :reset-pose) (send *fetch* :inverse-kinematics (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) *max-z*) :rpy (float-vector 0 pi/2 0))) (send *fetch* :head :neck-p :joint-angle 50))~%"))
+(warning-message 3 (format nil "~%fetch's pre-pose:~%  (progn (send *fetch* :reset-pose) (send *fetch* :torso :waist-z :joint-angle 400)
+      (send *fetch* :inverse-kinematics
+            (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) 950) :rpy (float-vector 0 pi/2 0))
+            :debug-view :no-message
+            :min-loop 50
+            :revert-if-fail nil
+            :additional-nspace-list (mapcar #'(lambda (link refangle)
+                                                (eval `(list link #'(lambda () (* 0.1 (- ,refangle (send ,link :joint :joint-angle)))))))
+                                            (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link)
+                                            (list 70)))
+      (send *fetch* :inverse-kinematics
+            (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) 950) :rpy (float-vector 0 pi/2 0))))~%"))
 (warning-message 3 (format nil "~%send av to *ri*:~%  (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)~%"))
 ;; NOTE type is :setting, :main or :all
 ;; :setting does setting of this function, :main does main part of this function and :all does both of them.
@@ -65,13 +76,13 @@
             :additional-nspace-list (mapcar #'(lambda (link refangle)
                                                 (eval `(list link #'(lambda () (* 0.1 (- ,refangle (send ,link :joint :joint-angle)))))))
                                             (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link)
-                                            (list 0))
+                                            (list 70))
             )
       (send *fetch* :inverse-kinematics
             (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) 950) :rpy (float-vector 0 pi/2 0))) ;; 950 is tuned parameter
       ;; above is IK program for stretching wrist_flex_joint
       (send *fetch* :head :look-at (float-vector (/ (+ *max-x* *min-x*) 2.0) (/ (+ *max-y* *min-y*) 2.0) (/ (+ *max-z* *min-z*) 2.0)))
-      (send *fetch* :rarm :move-end-pos #f(0 -200 0) :world :use-torso nil) ;; move hand sideway to avoid occlusion
+      (send *fetch* :rarm :move-end-pos #f(0 -400 0) :world :use-torso nil) ;; move hand sideway to avoid occlusion
       (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
       (send *ri* :wait-interpolation)
       (send *ri* :go-grasp :pos 0.03 :wait t)
@@ -101,7 +112,7 @@
 
       (camera-stop)
       ;; set hand to initial experiment pose
-      (send *fetch* :rarm :move-end-pos #f(0 200 0) :world :use-torso nil)
+      (send *fetch* :rarm :move-end-pos #f(0 400 0) :world :use-torso nil)
       (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
       (send *ri* :wait-interpolation))
 
