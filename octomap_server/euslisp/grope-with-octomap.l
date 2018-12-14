@@ -138,14 +138,14 @@
        ;; calculate the most graspable point. In the function below, *fetch* is set.
        (dotimes (i 5) ;; try to grasp the target object with the same octomap, up to 5 times.
          (unless find-grasp-pointp
-           (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 80 :y-offset 80 :z-offset 60)
+           (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 80 :y-offset 80 :z-offset 60) ;; update *fetch* at this time
            (setq find-grasp-pointp nil))
 
          ;; extend hand to target object with pre-grasp motion by proximity sensors
          ;; first, move hand up
          (let ((ec-z (aref (send (send *fetch* :rarm :end-coords :copy-worldcoords) :worldpos) 2)))
            (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* ec-z)) :world)
-           (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+           (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
            (send *ri* :wait-interpolation))
          ;; second, extend hand to target object with pre-grasp motion
          (while t
