@@ -806,7 +806,7 @@
   (let ((l-min *inf*) (r-min *inf*) (target-finger nil) (another-finger nil) (rotate-max-distance 0) (rotate-angle 0) (interpolatingp nil))
     ;; open gripper and detect edge
     (send *ri* :grasp-with-condition
-          0.1 ;; goal pos of gripper
+          0.05 ;; goal pos of gripper
           #'(lambda ()
               (ros::spin-once)
               (and (< (setq l-min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/top")) :data) cons))) 50) ;; condition
@@ -816,8 +816,8 @@
       (setq target-finger "/right"))
 
     ;; measure direction of edge
-    (send *fetch* :rarm :wrist-r :joint-angle (+ 90 (send *fetch* :rarm :wrist-r :joint-angle)))
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 7000)
+    (send *fetch* :rarm :wrist-r :joint-angle (+ 179 (send *fetch* :rarm :wrist-r :joint-angle)))
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
     (while (not (setq interplatingp (send *ri* :interpolatingp))) ;; wait until interpolatingp becomes t
       (ros::spin-once)
       (unix:usleep 10000))
@@ -826,7 +826,7 @@
       (when (< rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
         (setq rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
         (setq rotate-angle (aref (send *ri* :state :potentio-vector :wait-until-update t) 7))) ;; update wrist-r angle
-      (unix:usleep (* 200 1000)))
+      (unix:usleep (* 10 1000)))
     (send *fetch* :rarm :wrist-r :joint-angle rotate-angle)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
     (send *ri* :wait-interpolation)
@@ -834,11 +834,11 @@
 
     ;; move hand horizontally such that target object come to center of grippers.
     (if (equal target-finger "/left")
-      (progn (send *fetch* :rarm :move-end-pos #f(0 -100 0) :local :use-torso nil)
+      (progn (send *fetch* :rarm :move-end-pos #f(0 30 0) :local :use-torso nil)
              (setq another-finger "/right"))
-      (progn (send *fetch* :rarm :move-end-pos #f(0 100 0) :local :use-torso nil)
+      (progn (send *fetch* :rarm :move-end-pos #f(0 -30 0) :local :use-torso nil)
              (setq another-finger "/left")))
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 7000)
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
     (while (not (setq interplatingp (send *ri* :interpolatingp))) ;; wait until interpolatingp becomes t
       (ros::spin-once)
       (unix:usleep 10000))
@@ -849,13 +849,16 @@
        (return)) ;; robot judges that the target object come to center of grippers
       (unix:usleep (* 200 1000)))
 
+    (send *ri* :stop-grasp :wait t)
+    (sensor-calib)
+
     ;; move hand down and grasp object
     (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(50 0 0) :local)
-            :close-frame-list (list (list "/left" "/top" ) (list "/right" "/top")) :close-thre 20)
-    (send *ri* :start-grasp :wait nil)
+            :close-frame-list (list (list "/left" "/side0" ) (list "/right" "/side0")) :close-thre 15)
+    (send *ri* :start-grasp :wait nil :effort 60)
     (ros::spin-once)
     (unix:sleep 2)
-    (< 0.2 (send *ri* :gripper :position)) ;; if grasp is succeeded, return t. else, return nil
+    (< 0.012 (send *ri* :gripper :position)) ;; if grasp is succeeded, return t. else, return nil
   ))
 
 
