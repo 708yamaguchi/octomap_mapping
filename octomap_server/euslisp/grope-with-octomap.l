@@ -257,12 +257,11 @@
             (when (< adjacent-max-val (aref unknown-dist (+ (car max-place) x) (+ (cadr max-place) y)))
               (setq adjacent-max-val (aref unknown-dist (+ (car max-place) x) (+ (cadr max-place) y)))
               (setq adjacent-max-place (list x y))))))
-
       (setq direction (+ 180 (* -1 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place))))))
       ;; sometimes groping randomly
-      (let ((m (make-random-state t)) ;; set max-place randomly at probability of 0.5
-            (random-x (random (car (array-dimensions unknown-dist))))
-            (random-y (random (cadr (array-dimensions unknown-dist)))))
+      (let* ((m (make-random-state t)) ;; set max-place randomly at probability of 0.5
+             (random-x (random (car (array-dimensions unknown-dist)) m))
+             (random-y (random (cadr (array-dimensions unknown-dist)) m)))
         (when (< (random 1.0 m) 0.5) ;; sometimes move hand randomly, else, move hand based on unknown distribution
           (format t "randomly decided grope starting position~%")
           (setq max-place (list random-x random-y))
@@ -273,7 +272,9 @@
             (if (<= random-y (/ (cadr (array-dimensions unknown-dist)) 2))
               (setq adjacent-max-place (list 0 1))
               (setq adjacent-max-place (list 0 -1))))
-          (setq direction (+ 180 (* -1 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place)))))))))
+          (setq direction (+ 180 (* -1 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place))))))
+          (print (list direction adjacent-max-place))
+          )))
 
     ;; from now, move and rotate hand
     (send *ri* :wait-interpolation) ;; calculate where to grope during arm movement (time saving)
@@ -318,20 +319,28 @@
                            *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
           (progn
             (format t "move hand until detecting object~%")
-            (let ((detected-frame nil) (min-distance nil) (hand-cover-thick 30) (gripper-handside-distance (- 45 (* 0.5 1000 (- (send *ri* :gripper :position) 0.01)))))
+            (let ((detected-frame nil) (min-distance nil) (hand-cover-thick 30) (gripper-handside-distance (- 35 (* 0.5 1000 (- (send *ri* :gripper :position) 0.01)))))
               ;; check if there is object near top of the grippers.
               (if (setq detected-frame (cadr (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
                                                      :close-frame-list (list (list "/left" "/top") (list "/right" "/top")
                                                                              (list "/left" "/side1") (list "/right" "/side1")
                                                                              (list "/left" "/side2") (list "/right" "/side2"))
-                                                     :close-thre (list 30 30 hand-cover-thick hand-cover-thick gripper-handside-distance gripper-handside-distance)))) ;; distance between sensor and hand cover top is 40mm
+                                                     :close-thre (list 30 30
+                                                                       hand-cover-thick hand-cover-thick
+                                                                       gripper-handside-distance gripper-handside-distance))))
                 (cond
                  ((equal detected-frame (list "/left" "/top")) ;; object is near left top
+                  (when (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons)) 40) ;; both left and right finger top is near object, start moving horizontally
+                    (format t "start moving horizontally~%")
+                    (return))
                   (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (+ gripper-handside-distance 10) 0))
                                 :close-frame-list (list (list "/right" "/side2")) :close-thre gripper-handside-distance :tm 3000)
                     (format t "something is right of my gripper~%"))
                   (return))
                  ((equal detected-frame (list "/right" "/top")) ;; object is near right top
+                  (when (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/top")) :data) cons)) 40) ;; both left and right finger top is near object, start moving horizontally
+                    (format t "start moving horizontally~%")
+                    (return))
                   (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (* -1 (+ gripper-handside-distance 10)) 0))
                                 :close-frame-list (list (list "/left" "/side2")) :close-thre gripper-handside-distance :tm 3000)
                     (format t "something is left of my finger~%"))
@@ -341,8 +350,8 @@
                   (setq min-distance (min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side1")) :data) cons))
                                           (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side1")) :data) cons))))
                   (format t "detect object at side1, so move hand~%")
-                  ;; distance between gripper's side1 and back of the hand is about 60mm. move hand at least 10mm.
-                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 0 (* -1 (max 10 (- hand-cover-thick min-distance)))))
+                  ;; distance between gripper's side1 and back of the hand is about 60mm. move hand at least 20mm.
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 0 (* -1 (max 20 (- hand-cover-thick min-distance)))))
                                 :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")) :close-thre 30 :tm 3000)
                     (format t "cannot move hand forward any more~%")
                     (return-from create-map t)))
