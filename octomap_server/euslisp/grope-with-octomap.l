@@ -123,7 +123,7 @@
     ;; flowchart of this (do-until-key) is loop of following steps:
     ;; 1. first create octomap, and then try to grasp the target object with the same octomap up to 5 times.
     ;; 2. if success, lift the object and finish. else, retry from the first step.
-    (do-until-key ;; do not return from this loop until the robot succeeds to grasp the target object
+    (while t ;; do not return from this loop until the robot succeeds to grasp the target object
      (let ((find-grasp-pointp nil) (detectp nil) (graspp nil))
        ;; create octomap by tracing environment, using proximity sensors on finger.
        (dotimes (i 30)
@@ -147,12 +147,13 @@
            (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* ec-z)) :world)
            (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
            (send *ri* :wait-interpolation))
+         (sensor-calib) ;; calibrate sensors for grasping
          ;; second, extend hand to target object with pre-grasp motion
          (while t
            (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
                               *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
              (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
-                         :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre 30)
+                         :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre 20)
                (progn ;; if something is in front of the gripper, return from this while loop and try to pre-grasp
                  (setq detectp t)
                  (return)))
@@ -162,9 +163,9 @@
                (return))))
          ;; TODO PLEASE WRITE (pre-grasp) function
          (if detectp ;; if something is in front of gripper, do pre-grasp
-           (setq graspp (pre-grasp))
-           (if graspp
-             (return))))
+           (setq graspp (pre-grasp)))
+         (if graspp
+           (return)))
        (if graspp ;; if pre-grasp is succeeded and the robot can grasp the target object, return from do-until-key loop
          (return))
        ))
