@@ -304,7 +304,7 @@
                            *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
           (progn
             (format t "move hand until detecting object~%")
-            (let ((detected-frame nil) (min-distance nil) (hand-cover-thick 35) (gripper-handside-distance (- 45 (* 0.5 1000 (- (send *ri* :gripper :position) 0.01)))))
+            (let ((detected-frame nil) (min-distance nil) (hand-cover-thick 30) (gripper-handside-distance (- 45 (* 0.5 1000 (- (send *ri* :gripper :position) 0.01)))))
               ;; check if there is object near top of the grippers.
               (if (setq detected-frame (cadr (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
                                                      :close-frame-list (list (list "/left" "/top") (list "/right" "/top")
@@ -333,20 +333,20 @@
                     (format t "cannot move hand forward any more~%")
                     (return-from create-map t)))
                  ((equal detected-frame (list "/left" "/side2"))
-                  (ros::spin-once)
+                  ;; (ros::spin-once)
                   (setq min-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side2")) :data) cons)))
                   (format t "detect object at left side2, so move hand~%")
                   ;; distance between left gripper's side2 and side of the hand is about 35mm (at start-grasp state). move hand at least 10mm.
-                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (max 10 (- gripper-handside-distance min-distance)) 0))
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (max 20 (- gripper-handside-distance min-distance)) 0))
                                 :close-frame-list (list (list "/right" "/side2")) :close-thre gripper-handside-distance :tm 3000)
                     (format t "cannot move hand rightside any more~%")
                     (return-from create-map t)))
                  ((equal detected-frame (list "/right" "/side2"))
-                  (ros::spin-once)
+                  ;; (ros::spin-once)
                   (setq min-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side2")) :data) cons)))
                   (format t "detect object at right side2, so move hand~%")
                   ;; distance between left gripper's side2 and side of the hand is about 35mm (at start-grasp state). move hand at least 10mm.
-                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (* -1 (max 10 (- gripper-handside-distance min-distance))) 0))
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (* -1 (max 20 (- gripper-handside-distance min-distance))) 0))
                                 :close-frame-list (list (list "/left" "/side2")) :close-thre gripper-handside-distance :tm 3000)
                     (format t "cannot move hand leftside any more~%")
                     (return-from create-map t)))
