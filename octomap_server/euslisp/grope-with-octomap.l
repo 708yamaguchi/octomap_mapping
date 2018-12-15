@@ -194,6 +194,7 @@
 
 ;; TODO: what method is best solution to create map?
 (defun create-map (target-region)
+  (camera-stop)
   (unless target-region
     (format t "target-region is not set~%")
     (break))
