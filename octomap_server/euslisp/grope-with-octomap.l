@@ -526,7 +526,7 @@
          (gripper-r (send (make-cube gr-x gr-y gr-z) :locate (float-vector 0 (/ gr-open 2) 0)))
          (gripper-inside (make-cube gr-x (- gr-open gr-y) gr-z))
          (point-list (send pc :point-list))
-         (point-list-sorted nil)
+         (point-list-sorted nil) (point-list-inside nil)
          highest-z
          (inside-point 0) (max-inside-point 0)
          )
@@ -549,7 +549,6 @@
       (send stick-l :set-color #f(1 0 0 0.5))
       (setq stick-r (send (make-cube gr-x gr-y (- max-z min-z)) :locate (float-vector 0 (/ gr-open 2) (/ (+ max-z min-z) 2.0))))
       (send stick-r :set-color #f(0 1 0 0.5))
-      ;; (setq stick-center (send (make-cube gr-x (- gr-open gr-y) (- max-z min-z)) :locate (float-vector 0 0 (/ (+ max-z min-z) 2.0))))
       (setq stick-center (send (make-cube hand-x (- gr-open gr-y) (- max-z min-z)) :locate (float-vector 0 0 (/ (+ max-z min-z) 2.0))))
       (send stick-center :set-color #f(0 0 1 0.5))
       (send gripper-inside :assoc gripper-l)
@@ -561,8 +560,10 @@
       ;; sort points in the order of z-height
       ;; exclude points which is out of target region
       (dolist (point point-list)
+        (setq point-list-sorted (append point-list-sorted (list point)))
         (if (and (<= min-x (aref point 0) max-x) (<= min-y (aref point 1) max-y) (<= min-z (aref point 2) max-z))
-          (setq point-list-sorted (copy-object (append point-list-sorted (list point))))))
+          (setq point-list-inside (append point-list-inside (list point)))))
+      (setq point-list-sorted (copy-object point-list-sorted))
       ;; (sort) is destructively sort
       (sort point-list-sorted #'(lambda (x y) (> (aref x 2) (aref y 2))))
       ;; search for most graspable point
@@ -622,7 +623,7 @@
           ;; update objects related counting pointcloud
           (send gripper-inside :worldcoords)
           ;; count the point inside of gripper-inside
-          (dolist (point point-list)
+          (dolist (point point-list-inside)
             (if (equal (send gripper-inside :insidep point) :inside)
               (setq inside-point (+ inside-point 1))))
           (when (> inside-point max-inside-point)
@@ -699,12 +700,8 @@
       (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos)))
     (print (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos)) ;; hand position
     (setq *fetch* fetch-copy)
-    (list max-points fetch-copy)
-    ;; (let ((cube (make-cube 200 200 200)) (region nil))
-    ;;   (send cube :locate (float-vector x y z) :world)
-    ;;   (send cube :worldcoords)
-    ;;   (setq region (send cube :edges))
-    ;;   (objects (append (list *fetch* pc) region)))
+    (objects (list *fetch* pc))
+    (list max-points *fetch*)
     ))
 
 
