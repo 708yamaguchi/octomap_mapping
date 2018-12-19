@@ -106,7 +106,7 @@
       (send *fetch* :head :neck-p :joint-angle 20)
       (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
       (send *ri* :wait-interpolation)
-      (send *fetch* :head :look-at (float-vector (/ (+ *max-x* *min-x*) 2.0) (/ (+ *max-y* *min-y*) 2.0) (/ (+ *max-z* *min-z*) 2.0)))
+      (send *fetch* :head :look-at (float-vector (/ (+ *max-x* *min-x*) 2.0) (/ (+ *max-y* *min-y*) 2.0) (/ (+ *max-z* *min-z* 200) 2.0)))
       (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
       (send *ri* :wait-interpolation)
 
