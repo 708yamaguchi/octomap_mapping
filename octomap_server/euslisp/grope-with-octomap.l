@@ -129,7 +129,7 @@
        (dotimes (i 30)
          (create-map target-region)
          (let ((av (send *fetch* :angle-vector)))
-           (when (< 50 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 80 :y-offset 80 :z-offset 60))) ;; TODO decide proper threshold : maybe around 50?
+           (when (< 30 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 40 :y-offset 40 :z-offset 20))) ;; TODO decide proper threshold : maybe around 30?
              (setq find-grasp-pointp t)
              (format t "find graspable point, so start grasping~%")
              (return))
