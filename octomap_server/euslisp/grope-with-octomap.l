@@ -320,7 +320,10 @@
                            *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
           (progn
             (format t "move hand until detecting object~%")
-            (let ((detected-frame nil) (min-distance nil) (hand-cover-thick 30) (gripper-handside-distance (- 35 (* 0.5 1000 (- (send *ri* :gripper :position) 0.01)))))
+            (let ((detected-frame nil) (min-distance nil)
+                  (hand-cover-thick 30)
+                  ;; when :gripper :position is 0.3, gripper-handside-distance is about 25
+                  (gripper-handside-distance (- 35 (* 0.5 1000 (- (send *ri* :gripper :position) 0.01)))))
               ;; check if there is object near top of the grippers.
               (if (setq detected-frame (cadr (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
                                                      :close-frame-list (list (list "/left" "/top") (list "/right" "/top")
@@ -328,7 +331,8 @@
                                                                              (list "/left" "/side2") (list "/right" "/side2"))
                                                      :close-thre (list 30 30
                                                                        hand-cover-thick hand-cover-thick
-                                                                       gripper-handside-distance gripper-handside-distance))))
+                                                                       (+ 10 gripper-handside-distance) ;; +10 is safety margin
+                                                                       (+ 10 gripper-handside-distance)))))
                 (cond
                  ((equal detected-frame (list "/left" "/top")) ;; object is near left top
                   (when (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons)) 40) ;; both left and right finger top is near object, start moving horizontally
