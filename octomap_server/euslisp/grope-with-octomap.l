@@ -43,9 +43,10 @@
   (objects (list *fetch*)))
 
 ;; setup for experiment
-(warning-message 3 (format nil "~%fetch's pre-pose:~%  (progn (send *fetch* :reset-pose) (send *fetch* :torso :waist-z :joint-angle 400)
+(warning-message 3 (format nil "~%fetch's pre-pose:~%  (progn (send *fetch* :reset-pose) (send *fetch* :torso :waist-z :joint-angle 350)
       (send *fetch* :inverse-kinematics
             (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) 950) :rpy (float-vector 0 pi/2 0))
+            :use-torso nil
             :debug-view :no-message
             :min-loop 50
             :revert-if-fail nil
@@ -67,9 +68,10 @@
       ;; settings for experiment
       ;; below is IK program for stretching wrist_flex_joint
       (send *fetch* :reset-pose)
-      (send *fetch* :torso :waist-z :joint-angle 400)
+      (send *fetch* :torso :waist-z :joint-angle 350)
       (send *fetch* :inverse-kinematics
             (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) 950) :rpy (float-vector 0 pi/2 0))
+            :use-torso nil
             :debug-view :no-message
             :min-loop 50
             :revert-if-fail nil
@@ -79,7 +81,7 @@
                                             (list 70))
             )
       (send *fetch* :inverse-kinematics
-            (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) 950) :rpy (float-vector 0 pi/2 0))) ;; 950 is tuned parameter
+            (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) 950) :rpy (float-vector 0 pi/2 0)) :use-torso nil) ;; 950 is tuned parameter
       ;; above is IK program for stretching wrist_flex_joint
       (send *fetch* :head :look-at (float-vector (/ (+ *max-x* *min-x*) 2.0) (/ (+ *max-y* *min-y*) 2.0) (/ (+ *max-z* *min-z*) 2.0)))
       (send *fetch* :rarm :move-end-pos #f(0 -400 0) :world :use-torso nil) ;; move hand sideway to avoid occlusion
@@ -129,7 +131,7 @@
        (dotimes (i 30)
          (create-map target-region)
          (let ((av (send *fetch* :angle-vector)))
-           (when (< 30 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 40 :y-offset 40 :z-offset 20))) ;; TODO decide proper threshold : maybe around 30?
+           (when (< 20 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 40 :y-offset 40 :z-offset 20))) ;; TODO decide proper threshold : maybe around 30?
              (setq find-grasp-pointp t)
              (format t "find graspable point, so start grasping~%")
              (return))
@@ -144,7 +146,10 @@
          ;; extend hand to target object with pre-grasp motion by proximity sensors
          ;; first, move hand up
          (let ((ec-z (aref (send (send *fetch* :rarm :end-coords :copy-worldcoords) :worldpos) 2)))
-           (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* ec-z)) :world)
+           (format t "try to solve IK~%")
+           ;; (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* ec-z)) :world)
+           (send *fetch* :rarm :move-end-pos (float-vector 0 0 300) :world)
+           (format t "IK solved ??~%")
            (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
            (send *ri* :wait-interpolation))
          (sensor-calib) ;; calibrate sensors for grasping
@@ -206,7 +211,7 @@
     ;; first, moving hand up
     (format t "move hand up. preparing...~%")
     (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-    (send *fetch* :torso :waist-z :joint-angle 400)
+    (send *fetch* :torso :waist-z :joint-angle 350)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
     ;; calculate where to grope, during moving hand up (time saving)
     (let* ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
