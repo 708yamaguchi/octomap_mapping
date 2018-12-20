@@ -178,7 +178,9 @@
        ))
 
     ;; finally, lift the target object up
-    (send *fetch* :rarm :move-end-pos #f(0 0 300) :world)
+    (dotimes (i 3)
+      (unless (send *fetch* :rarm :move-end-pos (float-vector 0 0 100) :world)
+        (return)))
     (send *ri* :angle-vector (send *fetch* :angle-vector) 7000)
     (format "grope succeeded~%")
     ))
@@ -812,6 +814,7 @@
 ;; NOTE before using this function, make sure that object is in front of top of finger
 ;; this function returns t if grasp is succeeded. Else, return nil.
 (defun pre-grasp ()
+  (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
   (send *ri* :start-grasp :wait t)
   (let ((l-min *inf*) (r-min *inf*) (target-finger nil) (another-finger nil) (rotate-max-distance 0) (rotate-angle 0) (interpolatingp nil))
     ;; open gripper and detect edge
