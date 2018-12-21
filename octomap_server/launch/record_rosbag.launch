@@ -1,0 +1,40 @@
+<launch>
+
+<!-- see /home/leus/ros/indigo/src/start-jsk/jsk_apc/jsk_arc2017_baxter/launch/setup/include/record.launch -->
+
+<!-- USAGE -->
+<!-- roslaunch euslib record_rosbag.launch filename:=$HOME/.ros/rosbag/sotsuron/hoge.bag -->
+
+<!-- for fetch robot -->
+
+  <arg name="filename" />
+  <node name="rosbag_record"
+        pkg="rosbag" type="record"
+        args="-O $(arg filename)
+              -b 0
+
+              /tf
+              /tf_static
+              /joint_states
+              /base_scan/throttled
+              /map
+
+              /head_camera/depth/camera_info
+              /head_camera/depth/image_raw/compressedDepth
+              /head_camera/rgb/camera_info
+              /head_camera/rgb/image_raw/compressed
+
+              /proximity_sensors/left/all
+              /proximity_sensors/right/all
+              "
+
+        output="screen">
+  </node>
+</launch>
+
+<!-- proximity data flow -->
+<!-- (serial_node0_1) -> -->
+<!-- /proximity_sensors/(l_r)/all -> (/decompose_msg_l/r) -> -->
+<!-- /proximity_sensors/(l_r)/(frame) -> (/distance_publisher) -> -->
+<!-- /proximity_distance/(l_r)/(frame) -> (/pointcloud_publisher) -> -->
+<!-- /proximity_pointcloud/(l_r)/(frame) -->

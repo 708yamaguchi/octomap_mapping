@@ -1,0 +1,150 @@
+<launch>
+
+  <!-- see /home/leus/ros/indigo/src/start-jsk/jsk_apc/jsk_arc2017_baxter/launch/setup/include/play_rosbag.launch -->
+
+  <!-- USAGE -->
+  <!-- roslaunch euslib play_rosbag.launch filename:=$HOME/.ros/rosbag/sotsuron/hoge.bag -->
+
+  <!-- for fetch robot -->
+
+  <arg name="filename" />
+
+  <param name="use_sim_time" value="true" />
+  <node name="rosbag_play"
+        pkg="rosbag" type="play"
+        args="$(arg filename) --clock --loop"/>
+
+  <include file="$(find openni2_launch)/launch/openni2.launch">
+    <arg name="camera" value="head_camera" />
+    <arg name="load_driver" value="false" />
+    <arg name="publish_tf" value="false" />
+    <!-- do not use hardware registration -->
+    <arg name="depth_registration" value="false" />
+    <!-- enable software registration -->
+    <arg name="rgb_processing" value="true" />
+    <arg name="depth_processing" value="true" />
+    <arg name="depth_registered_processing" value="true" />
+  </include>
+
+  <!-- compress & decompress image & depth -->
+  <group ns="/head_camera/rgb">
+    <node name="republish"
+          pkg="image_transport" type="republish"
+          args="compressed raw">
+      <remap from="in" to="image_raw" />
+      <remap from="out" to="image_raw" />
+    </node>
+  </group>
+  <group ns="/head_camera/depth">
+    <node name="republish"
+          pkg="image_transport" type="republish"
+          args="compressedDepth raw">
+      <remap from="in" to="image_raw" />
+      <remap from="out" to="image_raw" />
+    </node>
+  </group>
+
+  <param name="robot_description" command="$(find xacro)/xacro.py $(find fetch_description)/robots/fetch.urdf" />
+
+  <!-- publish pointcloud with proximity sensor -->
+  <include file="$(find euslib)/launch/proximity.launch">
+    <arg name="real_sensor" value="false"/>
+    <arg name="dummy_sensor" value="false"/>
+    <arg name="use_fetch" value="true"/>
+  </include>
+  <!-- Do not forget to rosservice call /proximitycloud_passthrough/request -->
+  <node pkg="jsk_topic_tools" type="passthrough" name="proximitycloud_passthrough">
+    <remap from="~input" to="/proximity_pointcloud/all" />
+    <remap from="~output" to="/proximity_in" />
+    <param name="default_duration" value="86400" />
+  </node>
+  <!-- publish pointcloud with vision sensor -->
+  <include file="$(find euslib)/launch/visualize_pointcloud_fetch.launch">
+    <arg name="rviz" value="false"/>
+  </include>
+  <!-- Do not forget to rosservice call /proximitycloud_passthrough/request -->
+  <node pkg="jsk_topic_tools" type="passthrough" name="camera_passthrough">
+    <remap from="~input" to="/camera_remote/depth_registered/points" />
+    <remap from="~output" to="/camera_in" />
+    <param name="default_duration" value="86400" />
+  </node>
+
+  <!-- octomap -->
+  <node pkg="jsk_pcl_ros" type="octomap_server_contact" name="octomap_server_contact"
+        output="screen" >
+    <param name="resolution" value="0.01" />
+    <!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
+    <param name="frame_id" type="string" value="base_link" />
+    <!-- <param name="frame_id" type="string" value="octomap_world" /> -->
+    <!-- maximum range to integrate (speedup!) -->
+    <param name="sensor_model/max_range" value="5.0" />
+    <param name="publish_free_space" value="true"/>
+    <param name="publish_unknown_space" value="true"/>
+    <param name="publish_frontier_space" value="false"/>
+    <param name="latch" value="false"/>
+    <!-- data source to integrate (PointCloud2) -->
+    <remap from="/cloud_in" to="camera_in" />
+    <remap from="/proximity_in" to="proximity_in" />
+    <!-- <remap from="/proximity_in" to="proximity_pointcloud/all" /> -->
+    <remap from="/contact_sensors_in" to="contact_sensors_in" />
+    <!-- Sensor Input PassThrough Filter Params -->
+    <!-- in front of fetch -->
+    <param name="occupancy_min_x" value="0.4" />
+    <param name="occupancy_max_x" value="0.9" />
+    <param name="occupancy_min_y" value="-0.2" />
+    <param name="occupancy_max_y" value="0.2" />
+    <param name="occupancy_min_z" value="0.45" />
+    <param name="occupancy_max_z" value="1.0" />
+    <!-- for right side of fetch -->
+    <!-- <param name="occupancy_min_x" value="-0.3" /> -->
+    <!-- <param name="occupancy_max_x" value="0.2" /> -->
+    <!-- <param name="occupancy_min_y" value="-1.1" /> -->
+    <!-- <param name="occupancy_max_y" value="-0.6" /> -->
+    <!-- <param name="occupancy_min_z" value="0.3" /> -->
+    <!-- <param name="occupancy_max_z" value="0.9" /> -->
+    <!-- for bag -->
+    <!-- <param name="occupancy_min_x" value="-0.3" /> -->
+    <!-- <param name="occupancy_max_x" value="0.2" /> -->
+    <!-- <param name="occupancy_min_y" value="-0.6" /> -->
+    <!-- <param name="occupancy_max_y" value="-0.1" /> -->
+    <!-- <param name="occupancy_min_z" value="0.2" /> -->
+    <!-- <param name="occupancy_max_z" value="0.8" /> -->
+    <!-- for table top -->
+    <!-- <param name="occupancy_min_x" value="0.4" /> -->
+    <!-- <param name="occupancy_max_x" value="0.8" /> -->
+    <!-- <param name="occupancy_min_y" value="-0.25" /> -->
+    <!-- <param name="occupancy_max_y" value="0.25" /> -->
+    <!-- <param name="occupancy_min_z" value="0.6" /> -->
+    <!-- <param name="occupancy_max_z" value="1.0" /> -->
+
+    <param name="use_vertex" value="false" /> <!-- to speedup insertContactSensor -->
+    <param name="sensor_model/max" value="0.60" /> <!-- default: 0.97 -->
+    <param name="sensor_model/min" value="0.45" /> <!-- default: 0.12 -->
+    <param name="sensor_model/hit" value="0.95" /> <!-- default: 0.7 -->
+    <param name="sensor_model/miss" value="0.15" /> <!-- default: 0.4 -->
+
+    <rosparam command="load" file="$(find octomap_server)/config/fetch_contact_sensor_config.yaml" />
+</node>
+  <!-- make tf of octomap_world, and rosservice call passthrough/request -->
+  <node pkg="octomap_server" type="octomap-setup.l" name="octomap_setup" output="screen"/>
+
+  <!-- set octomap free where pointcloud is inside of the robot -->
+  <node pkg="octomap_server" type="publish_fetch_contact_sensor.py" name="publish_fetch_contact_sensor"
+        >
+  </node>
+
+  <!-- for color recognition -->
+  <include file="$(find octomap_server)/launch/box_recog.launch">
+    <arg name="INPUT" value="/camera_in"/>
+    <arg name="h_max" value="110"/>
+    <arg name="h_min" value="80"/>
+    <arg name="s_max" value="255"/>
+    <arg name="s_min" value="31"/>
+    <arg name="i_max" value="255"/>
+    <arg name="i_min" value="0"/>
+  </include>
+
+  <!-- for visualization of octomap -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/octomap_frontier.rviz"/>
+
+</launch>
