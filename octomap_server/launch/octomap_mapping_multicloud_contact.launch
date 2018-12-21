@@ -104,7 +104,7 @@
   <node pkg="octomap_server" type="octomap-setup.l" name="octomap_setup" output="screen"/>
 
   <!-- set octomap free where pointcloud is inside of the robot -->
-  <node pkg="octomap_server" type="publish_fetch_contact_sensor.py" name="publish_fetch_contact_sensor"
+  <node pkg="octomap_server" type="publish_fetch_contact_sensor.py" name="publish_fetch_contact_sensor" respawn="true"
         >
         <!-- output="screen"> -->
   </node>
