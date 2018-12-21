@@ -19,22 +19,33 @@
               /base_scan/throttled
               /map
 
-              /head_camera/depth/camera_info
-              /head_camera/depth/image_raw/compressedDepth
+              /head_camera/depth_registered/camera_info
+              /head_camera/depth_registered/image_raw/compressedDepth
               /head_camera/rgb/camera_info
               /head_camera/rgb/image_raw/compressed
 
               /proximity_sensors/left/all
               /proximity_sensors/right/all
-              "
 
+              /proximity_distance/left/top
+              /proximity_distance/left/side0
+              /proximity_distance/left/side1
+              /proximity_distance/left/side2
+              /proximity_distance/left/side3
+              /proximity_distance/right/top
+              /proximity_distance/right/side0
+              /proximity_distance/right/side1
+              /proximity_distance/right/side2
+              /proximity_distance/right/side3
+              "
         output="screen">
+    <!-- record proximity distance because it contains sensor calibration information -->
   </node>
 </launch>
 
 <!-- proximity data flow -->
 <!-- (serial_node0_1) -> -->
 <!-- /proximity_sensors/(l_r)/all -> (/decompose_msg_l/r) -> -->
-<!-- /proximity_sensors/(l_r)/(frame) -> (/distance_publisher) -> -->
+<!-- /proximity_sensors/(l_r)/(frame) -> (/distance_publisher, during this process sensor calib is needed) -> -->
 <!-- /proximity_distance/(l_r)/(frame) -> (/pointcloud_publisher) -> -->
 <!-- /proximity_pointcloud/(l_r)/(frame) -->
