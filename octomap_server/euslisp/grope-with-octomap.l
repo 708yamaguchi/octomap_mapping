@@ -343,7 +343,7 @@
                                                                        hand-cover-thick hand-cover-thick
                                                                        (+ 15 gripper-handside-distance) ;; +10 is safety margin
                                                                        (+ 15 gripper-handside-distance))
-                                                     :tm 8000)))
+                                                     :tm 7000)))
                 (cond
                  ((equal detected-frame (list "/left" "/top")) ;; object is near left top
                   (when (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons)) 40) ;; both left and right finger top is near object, start moving horizontally
@@ -853,8 +853,8 @@
       (ros::spin-once)
       (if (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/top")) :data) cons))
              (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons)))
-        (send *fetch* :rarm :move-end-pos #f(10 10 0) :local :use-torso nil)
-        (send *fetch* :rarm :move-end-pos #f(10 -10 0) :local :use-torso nil))
+        (send *fetch* :rarm :move-end-pos #f(15 10 0) :local :use-torso nil)
+        (send *fetch* :rarm :move-end-pos #f(15 -10 0) :local :use-torso nil))
       (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
       (send *ri* :wait-interpolation))
     (sensor-calib)
