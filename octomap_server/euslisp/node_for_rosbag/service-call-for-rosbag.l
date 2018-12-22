@@ -7,12 +7,15 @@
 (setq *camera-stop-service* "/camera_passthrough/stop")
 (setq *proximitycloud-request-service* "/proximitycloud_passthrough/request")
 
-;; start camera
-(ros::wait-for-service *camera-request-service*)
-(ros::service-call *camera-request-service* (instance std_srvs::EmptyRequest :init))
-;; start proximity sensor
-(ros::wait-for-service *proximitycloud-request-service*)
-(ros::service-call *proximitycloud-request-service* (instance std_srvs::EmptyRequest :init))
+;; start camera and proximity sensor
+(do-until-key
+ (when (eq (send (ros::time-now) :sec) 1545499614) ;; right after starting rosbag
+   ;; start camera
+   (ros::wait-for-service *camera-request-service*)
+   (ros::service-call *camera-request-service* (instance std_srvs::EmptyRequest :init))
+   ;; start proximity sensor
+   (ros::wait-for-service *proximitycloud-request-service*)
+   (ros::service-call *proximitycloud-request-service* (instance std_srvs::EmptyRequest :init))
 
 (do-until-key
  ;; stop camera at proper timing
