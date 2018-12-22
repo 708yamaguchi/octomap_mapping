@@ -65,7 +65,7 @@
     <!-- Sensor Input PassThrough Filter Params -->
     <!-- in front of fetch -->
     <param name="occupancy_min_x" value="0.4" />
-    <param name="occupancy_max_x" value="0.9" />
+    <param name="occupancy_max_x" value="0.8" />
     <param name="occupancy_min_y" value="-0.2" />
     <param name="occupancy_max_y" value="0.2" />
     <param name="occupancy_min_z" value="0.45" />
