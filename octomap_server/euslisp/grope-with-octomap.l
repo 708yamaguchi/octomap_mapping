@@ -131,7 +131,7 @@
        (dotimes (i 30)
          (create-map target-region)
          (let ((av (send *fetch* :angle-vector)))
-           (when (and (< 20 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 40 :y-offset 40 :z-offset 20))) ;; TODO decide proper threshold : maybe around 30?
+           (when (and (< 15 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 40 :y-offset 40 :z-offset 20))) ;; TODO decide proper threshold : maybe around 30?
                       (> i 1)) ;; at least do (create-map) 2 times
              (setq find-grasp-pointp t)
              (format t "find graspable point, so start grasping~%")
@@ -339,10 +339,10 @@
                                                      :close-frame-list (list (list "/left" "/top") (list "/right" "/top")
                                                                              (list "/left" "/side1") (list "/right" "/side1")
                                                                              (list "/left" "/side2") (list "/right" "/side2"))
-                                                     :close-thre (list 30 30
+                                                     :close-thre (list 35 35
                                                                        hand-cover-thick hand-cover-thick
-                                                                       (+ 10 gripper-handside-distance) ;; +10 is safety margin
-                                                                       (+ 10 gripper-handside-distance))
+                                                                       (+ 15 gripper-handside-distance) ;; +10 is safety margin
+                                                                       (+ 15 gripper-handside-distance))
                                                      :tm 8000)))
                 (cond
                  ((equal detected-frame (list "/left" "/top")) ;; object is near left top
@@ -853,8 +853,8 @@
       (ros::spin-once)
       (if (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/top")) :data) cons))
              (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons)))
-        (send *fetch* :rarm :move-end-pos #f(0 10 -10) :local :use-torso nil)
-        (send *fetch* :rarm :move-end-pos #f(0 -10 -10) :local :use-torso nil))
+        (send *fetch* :rarm :move-end-pos #f(10 10 0) :local :use-torso nil)
+        (send *fetch* :rarm :move-end-pos #f(10 -10 0) :local :use-torso nil))
       (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
       (send *ri* :wait-interpolation))
     (sensor-calib)
