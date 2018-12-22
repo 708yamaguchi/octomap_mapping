@@ -131,7 +131,8 @@
        (dotimes (i 30)
          (create-map target-region)
          (let ((av (send *fetch* :angle-vector)))
-           (when (< 20 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 40 :y-offset 40 :z-offset 20))) ;; TODO decide proper threshold : maybe around 30?
+           (when (and (< 20 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 40 :y-offset 40 :z-offset 20))) ;; TODO decide proper threshold : maybe around 30?
+                      (> i 1)) ;; at least do (create-map) 2 times
              (setq find-grasp-pointp t)
              (format t "find graspable point, so start grasping~%")
              (return))
@@ -182,7 +183,7 @@
       (unless (send *fetch* :rarm :move-end-pos (float-vector 0 0 100) :world)
         (return)))
     (send *ri* :angle-vector (send *fetch* :angle-vector) 7000)
-    (format "grope succeeded~%")
+    (format t "grope succeeded~%")
     ))
 
 
@@ -320,7 +321,7 @@
 
     (format t "start tracing~%")
     ;; move hand until detecting object. move-end-pos 10cm, 10cm, 10cm ...  gradually.
-    (while (< count 5) ;; vertical hand move and horizontal hand move, alternately
+    (while (< count 3) ;; vertical hand move and horizontal hand move, alternately
       ;; move hand down
       (while t
         (format t "count: ~A~%" count)
@@ -341,7 +342,8 @@
                                                      :close-thre (list 30 30
                                                                        hand-cover-thick hand-cover-thick
                                                                        (+ 10 gripper-handside-distance) ;; +10 is safety margin
-                                                                       (+ 10 gripper-handside-distance)))))
+                                                                       (+ 10 gripper-handside-distance))
+                                                     :tm 8000)))
                 (cond
                  ((equal detected-frame (list "/left" "/top")) ;; object is near left top
                   (when (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons)) 40) ;; both left and right finger top is near object, start moving horizontally
@@ -846,23 +848,15 @@
     (format t "most graspable angle is: ~A~%" rotate-angle)
 
     ;; move hand horizontally such that target object come to center of grippers.
-    (if (equal target-finger "/left")
-      (progn (send *fetch* :rarm :move-end-pos #f(0 30 0) :local :use-torso nil)
-             (setq another-finger "/right"))
-      (progn (send *fetch* :rarm :move-end-pos #f(0 -30 0) :local :use-torso nil)
-             (setq another-finger "/left")))
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
-    (while (not (setq interplatingp (send *ri* :interpolatingp))) ;; wait until interpolatingp becomes t
-      (ros::spin-once)
-      (unix:usleep 10000))
-    (while (setq interplatingp (send *ri* :interpolatingp))
-      (ros::spin-once)
-      (when (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons))
-               (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance another-finger "/top")) :data) cons)))
-       (return)) ;; robot judges that the target object come to center of grippers
-      (unix:usleep (* 200 1000)))
-
     (send *ri* :stop-grasp :wait t)
+    (dotimes (i 3)
+      (ros::spin-once)
+      (if (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/top")) :data) cons))
+             (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons)))
+        (send *fetch* :rarm :move-end-pos #f(0 10 -10) :local :use-torso nil)
+        (send *fetch* :rarm :move-end-pos #f(0 -10 -10) :local :use-torso nil))
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+      (send *ri* :wait-interpolation))
     (sensor-calib)
 
     ;; move hand down and grasp object
