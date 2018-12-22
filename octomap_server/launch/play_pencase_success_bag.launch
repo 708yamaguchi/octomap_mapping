@@ -1,0 +1,7 @@
+<launch>
+  <include file="$(find octomap_server)/launch/play_rosbag.launch">
+    <arg name="filename" value="$(find octomap_server)/rosbag/pencase_success.bag" />
+  </include>
+
+  <node name="service_call_for_rosbag" pkg="octomap_server" type="service-call-for-rosbag.l" />
+</launch>
