@@ -532,7 +532,7 @@
 (setq *pc2* (cadr av-and-groped-pc1))
 ;; TODO decide grope point based on height map. hint is in (calc-grope-point)
 ;; TODO use pyramid algorithm when searching grope point
-(defun search-graspable-point (pc &key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (iter-count 1000))
+(defun search-graspable-point (pc &key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (iter-count 1000) (visualize-searching nil))
   (let* (stick-l stick-r stick-center
          random-x random-y random-rot
          best-x best-y best-z best-rot
@@ -626,10 +626,15 @@
           (send gripper-inside :dissoc stick-center)
           (send gripper-inside :locate (float-vector 0 0 (+ highest-z (/ gr-z 2.0))) :local)
           ;; for visualization
-          ;; (send *fetch* :inverse-kinematics
-          ;;       (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
-          ;;                    :rpy (float-vector 0 pi/2 (* -1 random-rot))
-          ;;                    :use-torso nil))
+          (when visualize-searching
+            (send *fetch* :inverse-kinematics
+                  (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
+                               :rpy (float-vector 0 pi/2 (* -1 random-rot))
+                               :use-torso nil))
+            (send *irtviewer* :objects (append (list *fetch* pc) region))
+            (send *irtviewer* :viewer :viewing :look #f(2200 3492 2340) #f(530.939 480.548 948.668) #f(0 0 1))
+            (send *irtviewer* :draw-objects))
+          ;; (objects (append (list *fetch* pc) region)))
           ;; (objects (append (list *fetch* pc stick-l stick-r stick-center gripper-inside) region))
           ;; (when (eq i 100)
           ;;   (print highest-z)
@@ -683,7 +688,7 @@
 
 ;; sample
 ;; decide-grope-point occupied-pointcloud target-region :x-offset 80 :y-offset 80 :z-offset 60
-(defun decide-grope-point (pc target-region &key (x-offset 0) (y-offset 0) (z-offset 0))
+(defun decide-grope-point (pc target-region &key (x-offset 0) (y-offset 0) (z-offset 0) (visualize-searching nil))
   (let ((hand-pos nil) (x nil) (y nil) (z nil) (fetch-copy nil) (points 0) (max-points 0)
         (min-x (+ (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))) x-offset))
         (max-x (- (reduce #'max (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))) x-offset))
@@ -691,7 +696,7 @@
         (max-y (- (reduce #'max (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))) y-offset))
         (min-z (+ (reduce #'min (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))) z-offset))
         (max-z (- (reduce #'max (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))) z-offset)))
-    (setq points (search-graspable-point pc :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z :iter-count 500))
+    (setq points (search-graspable-point pc :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z :iter-count 500 :visualize-searching visualize-searching))
     (setq max-points points)
     (setq fetch-copy (copy-object *fetch*))
     (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
@@ -699,7 +704,7 @@
     (setq x (aref hand-pos 0))
     (setq y (aref hand-pos 1))
     (setq z (aref hand-pos 2))
-    (setq points (search-graspable-point pc :min-x (max min-x (- x 100)) :max-x (min max-x (+ x 100)) :min-y (max min-y (- y 100)) :max-y (min max-y (+ y 100)) :min-z min-z :max-z max-z :iter-count 500))
+    (setq points (search-graspable-point pc :min-x (max min-x (- x 100)) :max-x (min max-x (+ x 100)) :min-y (max min-y (- y 100)) :max-y (min max-y (+ y 100)) :min-z min-z :max-z max-z :iter-count 500 :visualize-searching visualize-searching))
     (when (< max-points points)
       (setq fetch-copy (copy-object *fetch*))
       (setq max-points points)
@@ -708,7 +713,7 @@
     (setq x (aref hand-pos 0))
     (setq y (aref hand-pos 1))
     (setq z (aref hand-pos 2))
-    (setq points (search-graspable-point pc :min-x (max min-x (- x 50)) :max-x (min max-x (+ x 50)) :min-y (max min-y (- y 50)) :max-y (min max-y (+ y 50)) :min-z min-z :max-z max-z :iter-count 500))
+    (setq points (search-graspable-point pc :min-x (max min-x (- x 50)) :max-x (min max-x (+ x 50)) :min-y (max min-y (- y 50)) :max-y (min max-y (+ y 50)) :min-z min-z :max-z max-z :iter-count 500 :visualize-searching visualize-searching))
     (when (< max-points points)
       (setq fetch-copy (copy-object *fetch*))
       (setq max-points points)
