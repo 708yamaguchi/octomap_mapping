@@ -625,6 +625,13 @@
           (send gripper-inside :dissoc stick-r)
           (send gripper-inside :dissoc stick-center)
           (send gripper-inside :locate (float-vector 0 0 (+ highest-z (/ gr-z 2.0))) :local)
+          ;; update objects related counting pointcloud
+          (send gripper-inside :worldcoords)
+          ;; count the point inside of gripper-inside
+          (dolist (point point-list-inside)
+            (if (equal (send gripper-inside :insidep point) :inside)
+              (setq inside-point (+ inside-point 1))))
+
           ;; for visualization
           (when visualize-searching
             (send *fetch* :inverse-kinematics
@@ -632,20 +639,15 @@
                                :rpy (float-vector 0 pi/2 (* -1 random-rot))
                                :use-torso nil))
             (send *irtviewer* :objects (append (list *fetch* pc) region))
-            (send *irtviewer* :viewer :viewing :look #f(2200 3492 2340) #f(530.939 480.548 948.668) #f(0 0 1))
-            (send *irtviewer* :draw-objects))
-          ;; (objects (append (list *fetch* pc) region)))
+            (send *irtviewer* :viewer :viewing :look #f(2200 3492 2340) #f(530.939 480.548 948.668) #f(0 0 1)) ;; fix camera position and posture
+            (send *irtviewer* :change-background (float-vector (/ inside-point 30.0) 0 0)) ;; 30.0 is given by human, tuned parameter.
+            (send *irtviewer* :draw-objects)
+            (send *irtviewer* :redraw)
+            (send *irtviewer* :viewer :viewsurface :string 100 100 (format nil "points: ~A" inside-point))
+            (send *irtviewer* :viewer :viewsurface :flush)
           ;; (objects (append (list *fetch* pc stick-l stick-r stick-center gripper-inside) region))
-          ;; (when (eq i 100)
-          ;;   (print highest-z)
-          ;;   (break))
+            )
 
-          ;; update objects related counting pointcloud
-          (send gripper-inside :worldcoords)
-          ;; count the point inside of gripper-inside
-          (dolist (point point-list-inside)
-            (if (equal (send gripper-inside :insidep point) :inside)
-              (setq inside-point (+ inside-point 1))))
           (when (> inside-point max-inside-point)
             (setq max-inside-point inside-point)
             (setq best-x random-x)
@@ -678,7 +680,18 @@
           (send stick-r :translate (float-vector 0 0 (- (/ (+ max-z min-z) 2.0) (aref (send stick-r :worldpos) 2))) :world)
           (send stick-center :translate (float-vector 0 0 (- (/ (+ max-z min-z) 2.0) (aref (send stick-center :worldpos) 2))) :world)
           ;; (objects (append (list *fetch* pc stick-l stick-r stick-center) region)) ;; for debug view
-          (objects (append (list *fetch* pc) region))
+          (if visualize-searching
+            (progn
+              (send *irtviewer* :objects (append (list *fetch* pc) region))
+              (send *irtviewer* :viewer :viewing :look #f(2200 3492 2340) #f(530.939 480.548 948.668) #f(0 0 1)) ;; fix camera position and posture
+              (format t "max-inside-point: ~A" max-inside-point)
+              (send *irtviewer* :change-background (float-vector (/ max-inside-point 30.0) 0 0)) ;; 30.0 is given by human, tuned parameter.
+              (send *irtviewer* :draw-objects)
+              (send *irtviewer* :redraw)
+              (send *irtviewer* :viewer :viewsurface :string 100 100 (format nil "points: ~A" max-inside-point))
+              (send *irtviewer* :viewer :viewsurface :flush)
+              )
+            (objects (append (list *fetch* pc) region)))
           max-inside-point)
         (progn
           (format t "cannot find graspable point.~%")
@@ -965,6 +978,29 @@
             (+ angle (send *fetch* :rarm :wrist-r :joint-angle)))
       (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)))
   (send *fetch* :rarm :wrist-r :joint-angle))
+
+
+;; Method for writing words on IRTviewer
+;; See https://github.com/euslisp/jskeus/pull/530
+(in-package "GL")
+(defmethod glviewsurface
+  (:string
+   (x y str &optional (fid x:font-courb24)) ;;x::font-helvetica-bold-12))
+   (send self :makecurrent)
+   (glMatrixMode GL_PROJECTION)
+   (glPushMatrix)
+   (send self :2d-mode)
+   (unless (eq (get self :glxusexfont) fid)
+     (setf (get self :glxusexfont) fid)
+     (glxUseXfont fid 32 96 (+ 1000 32)))
+   (glRasterPos2i (round x) (- (send self :height) (round y)))
+   (glListBase 1000)
+   (glCallLists (length str) GL_UNSIGNED_BYTE str)
+   (send self :3d-mode)
+   (glMatrixMode GL_PROJECTION)
+   (glPopMatrix)
+   (glMatrixMode GL_MODELVIEW)
+      ))
 
 ;; do not return pointcloud when loading this file
 nil
