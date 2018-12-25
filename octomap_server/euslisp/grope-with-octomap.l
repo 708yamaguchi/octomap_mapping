@@ -541,9 +541,9 @@
          (gripper-r (send (make-cube gr-x gr-y gr-z) :locate (float-vector 0 (/ gr-open 2) 0)))
          (gripper-inside (make-cube gr-x (- gr-open gr-y) gr-z))
          (point-list (send pc :point-list))
-         (point-list-sorted nil) (point-list-inside nil)
+         (point-list-sorted nil) (point-list-inside nil) (point-list-outside nil)
          highest-z
-         (inside-point 0) (max-inside-point 0)
+         (inside-point 0) (max-inside-point 0) (best-pc-inside-gripper nil) (best-pc-outside-gripper nil)
          )
     (send *fetch* :torso :waist-z :joint-angle 300)
     (send *fetch* :stop-grasp)
@@ -577,7 +577,8 @@
       (dolist (point point-list)
         (setq point-list-sorted (append point-list-sorted (list point)))
         (if (and (<= min-x (aref point 0) max-x) (<= min-y (aref point 1) max-y) (<= min-z (aref point 2) max-z))
-          (setq point-list-inside (append point-list-inside (list point)))))
+          (setq point-list-inside (append point-list-inside (list point)))
+          (setq point-list-outside (append point-list-outside (list point)))))
       (setq point-list-sorted (copy-object point-list-sorted))
       ;; (sort) is destructively sort
       (sort point-list-sorted #'(lambda (x y) (> (aref x 2) (aref y 2))))
@@ -628,32 +629,53 @@
           ;; update objects related counting pointcloud
           (send gripper-inside :worldcoords)
           ;; count the point inside of gripper-inside
-          (dolist (point point-list-inside)
-            (if (equal (send gripper-inside :insidep point) :inside)
-              (setq inside-point (+ inside-point 1))))
+          (let ((point-list-inside-gripper nil)
+                (point-list-outside-gripper (copy-object point-list-outside)))
+            (dolist (point point-list-inside)
+              (if (equal (send gripper-inside :insidep point) :inside)
+                (progn
+                  (setq inside-point (+ inside-point 1))
+                  (setq point-list-inside-gripper (append point-list-inside-gripper (list point))))
+                (setq point-list-outside-gripper (append point-list-outside-gripper (list point)))))
 
-          ;; for visualization
-          (when visualize-searching
-            (send *fetch* :inverse-kinematics
-                  (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
-                               :rpy (float-vector 0 pi/2 (* -1 random-rot))
-                               :use-torso nil))
-            (send *irtviewer* :objects (append (list *fetch* pc) region))
-            (send *irtviewer* :viewer :viewing :look #f(2200 3492 2340) #f(530.939 480.548 948.668) #f(0 0 1)) ;; fix camera position and posture
-            (send *irtviewer* :change-background (float-vector (/ inside-point 30.0) 0 0)) ;; 30.0 is given by human, tuned parameter.
-            ;; (send *irtviewer* :draw-objects)
-            (send *irtviewer* :redraw)
-            (send *irtviewer* :viewer :viewsurface :string 100 100 (format nil "points: ~A" inside-point))
-            (send *irtviewer* :viewer :viewsurface :flush)
-          ;; (objects (append (list *fetch* pc stick-l stick-r stick-center gripper-inside) region))
-            )
+            ;; for visualization
+            (when visualize-searching
+              (send *fetch* :inverse-kinematics
+                    (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
+                                 :rpy (float-vector 0 pi/2 (* -1 random-rot))
+                                 :use-torso nil))
+              ;; (send *irtviewer* :objects (append (list *fetch* pc) region))
+              (let ((pc-inside-gripper nil) (pc-outside-gripper nil))
+                (if point-list-inside-gripper
+                  (progn (setq pc-inside-gripper (instance pointcloud :init :points
+                                                           (apply #'matrix point-list-inside-gripper)))
+                         (send pc-inside-gripper :colors (apply #'matrix (make-list (length point-list-inside-gripper)
+                                                                                    :initial-element #f(0.3 1 0.3)))))
+                  (setq pc-inside-gripper (instance pointcloud :init)))
+                (if point-list-outside-gripper
+                  (progn (setq pc-outside-gripper (instance pointcloud :init :points
+                                                            (apply #'matrix point-list-outside-gripper)))
+                         (send pc-outside-gripper :colors (apply #'matrix (make-list (length point-list-outside-gripper)
+                                                                                     :initial-element #f(0.4 0.4 0.4)))))
+                  (setq pc-outside-gripper (instance pointcloud :init)))
+                ;; (send *irtviewer* :redraw)
+                (send *irtviewer* :objects (append (list *fetch* pc-inside-gripper pc-outside-gripper) region))
+                (send *irtviewer* :viewer :viewing :look #f(2200 3492 2340) #f(530.939 480.548 948.668) #f(0 0 1)) ;; fix camera position and posture
+                ;; (send *irtviewer* :change-background (float-vector (/ inside-point 30.0) 0 0)) ;; 30.0 is given by human, tuned parameter.
+                (send *irtviewer* :draw-objects :flush t)
+                (send *irtviewer* :viewer :viewsurface :string 100 100 (format nil "points: ~A" inside-point))
+                (send *irtviewer* :viewer :viewsurface :flush)
+                ;; (objects (append (list *fetch* pc stick-l stick-r stick-center gripper-inside) region))
 
-          (when (> inside-point max-inside-point)
-            (setq max-inside-point inside-point)
-            (setq best-x random-x)
-            (setq best-y random-y)
-            (setq best-z highest-z)
-            (setq best-rot random-rot))
+                (when (> inside-point max-inside-point)
+                  (setq max-inside-point inside-point)
+                  (setq best-x random-x)
+                  (setq best-y random-y)
+                  (setq best-z highest-z)
+                  (setq best-rot random-rot)
+                  (setq best-pc-inside-gripper (copy-object pc-inside-gripper))
+                  (setq best-pc-outside-gripper (copy-object pc-outside-gripper))
+                  ))))
           ;; redo the movement of gripper-l, gripper-r and gripper-inside
           (send gripper-inside :locate (float-vector 0 0 0) :world)
           (send stick-l :locate (float-vector 0 (/ gr-open -2.0) (/ (+ max-z min-z) 2.0)) :world)
@@ -682,12 +704,13 @@
           ;; (objects (append (list *fetch* pc stick-l stick-r stick-center) region)) ;; for debug view
           (if visualize-searching
             (progn
-              (send *irtviewer* :objects (append (list *fetch* pc) region))
+              ;; (send *irtviewer* :objects (append (list *fetch* pc) region))
+              ;; (send *irtviewer* :redraw)
+              (send *irtviewer* :objects (append (list *fetch* best-pc-inside-gripper best-pc-outside-gripper) region))
               (send *irtviewer* :viewer :viewing :look #f(2200 3492 2340) #f(530.939 480.548 948.668) #f(0 0 1)) ;; fix camera position and posture
               (format t "max-inside-point: ~A" max-inside-point)
-              (send *irtviewer* :change-background (float-vector (/ max-inside-point 30.0) 0 0)) ;; 30.0 is given by human, tuned parameter.
-              ;; (send *irtviewer* :draw-objects)
-              (send *irtviewer* :redraw)
+              ;; (send *irtviewer* :change-background (float-vector (/ max-inside-point 30.0) 0 0)) ;; 30.0 is given by human, tuned parameter.
+              (send *irtviewer* :draw-objects :flush t)
               (send *irtviewer* :viewer :viewsurface :string 100 100 (format nil "points: ~A" max-inside-point))
               (send *irtviewer* :viewer :viewsurface :flush)
               )
