@@ -649,12 +649,14 @@
                 (if point-list-inside-gripper
                   (progn (setq pc-inside-gripper (instance pointcloud :init :points
                                                            (apply #'matrix point-list-inside-gripper)))
+                         (send pc-inside-gripper :point-size 4.0)
                          (send pc-inside-gripper :colors (apply #'matrix (make-list (length point-list-inside-gripper)
                                                                                     :initial-element #f(0.3 1 0.3)))))
                   (setq pc-inside-gripper (instance pointcloud :init)))
                 (if point-list-outside-gripper
                   (progn (setq pc-outside-gripper (instance pointcloud :init :points
                                                             (apply #'matrix point-list-outside-gripper)))
+                         (send pc-outside-gripper :point-size 4.0)
                          (send pc-outside-gripper :colors (apply #'matrix (make-list (length point-list-outside-gripper)
                                                                                      :initial-element #f(0.4 0.4 0.4)))))
                   (setq pc-outside-gripper (instance pointcloud :init)))
@@ -706,6 +708,7 @@
             (progn
               ;; (send *irtviewer* :objects (append (list *fetch* pc) region))
               ;; (send *irtviewer* :redraw)
+              (unix:usleep (* 100 1000))
               (send *irtviewer* :objects (append (list *fetch* best-pc-inside-gripper best-pc-outside-gripper) region))
               (send *irtviewer* :viewer :viewing :look #f(2200 3492 2340) #f(530.939 480.548 948.668) #f(0 0 1)) ;; fix camera position and posture
               (format t "max-inside-point: ~A" max-inside-point)
