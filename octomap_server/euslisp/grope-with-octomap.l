@@ -641,7 +641,7 @@
             (send *irtviewer* :objects (append (list *fetch* pc) region))
             (send *irtviewer* :viewer :viewing :look #f(2200 3492 2340) #f(530.939 480.548 948.668) #f(0 0 1)) ;; fix camera position and posture
             (send *irtviewer* :change-background (float-vector (/ inside-point 30.0) 0 0)) ;; 30.0 is given by human, tuned parameter.
-            (send *irtviewer* :draw-objects)
+            ;; (send *irtviewer* :draw-objects)
             (send *irtviewer* :redraw)
             (send *irtviewer* :viewer :viewsurface :string 100 100 (format nil "points: ~A" inside-point))
             (send *irtviewer* :viewer :viewsurface :flush)
@@ -686,7 +686,7 @@
               (send *irtviewer* :viewer :viewing :look #f(2200 3492 2340) #f(530.939 480.548 948.668) #f(0 0 1)) ;; fix camera position and posture
               (format t "max-inside-point: ~A" max-inside-point)
               (send *irtviewer* :change-background (float-vector (/ max-inside-point 30.0) 0 0)) ;; 30.0 is given by human, tuned parameter.
-              (send *irtviewer* :draw-objects)
+              ;; (send *irtviewer* :draw-objects)
               (send *irtviewer* :redraw)
               (send *irtviewer* :viewer :viewsurface :string 100 100 (format nil "points: ~A" max-inside-point))
               (send *irtviewer* :viewer :viewsurface :flush)
