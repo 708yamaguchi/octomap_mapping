@@ -960,9 +960,9 @@
          (ret-cube (make-cube (- (- max-x-round diff-x) (+ min-x-round diff-x))
                               (- (- max-y-round diff-y) (+ min-y-round diff-y))
                               (- max-z min-z)))) ;; do not consider z
-    (send ret-cube :locate (float-vector (aref (send target-region :worldpos) 0)
-                                         (aref (send target-region :worldpos) 1)
-                                         (aref (send target-region :worldpos) 2)))
+    (send ret-cube :locate (float-vector (aref (send region :worldpos) 0)
+                                         (aref (send region :worldpos) 1)
+                                         (aref (send region :worldpos) 2)))
     (send ret-cube :worldcoords) ;; update position of edges of ret-cube
     ret-cube))
 
