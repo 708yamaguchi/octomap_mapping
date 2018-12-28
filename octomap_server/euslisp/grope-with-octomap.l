@@ -244,7 +244,9 @@
               min-x max-x min-y max-y min-z max-z (- max-x min-x) (- max-y min-y) (- max-z min-z))
       (format t "clipped bb region:~%x: ~A ~A, y: ~A ~A, z: ~A ~A, size: (~A, ~A, ~A)~%"
               min-x-round max-x-round min-y-round max-y-round min-z max-z (- max-x-round min-x-round) (- max-y-round min-y-round) (- max-z min-z))
-      (setq unknown-dist (unknown-distribution :min-x min-x-round :max-x max-x-round :min-y min-y-round :max-y max-y-round :min-z min-z :max-z max-z
+      (ros::spin-once)
+      (setq unknown-dist (unknown-distribution (get-octo-pointcloud :type "occupied") (get-octo-pointcloud :type "unknown")
+                                               :min-x min-x-round :max-x max-x-round :min-y min-y-round :max-y max-y-round :min-z min-z :max-z max-z
                                                :block-size block-size))
       ;; calculate most unknown area
       (dotimes (i (car (array-dimensions unknown-dist)))
@@ -767,15 +769,15 @@
 ;; NOTE arguments of this function means region of the target space, not octomap region.
 ;; return map of where is not explored very much
 ;; (unknown-distribution :min-x *min-x* :max-x *max-x* :min-y *min-y* :max-y *max-y* :min-z *min-z* :max-z *max-z* :block-size 50.0)
-(defun unknown-distribution (&key (min-x *min-x*) (max-x *max-x*) (min-y *min-y*) (max-y *max-y*) (min-z *min-z*) (max-z *max-z*) (block-size 50.0)
-                                  (view-octomap-2d nil) (view-unknown-distribution t))
+(defun unknown-distribution (occupied-pointcloud unknown-pointcloud
+                             &key (min-x *min-x*) (max-x *max-x*) (min-y *min-y*) (max-y *max-y*) (min-z *min-z*) (max-z *max-z*) (block-size 50.0)
+                             (view-octomap-2d nil) (view-unknown-distribution t))
   (unless (and (eq (mod (round (- *max-x* *min-x*)) (round block-size)) 0)
                (eq (mod (round (- *max-y* *min-y*)) (round block-size)) 0))
     (format t "target region is not a multiple of block-size~%")
     (return-from unknown-distribution nil))
-  (ros::spin-once)
-  (let* ((occupied-pc (get-octo-pointcloud :type "occupied"))
-         (unknown-pc (get-octo-pointcloud :type "unknown"))
+  (let* ((occupied-pc occupied-pointcloud)
+         (unknown-pc unknonwn-pointcloud)
          (octomap-2d (apply #'matrix (make-list (round (/ (- max-x min-x) *resolution*)) :initial-element (make-list (round (/ (- max-y min-y) *resolution*)) :initial-element 0)))))
     (when (eq occupied-pc nil)
       (format t "cannot find occupied grids~%")
