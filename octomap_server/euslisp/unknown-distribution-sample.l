@@ -107,3 +107,5 @@ float64 z
 (load-target-region-offset30)
 (load-inscribed-target-region)
 (load "package://octomap_server/euslisp/grope-with-octomap.l")
+(send *fetch* :torso :waist-z :joint-angle 350)
+(send *fetch* :head :neck-p :joint-angle 50)
