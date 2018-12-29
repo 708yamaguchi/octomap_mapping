@@ -1,3 +1,20 @@
+(defun main ()
+  (load-max/min-x/y/z)
+  (load-unknown-pointcloud)
+  (load-occupied-pointcloud)
+  (load-boxes)
+  (load-target-region-offset30)
+  (load-inscribed-target-region)
+  (load "package://octomap_server/euslisp/grope-with-octomap.l")
+  (send *fetch* :torso :waist-z :joint-angle 350)
+  (send *fetch* :head :neck-p :joint-angle 50)
+
+  (format t "
+(unknown-distribution occupied-pointcloud unknown-pointcloud :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z)
+"
+))
+
+
 (defun load-max/min-x/y/z ()
   (setq min-x 562.019)
   (setq max-x 712.019)
@@ -94,18 +111,11 @@ float64 z
   (setq inscribed-target-region '#1=#s(body plist ((:volume . 1.950000e+07) (:centroid . #f(0.0 -8.675180e-16 -3.582010e-15))) rot #2f((1.0 0.0 0.0) (0.0 1.0 0.0) (0.0 0.0 1.0)) pos #f(637.019 -0.112772 725.0) parent nil descendants nil worldcoords #s(coordinates plist nil rot #2f((1.0 0.0 0.0) (0.0 1.0 0.0) (0.0 0.0 1.0)) pos #f(637.019 -0.112772 725.0)) manager #1# changed nil box #s(bounding-box geometry::minpoint #f(560.819 -127.113 460.84) geometry::maxpoint #f(713.219 126.887 989.16)) faces (#7=#s(face plist nil normal #f(0.0 0.0 -1.0) distance 465.0 convexp t edges (#22=#s(edge plist nil pvert #2=#f(712.019 124.887 465.0) nvert #3=#f(562.019 124.887 465.0) pface #5=#s(face plist nil normal #f(0.0 1.0 0.0) distance -124.887 convexp t edges (#20=#s(edge plist nil pvert #2# nvert #11=#f(712.019 124.887 985.0) pface #16=#s(face plist nil normal #f(1.0 0.0 0.0) distance -712.019 convexp t edges (#18=#s(edge plist nil pvert #17=#f(712.019 -125.113 465.0) nvert #14=#f(712.019 -125.113 985.0) pface #15=#s(face plist nil normal #f(0.0 -1.0 0.0) distance -125.113 convexp t edges (#8=#s(edge plist nil pvert #6=#f(562.019 -125.113 465.0) nvert #10=#f(562.019 -125.113 985.0) pface #4=#s(face plist nil normal #f(-1.0 0.0 0.0) distance 562.019 convexp t edges (#23=#s(edge plist nil pvert #9=#f(562.019 124.887 985.0) nvert #3# pface #4# nface #5# angle 1.5708 flags 0) #27=#s(edge plist nil pvert #3# nvert #6# pface #4# nface #7# angle 1.5708 flags 0) #8# #13=#s(edge plist nil pvert #9# nvert #10# pface #12=#s(face plist nil normal #f(0.0 0.0 1.0) distance -985.0 convexp t edges (#24=#s(edge plist nil pvert #11# nvert #9# pface #12# nface #5# angle 1.5708 flags 0) #13# #19=#s(edge plist nil pvert #10# nvert #14# pface #12# nface #15# angle 1.5708 flags 0) #21=#s(edge plist nil pvert #14# nvert #11# pface #12# nface #16# angle 1.5708 flags 0)) vertices (#11# #9# #10# #14# #11#) model-normal #f(0.0 0.0 1.0) model-distance -260.0 holes nil mbody #1# primitive-face #12# id (:top)) nface #4# angle 1.5708 flags 0)) vertices (#9# #3# #6# #10# #9#) model-normal #f(-1.0 0.0 0.0) model-distance -75.0 holes nil mbody #1# primitive-face #4# id (:side 0 :-x)) nface #15# angle 1.5708 flags 0) #26=#s(edge plist nil pvert #6# nvert #17# pface #15# nface #7# angle 1.5708 flags 0) #18# #19#) vertices (#10# #6# #17# #14# #10#) model-normal #f(0.0 -1.0 0.0) model-distance -125.0 holes nil mbody #1# primitive-face #15# id (:side 1 :-y)) nface #16# angle 1.5708 flags 0) #25=#s(edge plist nil pvert #17# nvert #2# pface #16# nface #7# angle 1.5708 flags 0) #20# #21#) vertices (#14# #17# #2# #11# #14#) model-normal #f(1.0 0.0 0.0) model-distance -75.0 holes nil mbody #1# primitive-face #16# id (:side 2 :x)) nface #5# angle 1.5708 flags 0) #22# #23# #24#) vertices (#11# #2# #3# #9# #11#) model-normal #f(0.0 1.0 0.0) model-distance -125.0 holes nil mbody #1# primitive-face #5# id (:side 3 :y)) nface #7# angle 1.5708 flags 0) #25# #26# #27#) vertices (#3# #2# #17# #6# #3#) model-normal #f(0.0 0.0 -1.0) model-distance -260.0 holes nil mbody #1# primitive-face #7# id (:bottom)) #12# #5# #16# #15# #4#) edges (#22# #24# #25# #20# #21# #26# #18# #19# #23# #27# #8# #13#) vertices (#2# #11# #17# #14# #3# #6# #10# #9#) model-vertices (#f(75.0 125.0 -260.0) #f(75.0 125.0 260.0) #f(75.0 -125.0 -260.0) #f(75.0 -125.0 260.0) #f(-75.0 125.0 -260.0) #f(-75.0 -125.0 -260.0) #f(-75.0 -125.0 260.0) #f(-75.0 125.0 260.0)) convexp t geometry::evertedp nil csg ((:cube 150.0 250.0 520.0))))
 )
 
+(objects (list *fetch*))
+(format t "Press Enter key to start~%")
 
-(load-max/min-x/y/z)
-(load-unknown-pointcloud)
-(load-occupied-pointcloud)
-(load-boxes)
-(load-target-region-offset30)
-(load-inscribed-target-region)
-(load "package://octomap_server/euslisp/grope-with-octomap.l")
-(send *fetch* :torso :waist-z :joint-angle 350)
-(send *fetch* :head :neck-p :joint-angle 50)
+(do-until-key
+ (x::window-main-one)
+ (unix:sleep 1))
 
-(format t "
-(unknown-distribution occupied-pointcloud unknown-pointcloud :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z)
-"
-)
+(main)

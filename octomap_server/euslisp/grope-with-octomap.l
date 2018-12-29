@@ -883,8 +883,8 @@
         (objects (append (list *fetch*) dist-vis-list direction-arrow))
         ;; (send *irtviewer* :change-background #f(0.3 0.3 0.1))
         (send *irtviewer* :change-background #f(0.2 0.2 0.2))
-        (send *irtviewer* :viewer :viewing :look #f(640.0 0.0 1200) #f(640.0 0.0 550.0) #f(0 0 1)) ;; above view
-        ;; (send *irtviewer* :viewer :viewing :look #f(2635.65 -2264.36 2194.42) #f(-655.171 698.709 314.742) #f(0 0 1)) ;; side view
+        ;; (send *irtviewer* :viewer :viewing :look #f(640.0 0.0 1200) #f(640.0 0.0 550.0) #f(0 0 1)) ;; above view
+        (send *irtviewer* :viewer :viewing :look #f(2635.65 -2264.36 2194.42) #f(-655.171 698.709 314.742) #f(0 0 1)) ;; side view
         (send *irtviewer* :draw-objects :flush t)
         (send *irtviewer* :redraw)
         ;; draw arrow to move hand

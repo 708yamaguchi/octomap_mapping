@@ -4,10 +4,6 @@
 (load "package://octomap_server/euslisp/box-env2.l")
 
 (defun main ()
-  (decide-grope-point occupied-pointcloud target-region :x-offset 40 :y-offset 40 :z-offset 20 :visualize-searching t)
-  )
-
-(defun main ()
   (let* ((pc occupied-pointcloud) (target-region target-region)
          (x-offset 40) (y-offset 40) (z-offset 20)
          (hand-pos nil) (x nil) (y nil) (z nil) (fetch-copy nil) (points 0) (max-points 0)
