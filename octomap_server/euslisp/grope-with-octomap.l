@@ -2,6 +2,7 @@
 
 (load "package://bag_segmentation/euslisp/bag-manipulation-interface.l")
 (load "package://bag_segmentation/euslisp/utils.l")
+(load "package://euslib/euslisp/arrow-utils.l")
 
 
 ;; set working region
@@ -827,7 +828,8 @@
     (let* ((x-size (round (/ (- max-x min-x) block-size))) ;; x-size of target region, not octomap region. divide octomap area into (x-size * y-size) areas
            (y-size (round (/ (- max-y min-y) block-size))) ;; y-size of target region, not octomap region.
            (dist-mat (apply #'matrix (make-list x-size :initial-element (make-list y-size :initial-element 0))))
-           (max-unknown 0) dist-vis-list cube
+           (max-unknown 0) max-unknown-place dist-vis-list cube
+           (adjacent-max-unknown 0) adjacent-max-unknown-place
            (region-cube (send (make-cube (- max-x min-x) (- max-y min-y) (- max-z min-z))
                               :locate (float-vector (* 0.5 (+ max-x min-x)) (* 0.5 (+ max-y min-y)) (* 0.5 (+ max-z min-z)))))
            (region-edge (progn (send region-cube :worldcoords) (send region-cube :edges))))
@@ -841,23 +843,48 @@
         )))
 
       (when view-unknown-distribution
+        ;; calculate the most unknown place
         (dotimes (k (car (array-dimensions dist-mat)))
           (dotimes (l (cadr (array-dimensions dist-mat)))
-            (if (< max-unknown (aref dist-mat k l))
+            (when (< max-unknown (aref dist-mat k l))
+              (setq max-unknown-place (list k l))
               (setq max-unknown (aref dist-mat k l)))))
+        ;; calculate the most unknown adjacent place
+        (dotimes (i 4)
+          (let ((x nil) (y nil))
+            (cond ((eq i 0) (setq x 1) (setq y 0))
+                  ((eq i 1) (setq x 0) (setq y 1))
+                  ((eq i 2) (setq x -1) (setq y 0))
+                  ((eq i 3) (setq x 0) (setq y -1)))
+            ;; when ((+ (car max-unknown-place) x), (+ (cadr max-unknown-place) y)) is not out of dist-mat
+            (when (not (or (< (+ (car max-unknown-place) x) 0) (<= (car (array-dimensions dist-mat)) (+ (car max-unknown-place) x))
+                           (< (+ (cadr max-unknown-place) y) 0) (<= (cadr (array-dimensions dist-mat)) (+ (cadr max-unknown-place) y))))
+              (when (< adjacent-max-unknown (aref dist-mat (+ (car max-unknown-place) x) (+ (cadr max-unknown-place) y)))
+                (setq adjacent-max-unknown (aref dist-mat (+ (car max-unknown-place) x) (+ (cadr max-unknown-place) y)))
+                (setq adjacent-max-unknown-place (list x y))))))
+
         (dotimes (k (car (array-dimensions dist-mat)))
           (dotimes (l (cadr (array-dimensions dist-mat)))
             (setq cube (make-cube (/ (- max-x min-x) x-size) (/ (- max-y min-y) y-size) *resolution*))
-            (send cube :set-color (float-vector (max (/ (aref dist-mat k l) (float max-unknown)) 0) 0 0))
+            (send cube :set-color (float-vector 0 0 (max (/ (aref dist-mat k l) (float max-unknown)) 0)))
             (send cube :translate (float-vector (+ (* (/ (- max-x min-x) x-size) (+ k 0.5)) min-x) (+ (* (/ (- max-y min-y) y-size) (+ l 0.5)) min-y) *min-z*) :world)
             (setq dist-vis-list (append dist-vis-list (list cube)))))
         ;; (objects (append (list *fetch*) dist-vis-list region-edge))
         (objects (append (list *fetch*) dist-vis-list))
         ;; (send *irtviewer* :change-background #f(0.3 0.3 0.1))
         (send *irtviewer* :change-background #f(0.2 0.2 0.2))
-        (send *irtviewer* :viewer :viewing :look #f(640.0 0.0 1200) #f(640.0 0.0 550.0) #f(0 0 1))
+        ;; (send *irtviewer* :viewer :viewing :look #f(640.0 0.0 1200) #f(640.0 0.0 550.0) #f(0 0 1))
+        (send *irtviewer* :viewer :viewing :look #f(1920.26 -1377.66 1203.15) #f(-453.751 614.367 -48.9452) #f(0 0 1))
         (send *irtviewer* :draw-objects :flush t)
         (send *irtviewer* :redraw)
+        ;; draw arrow to move hand
+        (draw-arrow (float-vector (+ (* (/ (- max-x min-x) x-size) (+ (car max-unknown-place) 0.5)) min-x)
+                                  (+ (* (/ (- max-y min-y) y-size) (+ (cadr max-unknown-place) 0.5)) min-y)
+                                  *min-z*)
+                    (float-vector (* (/ (- max-x min-x) x-size) (car adjacent-max-unknown-place))
+                                  (* (/ (- max-y min-y) y-size) (cadr adjacent-max-unknown-place))
+                                  0)
+                    :flush t)
         (x::window-main-one))
       dist-mat)
     ))
