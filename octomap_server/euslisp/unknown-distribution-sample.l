@@ -1,12 +1,4 @@
 (format t "
-(load-max/min-x/y/z): min-x, max-x, min-y, max-y, min-z, max-z. these mean range of inscribed region~%
-(load-unknown-pointcloud): unknown-pointcloud~%
-(load-occupied-pointcloud): occupied-pointcloud~%
-(load-boxes): boxes~%
-(load-target-region-offset30); target-region-offset30~%
-(load-inscribed-target-region): inscribed-target-region~%
-~%
-(load package://octomap_server/euslisp/grope-with-octomap.l)
 (unknown-distribution occupied-pointcloud unknown-pointcloud :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z)
 "
 )
@@ -114,3 +106,4 @@ float64 z
 (load-boxes)
 (load-target-region-offset30)
 (load-inscribed-target-region)
+(load "package://octomap_server/euslisp/grope-with-octomap.l")
