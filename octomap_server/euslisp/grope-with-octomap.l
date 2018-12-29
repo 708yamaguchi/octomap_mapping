@@ -779,7 +779,8 @@
     (return-from unknown-distribution nil))
   (let* ((occupied-pc occupied-pointcloud)
          (unknown-pc unknown-pointcloud)
-         (octomap-2d (apply #'matrix (make-list (round (/ (- max-x min-x) *resolution*)) :initial-element (make-list (round (/ (- max-y min-y) *resolution*)) :initial-element 0)))))
+         (octomap-2d (apply #'matrix (make-list (round (/ (- max-x min-x) *resolution*)) :initial-element (make-list (round (/ (- max-y min-y) *resolution*)) :initial-element 0))))
+         direction-arrow)
     (when (eq occupied-pc nil)
       (format t "cannot find occupied grids~%")
       (setq occupied-pc (instance pointcloud :init)))
@@ -870,21 +871,23 @@
             (send cube :translate (float-vector (+ (* (/ (- max-x min-x) x-size) (+ k 0.5)) min-x) (+ (* (/ (- max-y min-y) y-size) (+ l 0.5)) min-y) *min-z*) :world)
             (setq dist-vis-list (append dist-vis-list (list cube)))))
         ;; (objects (append (list *fetch*) dist-vis-list region-edge))
-        (objects (append (list *fetch*) dist-vis-list))
+        (setq direction-arrow
+              (make-arrow
+               (float-vector (+ (* (/ (- max-x min-x) x-size) (+ (car max-unknown-place) 0.5)) min-x)
+                             (+ (* (/ (- max-y min-y) y-size) (+ (cadr max-unknown-place) 0.5)) min-y)
+                             (+ *min-z* 20)) ;; pos
+               (float-vector (* (/ (- max-x min-x) x-size) (car adjacent-max-unknown-place))
+                             (* (/ (- max-y min-y) y-size) (cadr adjacent-max-unknown-place))
+                             0) ;; vec
+               :color #f(1 0 0)))
+        (objects (append (list *fetch*) dist-vis-list direction-arrow))
         ;; (send *irtviewer* :change-background #f(0.3 0.3 0.1))
         (send *irtviewer* :change-background #f(0.2 0.2 0.2))
-        ;; (send *irtviewer* :viewer :viewing :look #f(640.0 0.0 1200) #f(640.0 0.0 550.0) #f(0 0 1))
-        (send *irtviewer* :viewer :viewing :look #f(1920.26 -1377.66 1203.15) #f(-453.751 614.367 -48.9452) #f(0 0 1))
+        (send *irtviewer* :viewer :viewing :look #f(640.0 0.0 1200) #f(640.0 0.0 550.0) #f(0 0 1)) ;; above view
+        ;; (send *irtviewer* :viewer :viewing :look #f(2635.65 -2264.36 2194.42) #f(-655.171 698.709 314.742) #f(0 0 1)) ;; side view
         (send *irtviewer* :draw-objects :flush t)
         (send *irtviewer* :redraw)
         ;; draw arrow to move hand
-        (draw-arrow (float-vector (+ (* (/ (- max-x min-x) x-size) (+ (car max-unknown-place) 0.5)) min-x)
-                                  (+ (* (/ (- max-y min-y) y-size) (+ (cadr max-unknown-place) 0.5)) min-y)
-                                  *min-z*)
-                    (float-vector (* (/ (- max-x min-x) x-size) (car adjacent-max-unknown-place))
-                                  (* (/ (- max-y min-y) y-size) (cadr adjacent-max-unknown-place))
-                                  0)
-                    :flush t)
         (x::window-main-one))
       dist-mat)
     ))
