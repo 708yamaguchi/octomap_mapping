@@ -1,8 +1,3 @@
-(format t "
-(unknown-distribution occupied-pointcloud unknown-pointcloud :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z)
-"
-)
-
 (defun load-max/min-x/y/z ()
   (setq min-x 562.019)
   (setq max-x 712.019)
@@ -109,3 +104,8 @@ float64 z
 (load "package://octomap_server/euslisp/grope-with-octomap.l")
 (send *fetch* :torso :waist-z :joint-angle 350)
 (send *fetch* :head :neck-p :joint-angle 50)
+
+(format t "
+(unknown-distribution occupied-pointcloud unknown-pointcloud :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z)
+"
+)
