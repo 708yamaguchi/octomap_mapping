@@ -547,6 +547,8 @@
          (point-list-sorted nil) (point-list-inside nil) (point-list-outside nil)
          highest-z
          (inside-point 0) (max-inside-point 0) (best-pc-inside-gripper nil) (best-pc-outside-gripper nil)
+         (viewpoint #f(1528.4 1471.28 1304.32))
+         (viewtarget #f(604.334 -129.251 631.657))
          )
     (send *fetch* :torso :waist-z :joint-angle 300)
     (send *fetch* :stop-grasp)
@@ -661,14 +663,15 @@
                                                             (apply #'matrix point-list-outside-gripper)))
                          (send pc-outside-gripper :point-size 4.0)
                          (send pc-outside-gripper :colors (apply #'matrix (make-list (length point-list-outside-gripper)
-                                                                                     :initial-element #f(0.4 0.4 0.4)))))
+                                                                                     :initial-element #f(0.3 0.3 0.5)))))
                   (setq pc-outside-gripper (instance pointcloud :init)))
                 ;; (send *irtviewer* :redraw)
                 (send *irtviewer* :objects (append (list *fetch* pc-inside-gripper pc-outside-gripper) region))
-                (send *irtviewer* :viewer :viewing :look #f(2200 3492 2340) #f(530.939 480.548 948.668) #f(0 0 1)) ;; fix camera position and posture
+                (send *irtviewer* :viewer :viewing :look viewpoint viewtarget #f(0 0 1)) ;; fix camera position and posture
                 ;; (send *irtviewer* :change-background (float-vector (/ inside-point 30.0) 0 0)) ;; 30.0 is given by human, tuned parameter.
                 (send *irtviewer* :draw-objects :flush t)
-                (send *irtviewer* :viewer :viewsurface :string 100 100 (format nil "points: ~A" inside-point))
+                (send *irtviewer* :viewer :viewsurface :string 5 20 (format nil "points:"))
+                (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" inside-point))
                 (send *irtviewer* :viewer :viewsurface :flush)
                 ;; (objects (append (list *fetch* pc stick-l stick-r stick-center gripper-inside) region))
 
@@ -713,11 +716,12 @@
               ;; (send *irtviewer* :redraw)
               (unix:usleep (* 100 1000))
               (send *irtviewer* :objects (append (list *fetch* best-pc-inside-gripper best-pc-outside-gripper) region))
-              (send *irtviewer* :viewer :viewing :look #f(2200 3492 2340) #f(530.939 480.548 948.668) #f(0 0 1)) ;; fix camera position and posture
+              (send *irtviewer* :viewer :viewing :look viewpoint viewtarget #f(0 0 1)) ;; fix camera position and posture
               (format t "max-inside-point: ~A" max-inside-point)
               ;; (send *irtviewer* :change-background (float-vector (/ max-inside-point 30.0) 0 0)) ;; 30.0 is given by human, tuned parameter.
               (send *irtviewer* :draw-objects :flush t)
-              (send *irtviewer* :viewer :viewsurface :string 100 100 (format nil "points: ~A" max-inside-point))
+              (send *irtviewer* :viewer :viewsurface :string 5 20 (format nil "points:"))
+              (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" max-inside-point))
               (send *irtviewer* :viewer :viewsurface :flush)
               )
             (objects (append (list *fetch* pc) region)))
@@ -1047,6 +1051,7 @@
 (in-package "GL")
 (defmethod glviewsurface
   (:string
+   ;; (x y str &optional (fid x:font-courb24)) ;;x::font-helvetica-bold-12))
    (x y str &optional (fid x:font-courb24)) ;;x::font-helvetica-bold-12))
    (send self :makecurrent)
    (glMatrixMode GL_PROJECTION)
