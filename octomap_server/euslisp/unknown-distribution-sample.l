@@ -1,4 +1,5 @@
 (load "package://fetcheus/fetch.l")
+(ros::load-ros-manifest "jsk_recognition_msgs")
 
 (defun main ()
   (load-max/min-x/y/z)
