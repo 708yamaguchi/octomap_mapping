@@ -15,6 +15,8 @@
   (format t "
 (unknown-distribution occupied-pointcloud unknown-pointcloud :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z)")
   (unknown-distribution occupied-pointcloud unknown-pointcloud :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z)
+  (send *irtviewer* :change-background (float-vector (/ 153 255.0) (/ 255 255.0) (/ 255 255.0)))
+  (send *irtviewer* :draw-objects)
 )
 
 
