@@ -8,6 +8,7 @@
   <!-- for fetch robot -->
 
   <arg name="filename" />
+  <arg name="rviz" default="true"/>
 
   <param name="use_sim_time" value="true" />
   <node name="rosbag_play"
@@ -117,6 +118,6 @@
   </include>
 
   <!-- for visualization of octomap -->
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/octomap_frontier.rviz"/>
+  <node if="$(arg rviz)" name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/octomap_frontier.rviz"/>
 
 </launch>
