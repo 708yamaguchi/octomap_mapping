@@ -22,7 +22,8 @@
           args="load jsk_pcl/AttentionClipper $(arg manager)" output="screen">
       <remap from="~input/points" to="$(arg INPUT)" />
       <rosparam>
-        initial_pos: [0.55, 0.0, 0.6]
+        <!-- initial_pos: [0.55, 0.0, 0.6] -->
+        initial_pos: [0.55, 0.0, 1.0]
         initial_rot: [0, 0, 0]
         dimension_x: 0.5
         dimension_y: 0.6
@@ -63,9 +64,15 @@
           output="screen" clear_params="true">
       <remap from="~input" to="hsi_filter/output" />
       <rosparam>
-        tolerance: 0.1
+        <!-- for box on the table -->
+        <!-- tolerance: 0.1 -->
+        tolerance: 0.02
+        <!-- for microwave -->
         label_tracking_tolerance: 0.2
-        max_size: 25000
+        <!-- for box on the table -->
+        <!-- max_size: 25000 -->
+        <!-- for microwave -->
+        max_size: 100000
         min_size: 1000
       </rosparam>
     </node>
