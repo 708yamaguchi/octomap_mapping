@@ -128,7 +128,7 @@
     <arg name="s_max" value="255"/>
     <arg name="s_min" value="85"/>
     <arg name="i_max" value="255"/>
-    <arg name="i_min" value="40"/>
+    <arg name="i_min" value="18"/>
   </include>
 
   <!-- rviz -->
