@@ -60,7 +60,7 @@
 (warning-message 3 (format nil "~%send av to *ri*:~%  (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)~%"))
 ;; NOTE type is :setting, :main or :all
 ;; :setting does setting of this function, :main does main part of this function and :all does both of them.
-(defun main (&key (type :all))
+(defun main-with-box (&key (type :all))
   (if (not (or (equal type :setting) (equal type :main) (equal type :all)))
     (progn (format t "argument :type is not correctly set~%") (return-from main nil)))
   (setq *direction-accum* 0)
