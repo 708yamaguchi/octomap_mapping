@@ -455,7 +455,7 @@
 (setq *pc2* (cadr av-and-groped-pc1))
 ;; TODO decide grope point based on height map. hint is in (calc-grope-point)
 ;; TODO use pyramid algorithm when searching grope point
-(defun search-graspable-point (pc &key (min-x 0) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (iter-count 1000) (visualize-searching nil))
+(defun search-graspable-point (pc &key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (iter-count 1000) (visualize-searching nil))
   (let* (stick-l stick-r stick-center
          random-y random-z random-rot
          best-x best-y best-z best-rot
