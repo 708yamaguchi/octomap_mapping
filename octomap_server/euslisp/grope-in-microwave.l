@@ -456,7 +456,7 @@
 (load "package://octomap_server/euslisp/microwave-env.l")
 ;; TODO decide grope point based on height map. hint is in (calc-grope-point)
 ;; TODO use pyramid algorithm when searching grope point
-;; when using microwave-env.l, do sample code belo
+;; when using microwave-env.l, do sample code below
 ;; (search-graspable-point occupied-pointcloud :min-x 710 :max-x 810 :min-y -45 :max-y 215 :min-z 1000 :max-z 1150 :visualize-searching t :iter-count 100)
 (defun search-graspable-point (pc &key (min-x 750) (max-x 850) (min-y -100) (max-y 100) (min-z 950) (max-z 1100) (iter-count 1000) (visualize-searching nil))
   (let* (stick-l stick-r stick-center
@@ -470,8 +470,8 @@
          (point-list-sorted nil) (point-list-inside nil) (point-list-outside nil)
          nearest-x
          (inside-point 0) (max-inside-point 0) (best-pc-inside-gripper nil) (best-pc-outside-gripper nil)
-         (viewpoint #f(1233.32 971.028 1655.83))
-         (viewtarget #f(443.713 -396.605 780.458))
+         (viewpoint #f(1528.4 1471.28 1304.32))
+         (viewtarget #f(604.334 -129.251 831.657))
          )
     (send *fetch* :torso :waist-z :joint-angle 200)
     (send *fetch* :stop-grasp)
