@@ -826,3 +826,20 @@
 
       dist-mat)
     ))
+
+(defun box-recog (boxes &key (offset 0))
+  (let* ((box (car (send boxes :boxes)))
+         (dims (ros::tf-point->pos (send box :dimensions)))
+         (target-region nil))
+    (setq target-region
+          (make-cube (- *max-x* *min-x* offset) (- (elt dims 1) offset) (- (elt dims 2) offset)))
+    (if (not (and (boundp '*tfl*) *tfl*))
+      (setq *tfl* (instance ros::transform-listener :init)))
+    (send target-region :newcoords
+          (send (send *tfl* :lookup-transform "/base_link" (send boxes :header :frame_id) (ros::time 0))
+                :transform (ros::tf-pose->coords (send box :pose))))
+    (send target-region :translate (float-vector (- (* 0.5 (+ *max-x* *min-x*)) (aref (send target-region :worldpos) 0)) 0 0) :world)
+    (setq *target-region* (copy-object target-region))
+    target-region))
+
+nil

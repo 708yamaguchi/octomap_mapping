@@ -1,18 +1,3 @@
-(defun box-recog (boxes &key (offset 0))
-  (let* ((box (car (send boxes :boxes)))
-         (dims (ros::tf-point->pos (send box :dimensions)))
-         (target-region nil))
-    (setq target-region
-          (make-cube (- (elt dims 0) offset) (- (elt dims 1) offset) (- *max-z* *min-z* offset)))
-    (if (not (and (boundp '*tfl*) *tfl*))
-      (setq *tfl* (instance ros::transform-listener :init)))
-    (send target-region :newcoords
-          (send (send *tfl* :lookup-transform "/base_link" (send boxes :header :frame_id) (ros::time 0))
-                :transform (ros::tf-pose->coords (send box :pose))))
-    (send target-region :translate (float-vector 0 0 (- (* 0.5 (+ *max-z* *min-z*)) (aref (send target-region :worldpos) 2))) :world)
-    (setq *target-region* (copy-object target-region))
-    target-region))
-
 (defun get-octo-pointcloud (&key (type nil))
   (let ((octo-cloud nil) (eus-octo-cloud nil) (color nil) (colors nil))
     ;; subscribe octomap pointcloud
