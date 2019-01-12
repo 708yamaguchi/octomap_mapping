@@ -61,6 +61,7 @@
       (send *fetch* :inverse-kinematics
             (make-coords :pos (float-vector (/ (+ *min-x* *max-x*) 2.0) (/ (+ *min-y* *max-y*) 2.0) 950) :rpy (float-vector 0 pi/2 0))))~%"))
 (warning-message 3 (format nil "~%send av to *ri*:~%  (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)~%"))
+
 ;; NOTE type is :setting, :main or :all
 ;; :setting does setting of this function, :main does main part of this function and :all does both of them.
 (defun main-with-box (&key (type :all))
