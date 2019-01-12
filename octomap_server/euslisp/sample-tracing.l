@@ -1,6 +1,6 @@
 #!/usr/bin/env roseus
 
-(load "package://octomap_server/euslisp/grope-with-octomap.l")
+(load "package://octomap_server/euslisp/grope-in-box.l")
 
 (defun sample-tracing ()
   (send *ri* :go-grasp :pos 0.03 :wait t)

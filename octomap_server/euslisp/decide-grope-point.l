@@ -1,6 +1,6 @@
 #!/usr/bin/env roseus
 
-(load "package://octomap_server/euslisp/grope-with-octomap.l")
+(load "package://octomap_server/euslisp/grope-in-box.l")
 (load "package://octomap_server/euslisp/box-env2.l")
 
 (defun main ()
