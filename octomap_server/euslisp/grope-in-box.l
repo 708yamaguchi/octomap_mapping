@@ -7,7 +7,6 @@
 (load "package://euslib/euslisp/arrow-utils.l")
 (load "package://octomap_server/euslisp/utils.l")
 
-
 ;; set working region
 (setq *region* (list (* 0.5 1000) (* 0.8 1000) (* -0.15 1000) (* 0.15 1000) (* 0.3 1000) (* 0.6 1000)))
 (setq *resolution* 10)
@@ -64,7 +63,7 @@
 
 ;; NOTE type is :setting, :main or :all
 ;; :setting does setting of this function, :main does main part of this function and :all does both of them.
-(defun main-with-box (&key (type :all))
+(defun main-in-box (&key (type :all))
   (if (not (or (equal type :setting) (equal type :main) (equal type :all)))
     (progn (format t "argument :type is not correctly set~%") (return-from main nil)))
   (setq *direction-accum* 0)

@@ -1,9 +1,13 @@
 #!/usr/bin/env roseus
 
+;; This program aims to grope in microwave
+
 (load "package://bag_segmentation/euslisp/bag-manipulation-interface.l")
 (load "package://bag_segmentation/euslisp/utils.l")
 (load "package://euslib/euslisp/arrow-utils.l")
+(load "package://octomap_server/euslisp/utils.l")
 
+;; set working region
 (setq *region* (list (* 0.5 1000) (* 0.8 1000) (* -0.15 1000) (* 0.15 1000) (* 0.3 1000) (* 0.6 1000)))
 (setq *resolution* 10)
 (let ((param-list (list "occupancy_min_x" "occupancy_max_x" "occupancy_min_y" "occupancy_max_y" "occupancy_min_z" "occupancy_max_z"))
@@ -55,7 +59,7 @@
 
 ;; NOTE type is :setting, :main or :all
 ;; :setting does setting of this function, :main does main part of this function and :all does both of them.
-(defun main-with-microwave
+(defun main-in-microwave
   (if (not (or (equal type :setting) (equal type :main) (equal type :all)))
     (progn (format t "argument :type is not correctly set~%") (return-from main nil)))
   (setq *direction-accum* 0)
