@@ -716,7 +716,7 @@
       (let* ((occupied (matrix-row (send occupied-pc :points) i))
              (y (round (/ (- (aref occupied 1) min-y (/ *resolution* 2.0)) *resolution*)))
              (z (round (/ (- (aref occupied 2) min-z (/ *resolution* 2.0)) *resolution*)))
-             ) ;; y and x are index
+             ) ;; y and z are index
         ;; (if (and (< min-x (aref occupied 0) max-x) (< min-y (aref occupied 1) max-y) (< min-z (aref occupied 2) max-z))
         (if (and (<= 0 y) (< y (cadr (array-dimensions octomap-2d))) (<= 0 z) (< z (car (array-dimensions octomap-2d))))
           (setf (aref octomap-2d y z) -1))))
