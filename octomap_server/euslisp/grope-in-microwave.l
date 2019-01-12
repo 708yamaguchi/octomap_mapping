@@ -453,9 +453,10 @@
 (load "package://octomap_server/euslisp/av-and-groped-pc2.l")
 (setq *pc1* (cadr av-and-groped-pc1))
 (setq *pc2* (cadr av-and-groped-pc1))
+(load "package://octomap_server/euslisp/microwave-env.l")
 ;; TODO decide grope point based on height map. hint is in (calc-grope-point)
 ;; TODO use pyramid algorithm when searching grope point
-(defun search-graspable-point (pc &key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (iter-count 1000) (visualize-searching nil))
+(defun search-graspable-point (pc &key (min-x 750) (max-x 850) (min-y -100) (max-y 100) (min-z 950) (max-z 1100) (iter-count 1000) (visualize-searching nil))
   (let* (stick-l stick-r stick-center
          random-y random-z random-rot
          best-x best-y best-z best-rot
@@ -655,8 +656,8 @@
           0))
       )))
 
-;; sample
-;; decide-grope-point occupied-pointcloud target-region :x-offset 80 :y-offset 80 :z-offset 60
+;; sample for microwave
+;; decide-grope-point occupied-pointcloud target-region :x-offset 100 :y-offset 40 :z-offset 40
 (defun decide-grope-point (pc target-region &key (x-offset 0) (y-offset 0) (z-offset 0) (visualize-searching nil))
   (let ((hand-pos nil) (x nil) (y nil) (z nil) (fetch-copy nil) (points 0) (max-points 0)
         (min-x (+ (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))) x-offset))
@@ -832,13 +833,13 @@
          (dims (ros::tf-point->pos (send box :dimensions)))
          (target-region nil))
     (setq target-region
-          (make-cube (- *max-x* *min-x* offset) (- (elt dims 1) offset) (- (elt dims 2) offset)))
+          (make-cube (- 300 offset) (- (elt dims 1) offset) (- (elt dims 2) offset))) ;; 300 is for microwave
     (if (not (and (boundp '*tfl*) *tfl*))
       (setq *tfl* (instance ros::transform-listener :init)))
     (send target-region :newcoords
           (send (send *tfl* :lookup-transform "/base_link" (send boxes :header :frame_id) (ros::time 0))
                 :transform (ros::tf-pose->coords (send box :pose))))
-    (send target-region :translate (float-vector (- (* 0.5 (+ *max-x* *min-x*)) (aref (send target-region :worldpos) 0)) 0 0) :world)
+    (send target-region :translate (float-vector (- (+ (* 1000 (send (send (send (car (send boxes :boxes)) :pose) :position) :x)) (* 0.5 (- 300 offset))) (aref (send target-region :worldpos) 0)) 0 0) :world)
     (setq *target-region* (copy-object target-region))
     target-region))
 
