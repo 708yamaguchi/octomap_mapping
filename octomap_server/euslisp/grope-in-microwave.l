@@ -455,7 +455,7 @@
 (setq *pc2* (cadr av-and-groped-pc1))
 ;; TODO decide grope point based on height map. hint is in (calc-grope-point)
 ;; TODO use pyramid algorithm when searching grope point
-(defun search-graspable-point (pc &key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (iter-count 1000) (visualize-searching nil))
+(defun search-graspable-point (pc &key (min-x 0) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (iter-count 1000) (visualize-searching nil))
   (let* (stick-l stick-r stick-center
          random-y random-z random-rot
          best-x best-y best-z best-rot
@@ -520,11 +520,11 @@
         (send stick-center :worldcoords)
         (send gripper-inside :worldcoords)
         ;; set random point to grope
-        (setq random-y (+ (random (- max-y min-z)) min-y))
-        (setq random-z (+ (random (- max-z min-y)) min-z))
+        (setq random-y (+ (random (- max-y min-y)) min-y))
+        (setq random-z (+ (random (- max-z min-z)) min-z))
         (setq random-rot (- (random pi) pi/2))
         (send gripper-inside :locate (float-vector 0 random-y random-z) :world) ;; change position absolutely
-        (send gripper-inside :orient random-rot :x :world) ;; change rotation absolutely
+        (send gripper-inside :orient random-rot :z :local) ;; change rotation absolutely
         ;; calc point at which the gripper and the hand collides with pointcloud
         (let ((l/r-flag nil) (center-flag nil))
           (dolist (point point-list-sorted)
@@ -540,8 +540,8 @@
             (when (and (not center-flag)
                        (equal (send stick-center :insidep point) :inside))
               (if nearest-x
-                (setq nearest-x (min nearest-x (- (aref point 0) gr-z)))
-                (setq nearest-x (- (aref point 0) gr-z)))
+                (setq nearest-x (min nearest-x (+ (aref point 0) gr-z)))
+                (setq nearest-x (+ (aref point 0) gr-z)))
               (setq center-flag t)
               (if (and l/r-flag center-flag)
                 (return)))))
@@ -551,7 +551,7 @@
           (send gripper-inside :dissoc stick-l)
           (send gripper-inside :dissoc stick-r)
           (send gripper-inside :dissoc stick-center)
-          (send gripper-inside :locate (float-vector (+ nearest-x (/ gr-z 2.0)) 0 0) :local)
+          (send gripper-inside :locate (float-vector 0 0 (* -1 (+ nearest-x (/ gr-z 2.0)))) :local)
           ;; update objects related counting pointcloud
           (send gripper-inside :worldcoords)
           ;; count the point inside of gripper-inside
@@ -568,9 +568,10 @@
             (when visualize-searching
               (send *fetch* :inverse-kinematics
                     (make-coords :pos (float-vector (+ nearest-x (/ gr-z 2.0)) random-y random-z)
-                                 :rpy (float-vector (* -1 random-rot) 0 0) ;; ???
-                                 :use-torso nil))
-              ;; (send *irtviewer* :objects (append (list *fetch* pc) region))
+                                 :rpy (float-vector 0 0 (* -1 random-rot)))
+                                 :use-torso nil)
+              (send *irtviewer* :objects (append (list *fetch* pc) region))
+
               (let ((pc-inside-gripper nil) (pc-outside-gripper nil))
                 (if point-list-inside-gripper
                   (progn (setq pc-inside-gripper (instance pointcloud :init :points
@@ -605,6 +606,7 @@
                   (setq best-pc-inside-gripper (copy-object pc-inside-gripper))
                   (setq best-pc-outside-gripper (copy-object pc-outside-gripper))
                   ))))
+
           ;; redo the movement of gripper-l, gripper-r and gripper-inside
           (send gripper-inside :locate (float-vector 0 0 0) :world)
           (send stick-l :locate (float-vector (/ (+ max-x min-x) 2.0) (/ gr-open -2.0) 0) :world)
@@ -619,11 +621,12 @@
           (send gripper-inside :assoc stick-center)
           ))
       (format t "max-inside-point:~A~%" max-inside-point)
+
       (if best-x
         (progn
           (send *fetch* :inverse-kinematics
-                (make-coords :pos (float-vector (- best-x (/ gr-z 2.0)) best-y best-z)
-                             :rpy (float-vector 0 pi/2 (* -1 best-rot))
+                (make-coords :pos (float-vector (+ best-x (/ gr-z 2.0)) best-y best-z)
+                             :rpy (float-vector 0 0 (* -1 best-rot))
                              :use-torso nil))
           (send gripper-inside :locate (float-vector (- best-x (/ gr-z 2.0)) best-y best-z) :world) ;; change position absolutely
           (send gripper-inside :orient best-rot :z :world) ;; change rotation absolutely
