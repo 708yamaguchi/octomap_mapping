@@ -186,3 +186,258 @@
     (send *ri* :angle-vector (send *fetch* :angle-vector) 7000)
     (format t "grope succeeded~%")
     ))
+
+;; TODO: what method is best solution to create map?
+(defun create-map (target-region)
+  (camera-stop)
+  (unless target-region
+    (format t "target-region is not set~%")
+    (break))
+  (format t "*direction-accum*: ~A~%" *direction-accum*)
+  (let ((target-coords (make-coords)) ;; where to move fetch's hand
+        (direction (rad2deg (random pi))) (count 0) (unknown-dist nil))
+    (send *ri* :go-grasp :pos 0.03 :wait t)
+    ;; first, moving hand up
+    (format t "move hand up. preparing...~%")
+    (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+    (send *fetch* :torso :waist-z :joint-angle 350)
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
+    ;; calculate where to grope, during moving hand up (time saving)
+    (let* ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
+           (min-x (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))))
+           (max-x (reduce #'max (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))))
+           (min-y (reduce #'min (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))))
+           (max-y (reduce #'max (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))))
+           (min-z (reduce #'min (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))))
+           (max-z (reduce #'max (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))))
+           (min-x-round (round min-x))
+           (max-x-round (round max-x))
+           (min-y-round (round min-y))
+           (max-y-round (round max-y))
+           (min-z-round (round min-y))
+           (max-z-round (round max-y))
+           (block-size 50.0)
+           (diff-x (/ (- (- max-x-round min-x-round) (* (floor (/ (- max-x-round min-x-round) block-size)) block-size)) 2.0))
+           (diff-z (/ (- (- max-z-round min-z-round) (* (floor (/ (- max-z-round min-z-round) block-size)) block-size)) 2.0))
+           (diff-z (/ (- (- max-z-round min-z-round) (* (floor (/ (- max-z-round min-z-round) block-size)) block-size)) 2.0))
+           )
+      ;; calculate position of hand, x and y
+      ;; correct min/max-x/y/z in order to adapt to (unknown-distribution)
+      (setq min-x-round (+ min-x-round diff-x))
+      (setq max-x-round (- max-x-round diff-x))
+      (setq min-y-round (+ min-y-round diff-y))
+      (setq max-y-round (- max-y-round diff-y))
+      (setq min-z-round (+ min-z-round diff-z))
+      (setq max-z-round (- max-z-round diff-z))
+      (format t "target bb region:~%x: ~A ~A, y: ~A ~A, z: ~A ~A, size: (~A, ~A, ~A)~%"
+              min-x max-x min-y max-y min-z max-z (- max-x min-x) (- max-y min-y) (- max-z min-z))
+      (format t "clipped bb region:~%x: ~A ~A, y: ~A ~A, z: ~A ~A, size: (~A, ~A, ~A)~%"
+              min-x-round max-x-round min-y-round max-y-round min-z max-z (- max-x-round min-x-round) (- max-y-round min-y-round) (- max-z min-z))
+      (ros::spin-once)
+      (setq unknown-dist (unknown-distribution (get-octo-pointcloud :type "occupied") (get-octo-pointcloud :type "unknown")
+                                               :min-x min-x-round :max-x max-x-round :min-y min-y-round :max-y max-y-round :min-z min-z :max-z max-z
+                                               :block-size block-size))
+      ;; calculate most unknown area
+      (dotimes (i (car (array-dimensions unknown-dist)))
+        (dotimes (j (cadr (array-dimensions unknown-dist)))
+          (when (< max-val (aref unknown-dist i j))
+            (setq max-val (aref unknown-dist i j))
+            (setq max-place (list i j)))))
+      (setf (aref (send target-coords :worldpos) 0) max-x)
+      (setf (aref (send target-coords :worldpos) 1) (+ min-y (/ block-size 2.0) (* (car max-place) block-size)))
+      (setf (aref (send target-coords :worldpos) 2) (+ min-z (/ block-size 2.0) (* (cadr max-place) block-size)))
+
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;; Start, replace: x->y, y->z ;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;; calculate angle of wrist, and record the accumulated rotation angle and reset the angle regularly
+      (dotimes (i 4)
+        (let ((x nil) (y nil))
+          (cond ((eq i 0) (setq x 1) (setq y 0))
+                ((eq i 1) (setq x 0) (setq y 1))
+                ((eq i 2) (setq x -1) (setq y 0))
+                ((eq i 3) (setq x 0) (setq y -1)))
+          ;; when ((+ (car max-place) x), (+ (cadr max-place) y)) is not out of unknown-dist
+          (when (not (or (< (+ (car max-place) x) 0) (<= (car (array-dimensions unknown-dist)) (+ (car max-place) x))
+                         (< (+ (cadr max-place) y) 0) (<= (cadr (array-dimensions unknown-dist)) (+ (cadr max-place) y))))
+            (when (< adjacent-max-val (aref unknown-dist (+ (car max-place) x) (+ (cadr max-place) y)))
+              (setq adjacent-max-val (aref unknown-dist (+ (car max-place) x) (+ (cadr max-place) y)))
+              (setq adjacent-max-place (list x y))))))
+      (setq direction (+ 180 (* -1 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place))))))
+      ;; sometimes groping randomly
+      (let* ((m (make-random-state t)) ;; set max-place randomly at probability of 0.5
+             (random-x (random (car (array-dimensions unknown-dist)) m))
+             (random-y (random (cadr (array-dimensions unknown-dist)) m)))
+        (when (< (random 1.0 m) 0.5) ;; sometimes move hand randomly, else, move hand based on unknown distribution
+          (format t "randomly decided grope starting position~%")
+          (setq max-place (list random-x random-y))
+          (if (< (random 1.0 m) 0.5) ;; if t, move hand in x-axis. if nil, move hand in y-axis
+            (if (<= random-x (/ (car (array-dimensions unknown-dist)) 2))
+              (setq adjacent-max-place (list 1 0))
+              (setq adjacent-max-place (list -1 0)))
+            (if (<= random-y (/ (cadr (array-dimensions unknown-dist)) 2))
+              (setq adjacent-max-place (list 0 1))
+              (setq adjacent-max-place (list 0 -1))))
+          (setq direction (+ 180 (* -1 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place))))))
+          (print (list direction adjacent-max-place))
+          )))
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; END, replace: x->y, y->z ;;
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    ;; from now, move and rotate hand
+    (send *ri* :wait-interpolation) ;; calculate where to grope during arm movement (time saving)
+    ;; calibration proximity sensor's param every time before groping.
+    (sensor-calib)
+    ;; move hand above the target object
+    (send *fetch* :torso :waist-z :joint-angle 200)
+    (send target-coords :translate (float-vector (- 500 (aref (send target-coords :pos) 0)) 0 0) :world)
+    (send *fetch* :inverse-kinematics target-coords :use-torso nil)
+    ;; calculate accumulation of rotation angle, to untie USB cable
+    (setq direction (round direction)) ;; nearest integer
+    (when (and (<= (+ direction *direction-accum*) -270) (<= direction 0))
+      (setq direction (+ 360 direction)))
+    (when (and (<= 270 (+ direction *direction-accum*)) (<= 0 direction))
+      (setq direction (+ -360 direction)))
+    (setq *direction-accum* (+ direction *direction-accum*))
+    ;; rotate arm twice, to select rotation direction
+    (let ((av1 nil) (av2 nil) (av3 nil))
+      (setq av1 (send *fetch* :angle-vector))
+      (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) (* 0.5 direction)))
+      (setq av2 (send *fetch* :angle-vector))
+      (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) (* 0.5 direction)))
+      (setq av3 (send *fetch* :angle-vector))
+    (send *ri* :angle-vector-sequence (list av1 av2 av3) (list 6000 1500 1500))
+    ;; (send *ri* :wait-interpolation)
+    (unix:sleep 9)
+    )
+    ;; move hand down to target coords ;; these functions may not be needed any more
+    ;; (format t "move hand to target coords~%")
+    ;; (send *fetch* :torso :waist-z :joint-angle 50)
+    ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+    ;; (send *ri* :wait-interpolation)
+
+    (format t "start tracing~%")
+    ;; move hand until detecting object. move-end-pos 10cm, 10cm, 10cm ...  gradually.
+    (while (< count 3) ;; vertical hand move and horizontal hand move, alternately
+      ;; move hand down
+      (while t
+        (format t "count: ~A~%" count)
+        (format t "move hand down~%")
+        (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
+                           *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
+          (progn
+            (format t "move hand until detecting object~%")
+            (let ((detected-frame nil) (min-distance nil)
+                  (hand-cover-thick 30)
+                  ;; when :gripper :position is 0.3, gripper-handside-distance is about 25
+                  (gripper-handside-distance (- 35 (* 0.5 1000 (- (send *ri* :gripper :position) 0.01)))))
+              ;; check if there is object near top of the grippers.
+              (if (setq detected-frame (cadr (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
+                                                     :close-frame-list (list (list "/left" "/top") (list "/right" "/top")
+                                                                             (list "/left" "/side1") (list "/right" "/side1")
+                                                                             (list "/left" "/side2") (list "/right" "/side2"))
+                                                     :close-thre (list 35 35
+                                                                       hand-cover-thick hand-cover-thick
+                                                                       (+ 15 gripper-handside-distance) ;; +10 is safety margin
+                                                                       (+ 15 gripper-handside-distance))
+                                                     :tm 7000)))
+                (cond
+                 ((equal detected-frame (list "/left" "/top")) ;; object is near left top
+                  (when (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons)) 40) ;; both left and right finger top is near object, start moving horizontally
+                    (format t "start moving horizontally~%")
+                    (return))
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (+ gripper-handside-distance 10) 0))
+                                :close-frame-list (list (list "/right" "/side2")) :close-thre gripper-handside-distance :tm 3000)
+                    (format t "something is right of my gripper~%"))
+                  (return))
+                 ((equal detected-frame (list "/right" "/top")) ;; object is near right top
+                  (when (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/top")) :data) cons)) 40) ;; both left and right finger top is near object, start moving horizontally
+                    (format t "start moving horizontally~%")
+                    (return))
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (* -1 (+ gripper-handside-distance 10)) 0))
+                                :close-frame-list (list (list "/left" "/side2")) :close-thre gripper-handside-distance :tm 3000)
+                    (format t "something is left of my finger~%"))
+                  (return))
+                 ((or (equal detected-frame (list "/left" "/side1")) (equal detected-frame (list "/right" "/side1"))) ;; object is near side1
+                  (ros::spin-once)
+                  (setq min-distance (min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side1")) :data) cons))
+                                          (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side1")) :data) cons))))
+                  (format t "detect object at side1, so move hand~%")
+                  ;; distance between gripper's side1 and back of the hand is about 60mm. move hand at least 20mm.
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 0 (* -1 (max 20 (- hand-cover-thick min-distance)))))
+                                :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3")) :close-thre 30 :tm 3000)
+                    (format t "cannot move hand forward any more~%")
+                    (return)))
+                 ((equal detected-frame (list "/left" "/side2"))
+                  ;; (ros::spin-once)
+                  (setq min-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side2")) :data) cons)))
+                  (format t "detect object at left side2, so move hand~%")
+                  ;; distance between left gripper's side2 and side of the hand is about 35mm (at start-grasp state). move hand at least 10mm.
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (max 20 (- gripper-handside-distance min-distance)) 0))
+                                :close-frame-list (list (list "/right" "/side2")) :close-thre gripper-handside-distance :tm 3000)
+                    (format t "cannot move hand rightside any more~%")
+                    (return)))
+                 ((equal detected-frame (list "/right" "/side2"))
+                  ;; (ros::spin-once)
+                  (setq min-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side2")) :data) cons)))
+                  (format t "detect object at right side2, so move hand~%")
+                  ;; distance between left gripper's side2 and side of the hand is about 35mm (at start-grasp state). move hand at least 10mm.
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (* -1 (max 20 (- gripper-handside-distance min-distance))) 0))
+                                :close-frame-list (list (list "/left" "/side2")) :close-thre gripper-handside-distance :tm 3000)
+                    (format t "cannot move hand leftside any more~%")
+                    (return)))
+                 ))))
+          (progn
+            (format t "robot hand is outside of target region~%")
+            (return-from create-map t))))
+      ;; move hand horizontally
+      (while t
+        (format t "count: ~A~%" count)
+        (format t "move hand sideway~%")
+        (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
+                           *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
+          (progn
+            (format t "move hand until missing object~%")
+            (let ((result (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(0 0 -100))
+                                    :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3"))
+                                    :away-frame-list (list (list "/left" "/top") (list "/right" "/top"))
+                                    :close-thre 50 :away-thre 50)))
+              (when (equal result :ik-not-solved)
+                (return-from create-map t))
+              (when (equal (car result) :close-frame-list)
+                (format t "find something around gripper~%")
+                (return))
+              (when (equal (car result) :away-frame-list)
+                (format t "missing object at the top of the gripper~%")
+                (send *fetch* :rarm :move-end-pos #f(0 0 -40) :local)
+                (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+                (send *ri* :wait-interpolation)
+                (return))))
+          (progn
+            (format t "robot hand is outside of target region~%")
+            (return-from create-map t))))
+      (setq count (+ 1 count))
+      )
+
+    ;; at last, move hand down
+    (format t "at last, move hand down~%")
+    (while t
+      (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
+                         *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
+        (progn
+          (format t "move hand until detecting object~%")
+          ;; if side1 is near object, stop moving hand down
+          (ros::spin-once)
+          (if (or (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side1")) :data) cons)) 50)
+                  (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side1")) :data) cons)) 50)
+                  (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side2")) :data) cons)) 50)
+                  (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side2")) :data) cons)) 50))
+            (progn (format t "detecting object at the side of the gripper ~%") (return-from create-map t)))
+          (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
+                      :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre 30)
+            (return)))
+        (progn
+          (format t "robot hand is outside of target region~%")
+          (return-from create-map t))))
+    ))
