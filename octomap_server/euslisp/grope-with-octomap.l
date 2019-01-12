@@ -1,5 +1,7 @@
 #!/usr/bin/env roseus
 
+;; This program aims to grope in box.
+
 (load "package://bag_segmentation/euslisp/bag-manipulation-interface.l")
 (load "package://bag_segmentation/euslisp/utils.l")
 (load "package://euslib/euslisp/arrow-utils.l")
