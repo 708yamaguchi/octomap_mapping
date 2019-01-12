@@ -13,6 +13,36 @@
     (setq *target-region* (copy-object target-region))
     target-region))
 
+(defun get-octo-pointcloud (&key (type nil))
+  (let ((octo-cloud nil) (eus-octo-cloud nil) (color nil) (colors nil))
+    ;; subscribe octomap pointcloud
+    (cond
+     ;; ((equal type "free")
+     ;;  (setq color (list 0 1 0))
+     ;;  (setq octo-cloud (one-shot-subscribe "/octomap_free_point_cloud_centers" sensor_msgs::Pointcloud2)))
+     ((equal type "occupied")
+      (setq color (list 0 0 1))
+      (setq octo-cloud (one-shot-subscribe "/octomap_point_cloud_centers" sensor_msgs::Pointcloud2)))
+     ((equal type "unknown")
+      (setq color (list 1 0 1))
+      (setq octo-cloud (one-shot-subscribe "/octomap_unknown_point_cloud_centers" sensor_msgs::Pointcloud2)))
+     ((equal type "frontier")
+      (setq color (list 1 0 0))
+      (setq octo-cloud (one-shot-subscribe "/octomap_frontier_point_cloud_centers" sensor_msgs::Pointcloud2)))
+     ((equal type "potential")
+      (setq color (list 1 0 0))
+      (setq octo-cloud (one-shot-subscribe "/octomap_potential_point_cloud_centers" sensor_msgs::Pointcloud2)))
+     (t
+      (fotmat t "key argument type is not correctly set.~%"))
+     )
+    (setq eus-octo-cloud (make-eus-pointcloud-from-ros-msg octo-cloud))
+    (if eus-octo-cloud
+      (progn
+        ;; set colors to octo-clouds, free -> green, occupied -> blue, unknown -> purple, frontier -> red
+        (setq colors (make-list (send eus-octo-cloud :size) :initial-element (list 0 0 1)))
+        (send eus-octo-cloud :colors (apply #'matrix colors))
+        eus-octo-cloud))))
+
 ;; return if coords (arg) is inside of x/y/z-min/max
 (defun inside-region (coords x-min x-max y-min y-max z-min z-max &optional (margin 0))
   (let ((x (aref (send coords :worldpos) 0))
