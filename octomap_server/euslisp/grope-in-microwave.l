@@ -689,3 +689,137 @@
     (objects (list *fetch* pc))
     (list max-points *fetch*)
     ))
+
+
+;; NOTE arguments of this function means region of the target space, not octomap region.
+;; return map of where is not explored very much
+;; (unknown-distribution :min-x *min-x* :max-x *max-x* :min-y *min-y* :max-y *max-y* :min-z *min-z* :max-z *max-z* :block-size 50.0)
+(defun unknown-distribution (occupied-pointcloud unknown-pointcloud
+                             &key (min-x *min-x*) (max-x *max-x*) (min-y *min-y*) (max-y *max-y*) (min-z *min-z*) (max-z *max-z*) (block-size 50.0)
+                             (view-octomap-2d nil) (view-unknown-distribution t))
+  (unless (and (eq (mod (round (- *max-y* *min-y*)) (round block-size)) 0)
+               (eq (mod (round (- *max-z* *min-z*)) (round block-size)) 0))
+    (format t "target region is not a multiple of block-size~%")
+    (return-from unknown-distribution nil))
+  (let* ((occupied-pc occupied-pointcloud)
+         (unknown-pc unknown-pointcloud)
+         (octomap-2d (apply #'matrix (make-list (round (/ (- max-y min-y) *resolution*)) :initial-element (make-list (round (/ (- max-z min-z) *resolution*)) :initial-element 0))))
+         direction-arrow)
+    (when (eq occupied-pc nil)
+      (format t "cannot find occupied grids~%")
+      (setq occupied-pc (instance pointcloud :init)))
+    (when (eq unknown-pc nil)
+      (format t "cannot find unknown grids~%")
+      (setq unknown-pc (instance pointcloud :init)))
+    ;; look up occupied pointcloud firstly
+    (dotimes (i (send occupied-pc :size))
+      (let* ((occupied (matrix-row (send occupied-pc :points) i))
+             (y (round (/ (- (aref occupied 1) min-y (/ *resolution* 2.0)) *resolution*)))
+             (z (round (/ (- (aref occupied 2) min-z (/ *resolution* 2.0)) *resolution*)))
+             ) ;; y and x are index
+        ;; (if (and (< min-x (aref occupied 0) max-x) (< min-y (aref occupied 1) max-y) (< min-z (aref occupied 2) max-z))
+        (if (and (<= 0 y) (< y (cadr (array-dimensions octomap-2d))) (<= 0 z) (< z (car (array-dimensions octomap-2d))))
+          (setf (aref octomap-2d y z) -1))))
+    ;; look up unknown pointcloud secondly
+    (dotimes (j (send unknown-pc :size))
+      (let* ((unknown (matrix-row (send unknown-pc :points) j))
+             (y (/ (round (- (aref unknown 1) min-y *resolution*)) *resolution*))
+             (z (/ (round (- (aref unknown 2) min-z *resolution*)) *resolution*))) ;; y and z are index
+        (if (and (<= 0 y) (< y (cadr (array-dimensions octomap-2d))) (<= 0 z) (< z (car (array-dimensions octomap-2d))) ;; target point is inside the target region?
+                 (not (eq (aref octomap-2d y z) -1)))
+          (setf (aref octomap-2d y z) (+ 1 (aref octomap-2d y z)))
+          )))
+
+    ;; visualization of octomap-2d
+    (when view-octomap-2d
+      (let ((cube nil) (vis-list nil) (max-num 0))
+        (setq *resolution* 10)
+        (dotimes (k (car (array-dimensions octomap-2d)))
+          (dotimes (l (cadr (array-dimensions octomap-2d)))
+            (if (< max-num (aref octomap-2d k l))
+              (setq max-num (aref octomap-2d k l)))))
+        (dotimes (i (car (array-dimensions octomap-2d)))
+          (dotimes (j (cadr (array-dimensions octomap-2d)))
+            (setq cube (make-cube *resolution* *resolution* *resolution*))
+            (send cube :set-color (float-vector (/ (max 0 (aref octomap-2d i j)) max-num) 0 0))
+            (send cube :translate (float-vector *min-x* (+ (* *resolution* (+ i 0.5)) *min-y*) (+ (* *resolution* (+ j 0.5)) *min-z*)) :world)
+            (setq vis-list (append vis-list (list cube)))))
+        (setq *resolution* 10)
+        (objects (append (list *fetch*) vis-list))
+        (send *irtviewer* :change-background #f(0.3 0.3 0.1))
+        (send *irtviewer* :redraw)
+        (x::window-main-one)))
+
+    ;; calculate unknown-distribution matrix. this shows rough distribution of unknown area, and visualize it.
+    (let* ((y-size (round (/ (- max-y min-y) block-size))) ;; y-size of target region, not octomap region. divide octomap area into (y-size * z-size) areas
+           (z-size (round (/ (- max-z min-z) block-size))) ;; z-size of target region, not octomap region.
+           (dist-mat (apply #'matrix (make-list y-size :initial-element (make-list z-size :initial-element 0))))
+           (max-unknown 0) max-unknown-place dist-vis-list cube
+           (adjacent-max-unknown 0) adjacent-max-unknown-place
+           (region-cube (send (make-cube (- max-x min-x) (- max-y min-y) (- max-z min-z))
+                              :locate (float-vector (* 0.5 (+ max-x min-x)) (* 0.5 (+ max-y min-y)) (* 0.5 (+ max-z min-z)))))
+           (region-edge (progn (send region-cube :worldcoords) (send region-cube :edges))))
+      ;; octomap-2d is composed of very fine grids, so make it rougher and create dist-mat (distribution matrix of unknown grids)
+      (dotimes (i (car (array-dimensions octomap-2d)))
+        (dotimes (j (cadr (array-dimensions octomap-2d)))
+          (let ((y-index (/ i (round (/ block-size *resolution*))))
+                (z-index (/ j (round (/ block-size *resolution*)))))
+            (setf (aref dist-mat y-index z-index)
+                  (+ (aref octomap-2d i j) (aref dist-mat y-index z-index)))
+        )))
+
+      (when view-unknown-distribution
+        ;; calculate the most unknown place
+        (dotimes (k (car (array-dimensions dist-mat)))
+          (dotimes (l (cadr (array-dimensions dist-mat)))
+            (when (< max-unknown (aref dist-mat k l))
+              (setq max-unknown-place (list k l))
+              (setq max-unknown (aref dist-mat k l)))))
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ;; Start, replace: x->y, y->z ;;
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ;; calculate the most unknown adjacent place
+        (dotimes (i 4)
+          (let ((x nil) (y nil))
+            (cond ((eq i 0) (setq x 1) (setq y 0))
+                  ((eq i 1) (setq x 0) (setq y 1))
+                  ((eq i 2) (setq x -1) (setq y 0))
+                  ((eq i 3) (setq x 0) (setq y -1)))
+            ;; when ((+ (car max-unknown-place) x), (+ (cadr max-unknown-place) y)) is not out of dist-mat
+            (when (not (or (< (+ (car max-unknown-place) x) 0) (<= (car (array-dimensions dist-mat)) (+ (car max-unknown-place) x))
+                           (< (+ (cadr max-unknown-place) y) 0) (<= (cadr (array-dimensions dist-mat)) (+ (cadr max-unknown-place) y))))
+              (when (< adjacent-max-unknown (aref dist-mat (+ (car max-unknown-place) x) (+ (cadr max-unknown-place) y)))
+                (setq adjacent-max-unknown (aref dist-mat (+ (car max-unknown-place) x) (+ (cadr max-unknown-place) y)))
+                (setq adjacent-max-unknown-place (list x y))))))
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ;; End, replace: x->y, y->z ;;
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+        (dotimes (k (car (array-dimensions dist-mat)))
+          (dotimes (l (cadr (array-dimensions dist-mat)))
+            (setq cube (make-cube *resolution* (/ (- max-y min-y) y-size) (/ (- max-z min-z) z-size)))
+            (send cube :set-color (float-vector 0 0 (max (/ (aref dist-mat k l) (float max-unknown)) 0)))
+            (send cube :translate (float-vector *min-x* (+ (* (/ (- max-y min-y) y-size) (+ k 0.5)) min-y) (+ (* (/ (- max-z min-z) z-size) (+ l 0.5)) min-z)) :world)
+            (setq dist-vis-list (append dist-vis-list (list cube)))))
+        ;; (objects (append (list *fetch*) dist-vis-list region-edge))
+        (setq direction-arrow
+              (make-arrow
+               (float-vector (- *min-x* 20)
+                             (+ (* (/ (- max-y min-y) y-size) (+ (car max-unknown-place) 0.5)) min-y)
+                             (+ (* (/ (- max-z min-z) z-size) (+ (cadr max-unknown-place) 0.5)) min-z)) ;; pos
+               (float-vector 0
+                             (* (/ (- max-y min-y) y-size) (car adjacent-max-unknown-place))
+                             (* (/ (- max-z min-z) z-size) (cadr adjacent-max-unknown-place))) ;; vec
+               :color #f(1 0 0)))
+        (objects (append (list *fetch*) dist-vis-list direction-arrow))
+        ;; (send *irtviewer* :change-background #f(0.3 0.3 0.1))
+        (send *irtviewer* :change-background #f(0.2 0.2 0.2))
+        ;; (send *irtviewer* :viewer :viewing :look #f(640.0 0.0 1200) #f(640.0 0.0 550.0) #f(0 0 1)) ;; above view
+        (send *irtviewer* :viewer :viewing :look #f(2635.65 -2264.36 2194.42) #f(-655.171 698.709 314.742) #f(0 0 1)) ;; side view
+        (send *irtviewer* :draw-objects :flush t)
+        (send *irtviewer* :redraw)
+        ;; draw arrow to move hand
+        (x::window-main-one))
+
+      dist-mat)
+    ))
