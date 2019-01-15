@@ -470,8 +470,8 @@
          (point-list-sorted nil) (point-list-inside nil) (point-list-outside nil)
          nearest-x
          (inside-point 0) (max-inside-point 0) (best-pc-inside-gripper nil) (best-pc-outside-gripper nil)
-         (viewpoint #f(1528.4 1471.28 1304.32))
-         (viewtarget #f(604.334 -129.251 631.657))
+         (viewpoint #f(1233.32 971.028 1655.83))
+         (viewtarget #f(443.713 -396.605 780.458))
          )
     (send *fetch* :torso :waist-z :joint-angle 200)
     (send *fetch* :stop-grasp)
