@@ -604,17 +604,17 @@
                 (send *irtviewer* :draw-objects :flush t)
                 (send *irtviewer* :viewer :viewsurface :string 5 20 (format nil "points:"))
                 (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" inside-point))
-                (send *irtviewer* :viewer :viewsurface :flush)))
+                (send *irtviewer* :viewer :viewsurface :flush))
 
-            (when (> inside-point max-inside-point)
-              (setq max-inside-point inside-point)
-              (setq best-x nearest-x)
-              (setq best-y random-y)
-              (setq best-z random-z)
-              (setq best-rot random-rot)
-              (when visualize-searching
-                (setq best-pc-inside-gripper (copy-object pc-inside-gripper))
-                (setq best-pc-outside-gripper (copy-object pc-outside-gripper)))))
+              (when (> inside-point max-inside-point)
+                (setq max-inside-point inside-point)
+                (setq best-x nearest-x)
+                (setq best-y random-y)
+                (setq best-z random-z)
+                (setq best-rot random-rot)
+                (when visualize-searching
+                  (setq best-pc-inside-gripper (copy-object pc-inside-gripper))
+                  (setq best-pc-outside-gripper (copy-object pc-outside-gripper))))))
 
           ;; redo the movement of gripper-l, gripper-r and gripper-inside
           (send gripper-inside :locate (float-vector 0 0 0) :world)
