@@ -569,16 +569,16 @@
                   (setq point-list-inside-gripper (append point-list-inside-gripper (list point))))
                 (setq point-list-outside-gripper (append point-list-outside-gripper (list point)))))
 
-            ;; for visualization
-            (when visualize-searching
-              (send *fetch* :angle-vector #f(200.0 -35.6014 30.2023 21.6101 127.099 123.643 123.759 113.956 0.0 0.0)) ;; pre-pose for IK
-              (send *fetch* :inverse-kinematics
-                    (make-coords :pos (float-vector (- nearest-x (/ gr-z 2.0)) random-y random-z)
-                                 :rpy (float-vector 0 0 (* -1 random-rot)))
-                    :use-torso nil)
-              (send *irtviewer* :objects (append (list *fetch* pc) region))
+            (let ((pc-inside-gripper nil) (pc-outside-gripper nil))
+              ;; for visualization
+              (when visualize-searching
+                (send *fetch* :angle-vector #f(200.0 -35.6014 30.2023 21.6101 127.099 123.643 123.759 113.956 0.0 0.0)) ;; pre-pose for IK
+                (send *fetch* :inverse-kinematics
+                      (make-coords :pos (float-vector (- nearest-x (/ gr-z 2.0)) random-y random-z)
+                                   :rpy (float-vector 0 0 (* -1 random-rot)))
+                      :use-torso nil)
+                (send *irtviewer* :objects (append (list *fetch* pc) region))
 
-              (let ((pc-inside-gripper nil) (pc-outside-gripper nil))
                 (if point-list-inside-gripper
                   (progn (setq pc-inside-gripper (instance pointcloud :init :points
                                                            (apply #'matrix point-list-inside-gripper)))
@@ -600,17 +600,17 @@
                 (send *irtviewer* :draw-objects :flush t)
                 (send *irtviewer* :viewer :viewsurface :string 5 20 (format nil "points:"))
                 (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" inside-point))
-                (send *irtviewer* :viewer :viewsurface :flush)
+                (send *irtviewer* :viewer :viewsurface :flush)))
 
-                (when (> inside-point max-inside-point)
-                  (setq max-inside-point inside-point)
-                  (setq best-x nearest-x)
-                  (setq best-y random-y)
-                  (setq best-z random-z)
-                  (setq best-rot random-rot)
-                  (setq best-pc-inside-gripper (copy-object pc-inside-gripper))
-                  (setq best-pc-outside-gripper (copy-object pc-outside-gripper))
-                  ))))
+            (when (> inside-point max-inside-point)
+              (setq max-inside-point inside-point)
+              (setq best-x nearest-x)
+              (setq best-y random-y)
+              (setq best-z random-z)
+              (setq best-rot random-rot)
+              (when visualize-searching
+                (setq best-pc-inside-gripper (copy-object pc-inside-gripper))
+                (setq best-pc-outside-gripper (copy-object pc-outside-gripper)))))
 
           ;; redo the movement of gripper-l, gripper-r and gripper-inside
           (send gripper-inside :locate (float-vector 0 0 0) :world)
