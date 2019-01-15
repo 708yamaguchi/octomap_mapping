@@ -586,7 +586,7 @@
                 (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" inside-point))
                 (send *irtviewer* :viewer :viewsurface :flush)
                 ;; (objects (append (list *fetch* pc stick-l stick-r stick-center gripper-inside) region))
-                ;; TODO: (maybe bug) this when block should be out of (when visualize-searching)
+                ;; TODO (maybe bug) this when block should be out of (when visualize-searching). See grope-in-microwave.l
                 (when (> inside-point max-inside-point)
                   (setq max-inside-point inside-point)
                   (setq best-x random-x)

@@ -530,7 +530,8 @@
         ;; set random point to grope
         (setq random-y (+ (random (- max-y min-y)) min-y))
         (setq random-z (+ (random (- max-z min-z)) min-z))
-        (setq random-rot (- (random pi) pi/2))
+        (setq random-rot (- (random pi) pi/2)) ;; TODO if considering gravity direction, you can restrict random-rot.
+        ;; (setq random-rot (- (random pi/2) pi/2))
         (send gripper-inside :locate (float-vector 0 random-y random-z) :world) ;; change position absolutely
         (send gripper-inside :orient random-rot :z :local) ;; change rotation absolutely
 
@@ -567,7 +568,7 @@
           (let ((point-list-inside-gripper nil)
                 (point-list-outside-gripper (copy-object point-list-outside)))
             (dolist (point point-list-inside)
-              (if (equal (send gripper-inside :insidep point) :inside)
+\              (if (equal (send gripper-inside :insidep point) :inside)
                 (progn
                   (setq inside-point (+ inside-point 1))
                   (setq point-list-inside-gripper (append point-list-inside-gripper (list point))))
