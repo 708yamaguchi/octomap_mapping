@@ -571,6 +571,7 @@
 
             ;; for visualization
             (when visualize-searching
+              (send *fetch* :angle-vector #f(200.0 -35.6014 30.2023 21.6101 127.099 123.643 123.759 113.956 0.0 0.0)) ;; pre-pose for IK
               (send *fetch* :inverse-kinematics
                     (make-coords :pos (float-vector (- nearest-x (/ gr-z 2.0)) random-y random-z)
                                  :rpy (float-vector 0 0 (* -1 random-rot)))
@@ -629,6 +630,7 @@
 
       (if best-x
         (progn
+          (send *fetch* :angle-vector #f(200.0 -35.6014 30.2023 21.6101 127.099 123.643 123.759 113.956 0.0 0.0)) ;; pre-pose for IK
           (send *fetch* :inverse-kinematics
                 (make-coords :pos (float-vector (- best-x (/ gr-z 2.0)) best-y best-z)
                              :rpy (float-vector 0 0 (* -1 best-rot))
@@ -661,7 +663,7 @@
       )))
 
 ;; sample for microwave
-;; decide-grope-point occupied-pointcloud target-region :x-offset 100 :y-offset 40 :z-offset 40
+;; (decide-grope-point occupied-pointcloud target-region :x-offset 100 :y-offset 40 :z-offset 40)
 (defun decide-grope-point (pc target-region &key (x-offset 0) (y-offset 0) (z-offset 0) (visualize-searching nil))
   (let ((hand-pos nil) (x nil) (y nil) (z nil) (fetch-copy nil) (points 0) (max-points 0)
         (min-x (+ (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))) x-offset))
