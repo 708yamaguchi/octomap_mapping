@@ -568,7 +568,7 @@
           (let ((point-list-inside-gripper nil)
                 (point-list-outside-gripper (copy-object point-list-outside)))
             (dolist (point point-list-inside)
-\              (if (equal (send gripper-inside :insidep point) :inside)
+              (if (equal (send gripper-inside :insidep point) :inside)
                 (progn
                   (setq inside-point (+ inside-point 1))
                   (setq point-list-inside-gripper (append point-list-inside-gripper (list point))))
