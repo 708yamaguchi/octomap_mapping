@@ -506,12 +506,11 @@
       ;; NOTE if execution of (search-graspable-point) is slow, let's make pointcloud sparse
       ;; NOTE by using (dotimes (point point-list) (when (eq (random 4) 0) ~~~))
       (dolist (point point-list)
-      ;; (when (eq (random 4) 0)
-        (setq point-list-sorted (append point-list-sorted (list point)))
-        (if (and (<= min-x (aref point 0) max-x) (<= min-y (aref point 1) max-y) (<= min-z (aref point 2) max-z))
-          (setq point-list-inside (append point-list-inside (list point)))
-          (setq point-list-outside (append point-list-outside (list point)))))
-      ;; )
+        (when t ;; (eq (random 4) 0)
+          (setq point-list-sorted (append point-list-sorted (list point)))
+          (if (and (<= min-x (aref point 0) max-x) (<= min-y (aref point 1) max-y) (<= min-z (aref point 2) max-z))
+            (setq point-list-inside (append point-list-inside (list point)))
+            (setq point-list-outside (append point-list-outside (list point))))))
       (setq point-list-sorted (copy-object point-list-sorted))
       ;; (sort) is destructively sort
       (sort point-list-sorted #'(lambda (x y) (< (aref x 0) (aref y 0))))
