@@ -456,6 +456,8 @@
 (load "package://octomap_server/euslisp/microwave-env.l")
 ;; TODO decide grope point based on height map. hint is in (calc-grope-point)
 ;; TODO use pyramid algorithm when searching grope point
+;; when using microwave-env.l, do sample code belo
+;; (search-graspable-point occupied-pointcloud :min-x 710 :max-x 810 :min-y -45 :max-y 215 :min-z 1000 :max-z 1150 :visualize-searching t :iter-count 100)
 (defun search-graspable-point (pc &key (min-x 750) (max-x 850) (min-y -100) (max-y 100) (min-z 950) (max-z 1100) (iter-count 1000) (visualize-searching nil))
   (let* (stick-l stick-r stick-center
          random-y random-z random-rot
@@ -520,12 +522,14 @@
         (send stick-r :worldcoords)
         (send stick-center :worldcoords)
         (send gripper-inside :worldcoords)
+
         ;; set random point to grope
         (setq random-y (+ (random (- max-y min-y)) min-y))
         (setq random-z (+ (random (- max-z min-z)) min-z))
         (setq random-rot (- (random pi) pi/2))
         (send gripper-inside :locate (float-vector 0 random-y random-z) :world) ;; change position absolutely
         (send gripper-inside :orient random-rot :z :local) ;; change rotation absolutely
+
         ;; calc point at which the gripper and the hand collides with pointcloud
         (let ((l/r-flag nil) (center-flag nil))
           (dolist (point point-list-sorted)
@@ -552,7 +556,7 @@
           (send gripper-inside :dissoc stick-l)
           (send gripper-inside :dissoc stick-r)
           (send gripper-inside :dissoc stick-center)
-          (send gripper-inside :locate (float-vector 0 0 (* -1 (+ nearest-x (/ gr-z 2.0)))) :local)
+          (send gripper-inside :locate (float-vector 0 0 (* -1 (- nearest-x (/ gr-z 2.0)))) :local)
           ;; update objects related counting pointcloud
           (send gripper-inside :worldcoords)
           ;; count the point inside of gripper-inside
@@ -568,9 +572,9 @@
             ;; for visualization
             (when visualize-searching
               (send *fetch* :inverse-kinematics
-                    (make-coords :pos (float-vector (+ nearest-x (/ gr-z 2.0)) random-y random-z)
+                    (make-coords :pos (float-vector (- nearest-x (/ gr-z 2.0)) random-y random-z)
                                  :rpy (float-vector 0 0 (* -1 random-rot)))
-                                 :use-torso nil)
+                    :use-torso nil)
               (send *irtviewer* :objects (append (list *fetch* pc) region))
 
               (let ((pc-inside-gripper nil) (pc-outside-gripper nil))
@@ -596,7 +600,6 @@
                 (send *irtviewer* :viewer :viewsurface :string 5 20 (format nil "points:"))
                 (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" inside-point))
                 (send *irtviewer* :viewer :viewsurface :flush)
-                ;; (objects (append (list *fetch* pc stick-l stick-r stick-center gripper-inside) region))
 
                 (when (> inside-point max-inside-point)
                   (setq max-inside-point inside-point)
@@ -617,6 +620,7 @@
           (send stick-l :orient 0 :z :world)
           (send stick-r :orient 0 :z :world)
           (send stick-center :orient 0 :z :world)
+          (send gripper-inside :rotate -pi/2 :y)
           (send gripper-inside :assoc stick-l)
           (send gripper-inside :assoc stick-r)
           (send gripper-inside :assoc stick-center)
@@ -626,7 +630,7 @@
       (if best-x
         (progn
           (send *fetch* :inverse-kinematics
-                (make-coords :pos (float-vector (+ best-x (/ gr-z 2.0)) best-y best-z)
+                (make-coords :pos (float-vector (- best-x (/ gr-z 2.0)) best-y best-z)
                              :rpy (float-vector 0 0 (* -1 best-rot))
                              :use-torso nil))
           (send gripper-inside :locate (float-vector (- best-x (/ gr-z 2.0)) best-y best-z) :world) ;; change position absolutely
