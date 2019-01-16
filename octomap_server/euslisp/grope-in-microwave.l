@@ -105,6 +105,9 @@
           (return))
         (unix:usleep (* 100 1000)))
       (setq target-region (box-recog boxes :offset 30)) ;; offset is to ignore box edge
+      ;; set environment as collision object for moveit
+      (collision-object-for-microwave target-region)
+
       ;; look at top of target region
       (send *fetch* :head :neck-p :joint-angle 20)
       (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
@@ -667,7 +670,7 @@
       )))
 
 ;; sample for microwave
-;; (decide-grope-point occupied-pointcloud target-region :x-offset 100 :y-offset 40 :z-offset 40)
+;; (decide-grope-point occupied-pointcloud target-region :x-offset 100 :y-offset 45 :z-offset 40 :visualize-searching t)
 (defun decide-grope-point (pc target-region &key (x-offset 0) (y-offset 0) (z-offset 0) (visualize-searching nil))
   (let ((hand-pos nil) (x nil) (y nil) (z nil) (fetch-copy nil) (points 0) (max-points 0)
         (min-x (+ (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))) x-offset))
@@ -852,5 +855,29 @@
     (send target-region :translate (float-vector (- (+ (* 1000 (send (send (send (car (send boxes :boxes)) :pose) :position) :x)) (* 0.5 (- 300 offset))) (aref (send target-region :worldpos) 0)) 0 0) :world)
     (setq *target-region* (copy-object target-region))
     target-region))
+
+(defun collision-object-for-microwave (target-region)
+  (let ((microwave-box nil) (microwave-door nil))
+    (when (not (boundp '*co*))
+      (setq *co* (instance collision-object-publisher :init))
+      (send *co* :wipe-all))
+    (setq microwave-box (make-cube 700 700 2000))
+    (send microwave-box :locate (v+ (send target-region :centroid)
+                                    (scale 0.5 (float-vector (- (x-of-cube microwave-box) (x-of-cube target-region)) 0 0)))
+          :world)
+    (setq microwave-box (body- microwave-box target-region))
+    (send *co* :add-object microwave-box :frame-id "base_link"
+          :relative-pose (send microwave-box :copy-worldcoords)
+          :object-id "microwave-box")
+    (setq microwave-door (make-cube 300 300 300))
+    (send microwave-door :locate (v+ (send target-region :centroid)
+                                     (scale 0.5 (float-vector (+ (* -1 (x-of-cube target-region)) (* -1 (x-of-cube microwave-door)))
+                                                              (+ (y-of-cube microwave-door) (y-of-cube target-region))
+                                                              0))))
+    (send *co* :add-object microwave-door :frame-id "base_link"
+          :relative-pose (send microwave-door :copy-worldcoords)
+          :object-id "microwave-door")
+    ;; (objects (list *fetch* microwave-box microwave-door))
+    ))
 
 nil
