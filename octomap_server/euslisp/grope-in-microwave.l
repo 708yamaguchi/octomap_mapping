@@ -33,12 +33,6 @@
 ;; direction accumulation
 (setq *direction-accum* 0)
 
-;; service name for stop/request of pointcloud from camera
-(setq *camera-request-service* "/camera_passthrough/request")
-(setq *camera-stop-service* "/camera_passthrough/stop")
-;; service name for reset octomap
-(setq *octomap-reset-service* "/octomap_server_contact/reset")
-
 (unless (boundp '*ri*)
   (set-fetch))
 (unless (boundp '*irtviewer*)
