@@ -231,8 +231,10 @@
       (format t "clipped bb region:~%x: ~A ~A, y: ~A ~A, z: ~A ~A, size: (~A, ~A, ~A)~%"
               min-x-round max-x-round min-y-round max-y-round min-z max-z (- max-x-round min-x-round) (- max-y-round min-y-round) (- max-z min-z))
       (ros::spin-once)
+      ;; TODO some offset may be needed for creating unknown-distribution
+      ;; TODO block size maybe should be set smaller (e.g. 30)
       (setq unknown-dist (unknown-distribution (get-octo-pointcloud :type "occupied") (get-octo-pointcloud :type "unknown")
-                                               :min-x min-x-round :max-x max-x-round :min-y min-y-round :max-y max-y-round :min-z min-z :max-z max-z
+                                               :min-x min-x-round :max-x max-x-round :min-y min-y-round :max-y max-y-round :min-z min-z-round :max-z max-z-round
                                                :block-size block-size))
       ;; calculate most unknown area
       (dotimes (i (car (array-dimensions unknown-dist)))
@@ -706,7 +708,7 @@
 ;; NOTE arguments of this function means region of the target space, not octomap region.
 ;; return map of where is not explored very much
 ;; example code
-;; (progn (unknown-distribution occupied-pointcloud unknown-pointcloud :min-x 700 :max-x 900 :min-y -300 :max-y 300 :min-z 900 :max-z 1500 :block-size 50.0) (objects unknown-pointcloud))
+;; (progn (unknown-distribution occupied-pointcloud unknown-pointcloud :min-x 570 :max-x 870 :min-y -84 :max-y 156 :min-z 1020 :max-z 1140 :block-size 30.0) (objects occupied-pointcloud))
 (defun unknown-distribution (occupied-pointcloud unknown-pointcloud
                              &key (min-x *min-x*) (max-x *max-x*) (min-y *min-y*) (max-y *max-y*) (min-z *min-z*) (max-z *max-z*) (block-size 50.0)
                              (view-octomap-2d nil) (view-unknown-distribution t))

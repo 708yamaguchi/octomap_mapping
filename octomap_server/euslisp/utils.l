@@ -111,13 +111,12 @@
          (diff-z (/ (- (- max-z-round min-z-round) (* (floor (/ (- max-z-round min-z-round) block-size)) block-size)) 2.0))
          (ret-cube (make-cube (- (- max-x-round diff-x) (+ min-x-round diff-x))
                               (- (- max-y-round diff-y) (+ min-y-round diff-y))
-                              (- max-z min-z)))) ;; do not consider z
+                              (- (- max-z-round diff-z) (+ min-z-round diff-z)))))
     (send ret-cube :locate (float-vector (aref (send region :worldpos) 0)
                                          (aref (send region :worldpos) 1)
                                          (aref (send region :worldpos) 2)))
     (send ret-cube :worldcoords) ;; update position of edges of ret-cube
     ret-cube))
-
 
 ;; service call via topic. this aims to record the timing of service call for rosbag play
 (ros::advertise "/camera_request" std_msgs::Empty 1)
