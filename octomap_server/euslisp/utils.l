@@ -119,17 +119,31 @@
     ret-cube))
 
 
-(defun camera-request ()
+;; service call via topic. this aims to record the timing of service call for rosbag play
+(ros::advertise "/camera_request" std_msgs::Empty 1)
+(ros::subscribe "/camera_request" std_msgs::Empty #'camera-request-cb)
+(defun camera-request-cb (msg)
   (ros::wait-for-service *camera-request-service*)
   (ros::service-call *camera-request-service* (instance std_srvs::EmptyRequest :init)))
-
-(defun camera-stop ()
+(defun camera-request ()
+  (ros::publish "/camera_request" (instance std_msgs::Empty :init)))
+;;
+(ros::advertise "/camera_stop" std_msgs::Empty 1)
+(ros::subscribe "/camera_stop" std_msgs::Empty #'camera-stop-cb)
+(defun camera-stop-cb ()
   (ros::wait-for-service *camera-stop-service*)
   (ros::service-call *camera-stop-service* (instance std_srvs::EmptyRequest :init)))
-
-(defun octomap-reset ()
+(defun camera-stop ()
+  (ros::publish "/camera_stop" (instance std_msgs::Empty :init)))
+;;
+(ros::advertise "/octomap_reset" std_msgs::Empty 1)
+(ros::subscribe "/octomap_reset" std_msgs::Empty #'camera-request-cb)
+(defun octomap-reset-cb ()
   (ros::wait-for-service *octomap-reset-service*)
   (ros::service-call *octomap-reset-service* (instance std_srvs::EmptyRequest :init)))
+(defun octomap-reset ()
+  (ros::publish "/octomap_reset" (instance std_msgs::Empty :init)))
+
 
 (defun sensor-calib (&optional (thre 90))
   (dotimes (i 100)
