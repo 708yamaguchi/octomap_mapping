@@ -450,9 +450,10 @@
 (load "package://octomap_server/euslisp/av-and-groped-pc2.l")
 (setq *pc1* (cadr av-and-groped-pc1))
 (setq *pc2* (cadr av-and-groped-pc1))
-(load "package://octomap_server/euslisp/microwave-env.l")
-;; TODO decide grope point based on height map. hint is in (calc-grope-point)
-;; TODO use pyramid algorithm when searching grope point
+;; NOTE the dump file below is too big. load the file only when you need
+;; (load "package://octomap_server/euslisp/microwave-env.l")
+;; NOTE
+
 ;; when using microwave-env.l, do sample code below
 ;; (search-graspable-point occupied-pointcloud :min-x 710 :max-x 810 :min-y -45 :max-y 215 :min-z 1000 :max-z 1150 :visualize-searching t :iter-count 100)
 (defun search-graspable-point (pc &key (min-x 750) (max-x 850) (min-y -100) (max-y 100) (min-z 950) (max-z 1100) (iter-count 1000) (visualize-searching nil))
@@ -704,7 +705,8 @@
 
 ;; NOTE arguments of this function means region of the target space, not octomap region.
 ;; return map of where is not explored very much
-;; (unknown-distribution :min-x *min-x* :max-x *max-x* :min-y *min-y* :max-y *max-y* :min-z *min-z* :max-z *max-z* :block-size 50.0)
+;; example code
+;; (progn (unknown-distribution occupied-pointcloud unknown-pointcloud :min-x 700 :max-x 900 :min-y -300 :max-y 300 :min-z 900 :max-z 1500 :block-size 50.0) (objects unknown-pointcloud))
 (defun unknown-distribution (occupied-pointcloud unknown-pointcloud
                              &key (min-x *min-x*) (max-x *max-x*) (min-y *min-y*) (max-y *max-y*) (min-z *min-z*) (max-z *max-z*) (block-size 50.0)
                              (view-octomap-2d nil) (view-unknown-distribution t))
@@ -729,14 +731,14 @@
              (z (round (/ (- (aref occupied 2) min-z (/ *resolution* 2.0)) *resolution*)))
              ) ;; y and z are index
         ;; (if (and (< min-x (aref occupied 0) max-x) (< min-y (aref occupied 1) max-y) (< min-z (aref occupied 2) max-z))
-        (if (and (<= 0 y) (< y (cadr (array-dimensions octomap-2d))) (<= 0 z) (< z (car (array-dimensions octomap-2d))))
+        (if (and (<= 0 y) (< y (car (array-dimensions octomap-2d))) (<= 0 z) (< z (cadr (array-dimensions octomap-2d))))
           (setf (aref octomap-2d y z) -1))))
     ;; look up unknown pointcloud secondly
     (dotimes (j (send unknown-pc :size))
       (let* ((unknown (matrix-row (send unknown-pc :points) j))
              (y (/ (round (- (aref unknown 1) min-y *resolution*)) *resolution*))
              (z (/ (round (- (aref unknown 2) min-z *resolution*)) *resolution*))) ;; y and z are index
-        (if (and (<= 0 y) (< y (cadr (array-dimensions octomap-2d))) (<= 0 z) (< z (car (array-dimensions octomap-2d))) ;; target point is inside the target region?
+        (if (and (<= 0 y) (< y (car (array-dimensions octomap-2d))) (<= 0 z) (< z (cadr (array-dimensions octomap-2d))) ;; target point is inside the target region?
                  (not (eq (aref octomap-2d y z) -1)))
           (setf (aref octomap-2d y z) (+ 1 (aref octomap-2d y z)))
           )))
