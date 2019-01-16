@@ -37,6 +37,10 @@
               /proximity_distance/right/side1
               /proximity_distance/right/side2
               /proximity_distance/right/side3
+
+              /camera_request
+              /camera_stop
+              /octomap_reset
               "
         output="screen">
     <!-- record proximity distance because it contains sensor calibration information -->
