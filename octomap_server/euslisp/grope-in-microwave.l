@@ -191,24 +191,9 @@
         (direction (rad2deg (random pi))) (count 0) (unknown-dist nil))
     (send *ri* :go-grasp :pos 0.03 :wait t)
     ;; first, moving hand up
-    (format t "set pose for pre-pose. preparing...~%")
-    (dolist (object *collision-objects*)
-      (send *co* :add-object object))
-    (send *fetch* :reset-pose)
-    (send *fetch* :torso :waist-z :joint-angle 290)
-    (send *fetch* :rarm :shoulder-y :joint-angle -80)
-    (send *fetch* :inverse-kinematics
-          (make-coords :pos (float-vector 500 (/ (+ *min-y* *max-y*) 2.0) (/ (+ *min-z* *max-z*) 2.0)))
-          :use-torso nil
-          :debug-view :no-message
-          :min-loop 50
-          :revert-if-fail nil
-          :additional-nspace-list (mapcar #'(lambda (link refangle)
-                                              (eval `(list link #'(lambda () (* 0.001 (- ,refangle (send ,link :joint :joint-angle)))))))
-                                          (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link)
-                                          (list -90)))
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 6000)
-    (send *co* :wipe-all)
+    (format t "set prepose for main experiment. preparing...~%")
+    (prepose-for-main)
+
     ;; calculate where to grope, during moving hand up (time saving)
     (let* ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
            (min-x (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))))
@@ -337,8 +322,6 @@
     ;; (send *fetch* :torso :waist-z :joint-angle 50)
     ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
     ;; (send *ri* :wait-interpolation)
-
-    (break)
 
     (format t "start tracing~%")
     ;; move hand until detecting object. move-end-pos 10cm, 10cm, 10cm ...  gradually.
@@ -904,5 +887,27 @@
     ;; (objects (list *fetch* microwave-box microwave-door))
     (setq *collision-objects* (list microwave-box microwave-door))
     ))
+
+(defun prepose-for-main ()
+  (send *co* :wipe-all)
+  (if *collision-objects*
+    (dolist (object *collision-objects*)
+      (send *co* :add-object object)))
+  (send *fetch* :reset-pose)
+  (send *fetch* :torso :waist-z :joint-angle 290)
+  (send *fetch* :rarm :shoulder-y :joint-angle -80)
+  (send *fetch* :inverse-kinematics
+        (make-coords :pos (float-vector 500 (/ (+ *min-y* *max-y*) 2.0) (/ (+ *min-z* *max-z*) 2.0)))
+        :use-torso nil
+        :debug-view :no-message
+        :min-loop 50
+        :revert-if-fail nil
+        :additional-nspace-list (mapcar #'(lambda (link refangle)
+                                            (eval `(list link #'(lambda () (* 0.001 (- ,refangle (send ,link :joint :joint-angle)))))))
+                                        (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link)
+                                        (list -90)))
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 6000)
+  (send *co* :wipe-all)
+  )
 
 nil
