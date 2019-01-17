@@ -32,6 +32,8 @@
 (setq *torso* 20)
 ;; direction accumulation
 (setq *direction-accum* 0)
+;; collision objects for moveit
+(setq *collision-objects* nil)
 
 (unless (boundp '*ri*)
   (set-fetch))
@@ -113,8 +115,6 @@
     (if (equal type :setting)
       (return-from main t))
 
-    (break)
-
     ;; grasp object with octomap and grope. TODO simultaneous execution of (create-map) and (decide-grope-point) may be needed.
     ;; flowchart of this (do-until-key) is loop of following steps:
     ;; 1. first create octomap, and then try to grasp the target object with the same octomap up to 5 times.
@@ -191,10 +191,24 @@
         (direction (rad2deg (random pi))) (count 0) (unknown-dist nil))
     (send *ri* :go-grasp :pos 0.03 :wait t)
     ;; first, moving hand up
-    (format t "move hand up. preparing...~%")
-    (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+    (format t "set pose for pre-pose. preparing...~%")
+    (dolist (object *collision-objects*)
+      (send *co* :add-object object))
+    (send *fetch* :reset-pose)
     (send *fetch* :torso :waist-z :joint-angle 290)
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
+    (send *fetch* :rarm :shoulder-y :joint-angle -80)
+    (send *fetch* :inverse-kinematics
+          (make-coords :pos (float-vector 500 (/ (+ *min-y* *max-y*) 2.0) (/ (+ *min-z* *max-z*) 2.0)))
+          :use-torso nil
+          :debug-view :no-message
+          :min-loop 50
+          :revert-if-fail nil
+          :additional-nspace-list (mapcar #'(lambda (link refangle)
+                                              (eval `(list link #'(lambda () (* 0.001 (- ,refangle (send ,link :joint :joint-angle)))))))
+                                          (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link)
+                                          (list -90)))
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 6000)
+    (send *co* :wipe-all)
     ;; calculate where to grope, during moving hand up (time saving)
     (let* ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
            (min-x (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))))
@@ -230,7 +244,9 @@
       ;; TODO some offset may be needed for creating unknown-distribution
       ;; TODO block size maybe should be set smaller (e.g. 30)
       (setq unknown-dist (unknown-distribution (get-octo-pointcloud :type "occupied") (get-octo-pointcloud :type "unknown")
-                                               :min-x min-x-round :max-x max-x-round :min-y min-y-round :max-y max-y-round :min-z min-z-round :max-z max-z-round
+                                               :min-x min-x-round :max-x max-x-round
+                                               :min-y min-y-round :max-y (- max-y-round 50) ;; 50 is offset to avoid door of microwave
+                                               :min-z min-z-round :max-z max-z-round
                                                :block-size block-size))
       ;; calculate most unknown area
       (dotimes (i (car (array-dimensions unknown-dist)))
@@ -273,6 +289,9 @@
             (if (<= random-y (/ (cadr (array-dimensions unknown-dist)) 2))
               (setq adjacent-max-place (list 0 1))
               (setq adjacent-max-place (list 0 -1))))
+
+          (setq adjacent-max-place (list 1 0))
+
           (setq direction (+ 180 (* -1 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place))))))
           (print (list direction adjacent-max-place))
           )))
@@ -302,9 +321,11 @@
       (setq av2 (send *fetch* :angle-vector))
       (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) (* 0.5 direction)))
       (setq av3 (send *fetch* :angle-vector))
-    (send *ri* :angle-vector-sequence (list av1 av2 av3) (list 6000 1500 1500))
-    ;; (send *ri* :wait-interpolation)
-    (unix:sleep 9)
+      (print av1)
+      (print av2)
+      (print av3)
+    ;; (send *ri* :angle-vector-sequence (list av1 av2 av3) (list 6000 1500 1500))
+    ;; (unix:sleep 9)
     )
     ;; move hand down to target coords ;; these functions may not be needed any more
     ;; (format t "move hand to target coords~%")
@@ -874,6 +895,7 @@
           :relative-pose (send microwave-door :copy-worldcoords)
           :object-id "microwave-door")
     ;; (objects (list *fetch* microwave-box microwave-door))
+    (setq *collision-objects* (list microwave-box microwave-door))
     ))
 
 nil
