@@ -39,16 +39,16 @@
   (fetch)
   (objects (list *fetch*)))
 
-(warning-message 3 (format nil "~%fetch's pre-pose:~%  (progn (send *fetch* :reset-pose) (send *fetch* :torso :waist-z :joint-angle 200) (send *fetch* :rarm :shoulder-y :joint-angle -80) (send *fetch* :inverse-kinematics
+(warning-message 3 (format nil "~%fetch's pre-pose:~%  (progn (send *fetch* :reset-pose) (send *fetch* :torso :waist-z :joint-angle 290) (send *fetch* :rarm :shoulder-y :joint-angle -80) (send *fetch* :inverse-kinematics
             (make-coords :pos (float-vector 500 0 700))
             :use-torso nil
             :debug-view nil
             :min-loop 50
             :revert-if-fail nil
             :additional-nspace-list (mapcar #'(lambda (link refangle)
-                                                (eval `(list link #'(lambda () (* 0.01 (- ,refangle (send ,link :joint :joint-angle)))))))
+                                                (eval `(list link #'(lambda () (* 0.001 (- ,refangle (send ,link :joint :joint-angle)))))))
                                             (send-all (list (nth 1 (send *fetch* :rarm :joint-list))) :child-link)
-                                            (list -70))))~%"))
+                                            (list -90))))~%"))
 (warning-message 3 (format nil "~%send av to *ri*:~%  (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)~%"))
 
 ;; NOTE type is :setting, :main or :all
@@ -62,7 +62,7 @@
       ;; settings for experiment
       ;; below is IK program for stretching wrist_flex_joint
       (send *fetch* :reset-pose)
-      (send *fetch* :torso :waist-z :joint-angle 200)
+      (send *fetch* :torso :waist-z :joint-angle 290)
       (send *fetch* :rarm :shoulder-y :joint-angle -80)
       (send *fetch* :inverse-kinematics
             (make-coords :pos (float-vector 500 (/ (+ *min-y* *max-y*) 2.0) (/ (+ *min-z* *max-z*) 2.0)))
@@ -197,7 +197,7 @@
     ;; first, moving hand up
     (format t "move hand up. preparing...~%")
     (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-    (send *fetch* :torso :waist-z :joint-angle 200)
+    (send *fetch* :torso :waist-z :joint-angle 290)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
     ;; calculate where to grope, during moving hand up (time saving)
     (let* ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
@@ -289,7 +289,7 @@
     ;; calibration proximity sensor's param every time before groping.
     (sensor-calib)
     ;; move hand above the target object
-    (send *fetch* :torso :waist-z :joint-angle 200)
+    (send *fetch* :torso :waist-z :joint-angle 290)
     (send target-coords :translate (float-vector (- 500 (aref (send target-coords :pos) 0)) 0 0) :world)
     (send *fetch* :inverse-kinematics target-coords :use-torso nil)
     ;; calculate accumulation of rotation angle, to untie USB cable
@@ -473,7 +473,7 @@
          (viewpoint #f(1528.4 1471.28 1304.32))
          (viewtarget #f(604.334 -129.251 831.657))
          )
-    (send *fetch* :torso :waist-z :joint-angle 200)
+    (send *fetch* :torso :waist-z :joint-angle 290)
     (send *fetch* :stop-grasp)
 
     (let ((cube (make-cube (- max-x min-x) (- max-y min-y) (- max-z min-z))) (region nil))
@@ -576,7 +576,7 @@
             (let ((pc-inside-gripper nil) (pc-outside-gripper nil))
               ;; for visualization
               (when visualize-searching
-                (send *fetch* :angle-vector #f(200.0 -35.6014 30.2023 21.6101 127.099 123.643 123.759 113.956 0.0 0.0)) ;; pre-pose for IK
+                (send *fetch* :angle-vector #f(290.0 -91.1404 64.5379 31.0038 101.51 96.5575 58.5683 102.242 0.0 0.0)) ;; pre-pose for IK
                 (send *fetch* :inverse-kinematics
                       (make-coords :pos (float-vector (- nearest-x (/ gr-z 2.0)) random-y random-z)
                                    :rpy (float-vector 0 0 (* -1 random-rot)))
@@ -634,7 +634,7 @@
 
       (if best-x
         (progn
-          (send *fetch* :angle-vector #f(200.0 -35.6014 30.2023 21.6101 127.099 123.643 123.759 113.956 0.0 0.0)) ;; pre-pose for IK
+          (send *fetch* :angle-vector #f(290.0 -91.1404 64.5379 31.0038 101.51 96.5575 58.5683 102.242 0.0 0.0)) ;; pre-pose for IK
           (send *fetch* :inverse-kinematics
                 (make-coords :pos (float-vector (- best-x (/ gr-z 2.0)) best-y best-z)
                              :rpy (float-vector 0 0 (* -1 best-rot))
