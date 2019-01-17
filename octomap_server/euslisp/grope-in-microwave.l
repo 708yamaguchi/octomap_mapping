@@ -274,11 +274,11 @@
             (when (< adjacent-max-val (aref unknown-dist (+ (car max-place) x) (+ (cadr max-place) y)))
               (setq adjacent-max-val (aref unknown-dist (+ (car max-place) x) (+ (cadr max-place) y)))
               (setq adjacent-max-place (list x y))))))
-      (setq direction (+ 180 (* -1 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place))))))
       ;; sometimes groping randomly
       (let* ((m (make-random-state t)) ;; set max-place randomly at probability of 0.5
              (random-x (random (car (array-dimensions unknown-dist)) m))
-             (random-y (random (cadr (array-dimensions unknown-dist)) m)))
+             (random-y (random (cadr (array-dimensions unknown-dist)) m))
+             direction-arrow)
         (when (< (random 1.0 m) 0.5) ;; sometimes move hand randomly, else, move hand based on unknown distribution
           (format t "randomly decided grope starting position~%")
           (setq max-place (list random-x random-y))
@@ -288,13 +288,21 @@
               (setq adjacent-max-place (list -1 0)))
             (if (<= random-y (/ (cadr (array-dimensions unknown-dist)) 2))
               (setq adjacent-max-place (list 0 1))
-              (setq adjacent-max-place (list 0 -1))))
-
-          (setq adjacent-max-place (list 1 0))
-
-          (setq direction (+ 180 (* -1 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place))))))
-          (print (list direction adjacent-max-place))
-          )))
+              (setq adjacent-max-place (list 0 -1)))))
+        ;; calculate direction of trace motion
+        (setq direction (+ 90 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place)))))
+        (print (list direction adjacent-max-place))
+        ;; visualize the direction
+        (setq direction-arrow
+              (make-arrow
+               (float-vector (- *min-x* 20)
+                             (+ (* block-size (+ (car max-place) 0.5)) min-y-round)
+                             (+ (* block-size (+ (cadr max-place) 0.5)) min-z-round)) ;; pos
+               (float-vector 0
+                             (* block-size (car adjacent-max-place))
+                             (* block-size (cadr adjacent-max-place))) ;; vec
+               :color #f(1 0 0)))
+        (objects direction-arrow)))
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; END, replace: x->y, y->z ;;
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -321,11 +329,8 @@
       (setq av2 (send *fetch* :angle-vector))
       (send *fetch* :rarm :wrist-r :joint-angle (+ (send *fetch* :rarm :wrist-r :joint-angle) (* 0.5 direction)))
       (setq av3 (send *fetch* :angle-vector))
-      (print av1)
-      (print av2)
-      (print av3)
-    ;; (send *ri* :angle-vector-sequence (list av1 av2 av3) (list 6000 1500 1500))
-    ;; (unix:sleep 9)
+    (send *ri* :angle-vector-sequence (list av1 av2 av3) (list 6000 1500 1500))
+    (unix:sleep 9)
     )
     ;; move hand down to target coords ;; these functions may not be needed any more
     ;; (format t "move hand to target coords~%")
@@ -730,7 +735,7 @@
 ;; (progn (unknown-distribution occupied-pointcloud unknown-pointcloud :min-x 570 :max-x 870 :min-y -84 :max-y 156 :min-z 1020 :max-z 1140 :block-size 30.0) (objects occupied-pointcloud))
 (defun unknown-distribution (occupied-pointcloud unknown-pointcloud
                              &key (min-x *min-x*) (max-x *max-x*) (min-y *min-y*) (max-y *max-y*) (min-z *min-z*) (max-z *max-z*) (block-size 50.0)
-                             (view-octomap-2d nil) (view-unknown-distribution t))
+                             (view-octomap-2d nil) (view-unknown-distribution t) (visualize-arrow nil))
   (unless (and (eq (mod (round (- *max-y* *min-y*)) (round block-size)) 0)
                (eq (mod (round (- *max-z* *min-z*)) (round block-size)) 0))
     (format t "target region is not a multiple of block-size~%")
@@ -836,16 +841,18 @@
             (send cube :translate (float-vector *min-x* (+ (* (/ (- max-y min-y) y-size) (+ k 0.5)) min-y) (+ (* (/ (- max-z min-z) z-size) (+ l 0.5)) min-z)) :world)
             (setq dist-vis-list (append dist-vis-list (list cube)))))
         ;; (objects (append (list *fetch*) dist-vis-list region-edge))
-        (setq direction-arrow
-              (make-arrow
-               (float-vector (- *min-x* 20)
-                             (+ (* (/ (- max-y min-y) y-size) (+ (car max-unknown-place) 0.5)) min-y)
-                             (+ (* (/ (- max-z min-z) z-size) (+ (cadr max-unknown-place) 0.5)) min-z)) ;; pos
-               (float-vector 0
-                             (* (/ (- max-y min-y) y-size) (car adjacent-max-unknown-place))
-                             (* (/ (- max-z min-z) z-size) (cadr adjacent-max-unknown-place))) ;; vec
-               :color #f(1 0 0)))
-        (objects (append (list *fetch*) dist-vis-list direction-arrow))
+        (when visualize-arrow
+          (setq direction-arrow
+                (make-arrow
+                 (float-vector (- *min-x* 20)
+                               (+ (* (/ (- max-y min-y) y-size) (+ (car max-unknown-place) 0.5)) min-y)
+                               (+ (* (/ (- max-z min-z) z-size) (+ (cadr max-unknown-place) 0.5)) min-z)) ;; pos
+                 (float-vector 0
+                               (* (/ (- max-y min-y) y-size) (car adjacent-max-unknown-place))
+                               (* (/ (- max-z min-z) z-size) (cadr adjacent-max-unknown-place))) ;; vec
+                 :color #f(1 0 0)))
+          (objects (append (list *fetch*) dist-vis-list direction-arrow)))
+        (objects (append (list *fetch*) dist-vis-list))
         ;; (send *irtviewer* :change-background #f(0.3 0.3 0.1))
         (send *irtviewer* :change-background #f(0.2 0.2 0.2))
         ;; (send *irtviewer* :viewer :viewing :look #f(640.0 0.0 1200) #f(640.0 0.0 550.0) #f(0 0 1)) ;; above view
