@@ -33,7 +33,8 @@
 ;; direction accumulation
 (setq *direction-accum* 0)
 ;; collision objects for moveit
-(setq *collision-objects* nil)
+(unless (boundp '*collision-objects*)
+  (setq *collision-objects* nil))
 
 (unless (boundp '*ri*)
   (set-fetch))
@@ -108,9 +109,13 @@
       ;; set hand to initial experiment pose
       (send *fetch* :rarm :move-end-pos #f(0 400 0) :world :use-torso nil)
       (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
-      (send *ri* :wait-interpolation))
+      (send *ri* :wait-interpolation)
       ;; set environment as collision object for moveit
+      (send *co* :wipe-all)
       (collision-object-for-microwave target-region)
+      )
+
+    (break)
 
     (if (equal type :setting)
       (return-from main t))
@@ -864,19 +869,32 @@
     target-region))
 
 (defun collision-object-for-microwave (target-region)
-  (let ((microwave-box nil) (microwave-door nil))
+  (let ((microwave-box-down nil) (microwave-box-up nil) (microwave-left nil) (microwave-right nil) (box-list nil)
+        (microwave-door nil)
+        (xoc (x-of-cube target-region)) (yoc (y-of-cube target-region)) (zoc (z-of-cube target-region))
+        )
     (when (not (boundp '*co*))
       (setq *co* (instance collision-object-publisher :init))
       (send *co* :wipe-all))
-    (setq microwave-box (make-cube 700 700 2000))
-    (send microwave-box :locate (v+ (send target-region :centroid)
-                                    (scale 0.5 (float-vector (- (x-of-cube microwave-box) (x-of-cube target-region)) 0 0)))
-          :world)
-    (setq microwave-box (body- microwave-box target-region))
-    (send *co* :add-object microwave-box :frame-id "base_link"
-          :relative-pose (send microwave-box :copy-worldcoords)
-          :object-id "microwave-box")
-    (setq microwave-door (make-cube 300 300 300))
+    ;; microwave box
+    (setq microwave-box-down (make-cube xoc yoc (- (aref (send target-region :centroid) 2) (* 0.5 zoc))))
+    (setq microwave-box-up (make-cube xoc yoc 700))
+    (setq microwave-box-left (make-cube xoc 200 (+ (z-of-cube microwave-box-down) zoc (z-of-cube microwave-box-up))))
+    (setq microwave-box-right (make-cube xoc 200 (+ (z-of-cube microwave-box-down) zoc (z-of-cube microwave-box-up))))
+    (send microwave-box-down :locate (float-vector (aref (send target-region :centroid) 0) 0 (* 0.5 (z-of-cube microwave-box-down))))
+    (send microwave-box-up :locate (float-vector (aref (send target-region :centroid) 0) 0 (+ (aref (send target-region :centroid) 2) (* 0.5 zoc) (* 0.5 (z-of-cube microwave-box-up)))))
+    (send microwave-box-left :locate (float-vector (aref (send target-region :centroid) 0) (* 0.5 (+ yoc (y-of-cube microwave-box-left))) (* 0.5 (z-of-cube microwave-box-left))))
+    (send microwave-box-right :locate (float-vector (aref (send target-region :centroid) 0) (* -0.5 (+ yoc (y-of-cube microwave-box-right))) (* 0.5 (z-of-cube microwave-box-left))))
+    (setq box-list (list microwave-box-down microwave-box-up microwave-box-left microwave-box-right))
+    (let ((i 0) (name-list (list "box-down" "box-up" "box-left" "box-right")))
+      (dolist (microwave-box box-list)
+        (send *co* :add-object microwave-box :frame-id "base_link"
+              :relative-pose (send microwave-box :copy-worldcoords)
+              :object-id (nth i name-list))
+        (setq i (+ i 1))))
+
+    ;; microwave door
+    (setq microwave-door (make-cube 300 300 zoc))
     (send microwave-door :locate (v+ (send target-region :centroid)
                                      (scale 0.5 (float-vector (+ (* -1 (x-of-cube target-region)) (* -1 (x-of-cube microwave-door)))
                                                               (+ (y-of-cube microwave-door) (y-of-cube target-region))
@@ -884,8 +902,8 @@
     (send *co* :add-object microwave-door :frame-id "base_link"
           :relative-pose (send microwave-door :copy-worldcoords)
           :object-id "microwave-door")
-    ;; (objects (list *fetch* microwave-box microwave-door))
-    (setq *collision-objects* (list microwave-box microwave-door))
+    ;; (objects (append box-list (list microwave-door *fetch*)))
+    (setq *collision-objects* (append box-list (list microwave-door)))
     ))
 
 (defun prepose-for-main ()
