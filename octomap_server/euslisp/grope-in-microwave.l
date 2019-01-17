@@ -111,7 +111,6 @@
       (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
       (send *ri* :wait-interpolation)
       ;; set environment as collision object for moveit
-      (send *co* :wipe-all)
       (collision-object-for-microwave target-region)
       )
 
@@ -881,10 +880,10 @@
     (setq microwave-box-up (make-cube xoc yoc 700))
     (setq microwave-box-left (make-cube xoc 200 (+ (z-of-cube microwave-box-down) zoc (z-of-cube microwave-box-up))))
     (setq microwave-box-right (make-cube xoc 200 (+ (z-of-cube microwave-box-down) zoc (z-of-cube microwave-box-up))))
-    (send microwave-box-down :locate (float-vector (aref (send target-region :centroid) 0) 0 (* 0.5 (z-of-cube microwave-box-down))))
-    (send microwave-box-up :locate (float-vector (aref (send target-region :centroid) 0) 0 (+ (aref (send target-region :centroid) 2) (* 0.5 zoc) (* 0.5 (z-of-cube microwave-box-up)))))
-    (send microwave-box-left :locate (float-vector (aref (send target-region :centroid) 0) (* 0.5 (+ yoc (y-of-cube microwave-box-left))) (* 0.5 (z-of-cube microwave-box-left))))
-    (send microwave-box-right :locate (float-vector (aref (send target-region :centroid) 0) (* -0.5 (+ yoc (y-of-cube microwave-box-right))) (* 0.5 (z-of-cube microwave-box-left))))
+    (send microwave-box-down :locate (float-vector (+ (aref (send target-region :centroid) 0) (* 0.5 (x-of-cube microwave-box-down))) 0 (* 0.5 (z-of-cube microwave-box-down))))
+    (send microwave-box-up :locate (float-vector (+ (aref (send target-region :centroid) 0) (* 0.5 (x-of-cube microwave-box-up))) 0 (+ (aref (send target-region :centroid) 2) (* 0.5 zoc) (* 0.5 (z-of-cube microwave-box-up)))))
+    (send microwave-box-left :locate (float-vector (+ (aref (send target-region :centroid) 0) (* 0.5 (x-of-cube microwave-box-left))) (* 0.5 (+ yoc (y-of-cube microwave-box-left))) (* 0.5 (z-of-cube microwave-box-left))))
+    (send microwave-box-right :locate (float-vector (+ (aref (send target-region :centroid) 0) (* 0.5 (x-of-cube microwave-box-right))) (* -0.5 (+ yoc (y-of-cube microwave-box-right))) (* 0.5 (z-of-cube microwave-box-left))))
     (setq box-list (list microwave-box-down microwave-box-up microwave-box-left microwave-box-right))
     (let ((i 0) (name-list (list "box-down" "box-up" "box-left" "box-right")))
       (dolist (microwave-box box-list)
@@ -896,8 +895,8 @@
     ;; microwave door
     (setq microwave-door (make-cube 300 300 zoc))
     (send microwave-door :locate (v+ (send target-region :centroid)
-                                     (scale 0.5 (float-vector (+ (* -1 (x-of-cube target-region)) (* -1 (x-of-cube microwave-door)))
-                                                              (+ (y-of-cube microwave-door) (y-of-cube target-region))
+                                     (scale 0.5 (float-vector (+ (* -1 (x-of-cube microwave-door)))
+                                                              (+ (y-of-cube microwave-door) yoc)
                                                               0))))
     (send *co* :add-object microwave-door :frame-id "base_link"
           :relative-pose (send microwave-door :copy-worldcoords)
