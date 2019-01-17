@@ -23,7 +23,7 @@
       <remap from="~input/points" to="$(arg INPUT)" />
       <rosparam>
         <!-- initial_pos: [0.55, 0.0, 0.6] -->
-        initial_pos: [0.7, 0.0, 1.0]
+        initial_pos: [0.7, 0.0, 0.7]
         initial_rot: [0, 0, 0]
         dimension_x: 0.5
         dimension_y: 0.6

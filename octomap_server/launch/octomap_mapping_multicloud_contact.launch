@@ -68,8 +68,8 @@
     <param name="occupancy_max_x" value="0.95" />
     <param name="occupancy_min_y" value="-0.2" />
     <param name="occupancy_max_y" value="0.2" />
-    <param name="occupancy_min_z" value="0.7" />
-    <param name="occupancy_max_z" value="1.5" />
+    <param name="occupancy_min_z" value="0.4" />
+    <param name="occupancy_max_z" value="1.0" />
     <!-- for box on the table -->
     <!-- <param name="occupancy_min_x" value="0.45" /> -->
     <!-- <param name="occupancy_max_x" value="0.95" /> -->
@@ -130,12 +130,12 @@
     <!-- <arg name="i_max" value="255"/> -->
     <!-- <arg name="i_min" value="0"/> -->
     <!-- for microwave -->
-    <arg name="h_max" value="110"/>
+    <arg name="h_max" value="127"/>
     <arg name="h_min" value="80"/>
     <arg name="s_max" value="255"/>
     <arg name="s_min" value="85"/>
     <arg name="i_max" value="255"/>
-    <arg name="i_min" value="18"/>
+    <arg name="i_min" value="0"/>
   </include>
 
   <!-- rviz -->
