@@ -53,9 +53,12 @@
 
 ;; NOTE type is :setting, :main or :all
 ;; :setting does setting of this function, :main does main part of this function and :all does both of them.
-(defun main-in-microwave
+;; NOTE do pre-pose before executing this function
+(defun main-in-microwave (&key (type :all))
   (if (not (or (equal type :setting) (equal type :main) (equal type :all)))
     (progn (format t "argument :type is not correctly set~%") (return-from main nil)))
+  (if (boundp '*co*)
+    (send *co* :wipe-all))
   (setq *direction-accum* 0)
   (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
     (when (or (equal type :all) (equal type :setting))
@@ -71,12 +74,10 @@
             :min-loop 50
             :revert-if-fail nil
             :additional-nspace-list (mapcar #'(lambda (link refangle)
-                                                (eval `(list link #'(lambda () (* 0.01 (- ,refangle (send ,link :joint :joint-angle)))))))
+                                                (eval `(list link #'(lambda () (* 0.001 (- ,refangle (send ,link :joint :joint-angle)))))))
                                             (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link)
-                                            (list -70))
+                                            (list -90))
             )
-      (send *fetch* :inverse-kinematics
-            (make-coords :pos (float-vector 500 (/ (+ *min-y* *max-y*) 2.0) (/ (+ *min-z* *max-z*) 2.0))) :use-torso nil) ;; 950 is tuned parameter
       ;; above is IK program for stretching wrist_flex_joint
       (send *fetch* :head :look-at (float-vector (/ (+ *max-x* *min-x*) 2.0) (/ (+ *max-y* *min-y*) 2.0) (/ (+ *max-z* *min-z*) 2.0)))
       (send *fetch* :rarm :move-end-pos #f(0 -400 0) :world :use-torso nil) ;; move hand sideway to avoid occlusion
@@ -99,27 +100,22 @@
           (return))
         (unix:usleep (* 100 1000)))
       (setq target-region (box-recog boxes :offset 30)) ;; offset is to ignore box edge
-      ;; set environment as collision object for moveit
-      (collision-object-for-microwave target-region)
-
-      ;; look at top of target region
-      (send *fetch* :head :neck-p :joint-angle 20)
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
-      (send *ri* :wait-interpolation)
-      (send *fetch* :head :look-at (float-vector (/ (+ *max-x* *min-x*) 2.0) (/ (+ *max-y* *min-y*) 2.0) (/ (+ *max-z* *min-z* 200) 2.0)))
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
-      (send *ri* :wait-interpolation)
-
+      (setq *target-region* (copy-object target-region))
       (camera-stop)
+
       ;; set hand to initial experiment pose
       (send *fetch* :rarm :move-end-pos #f(0 400 0) :world :use-torso nil)
       (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
       (send *ri* :wait-interpolation))
+      ;; set environment as collision object for moveit
+      (collision-object-for-microwave target-region)
 
     (if (equal type :setting)
       (return-from main t))
 
-        ;; grasp object with octomap and grope. TODO simultaneous execution of (create-map) and (decide-grope-point) may be needed.
+    (break)
+
+    ;; grasp object with octomap and grope. TODO simultaneous execution of (create-map) and (decide-grope-point) may be needed.
     ;; flowchart of this (do-until-key) is loop of following steps:
     ;; 1. first create octomap, and then try to grasp the target object with the same octomap up to 5 times.
     ;; 2. if success, lift the object and finish. else, retry from the first step.
@@ -148,7 +144,7 @@
            (format t "try to solve IK~%")
            ;; (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* ec-z)) :world)
            (dotimes (i 3)
-             (unless (send *fetch* :rarm :move-end-pos (float-vector 100 0 0) :world)
+             (unless (send *fetch* :rarm :move-end-pos (float-vector -100 0 0) :world)
                (return)))
            (format t "IK solved ??~%")
            (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
@@ -211,11 +207,11 @@
            (max-x-round (round max-x))
            (min-y-round (round min-y))
            (max-y-round (round max-y))
-           (min-z-round (round min-y))
-           (max-z-round (round max-y))
+           (min-z-round (round min-z))
+           (max-z-round (round max-z))
            (block-size 50.0)
            (diff-x (/ (- (- max-x-round min-x-round) (* (floor (/ (- max-x-round min-x-round) block-size)) block-size)) 2.0))
-           (diff-z (/ (- (- max-z-round min-z-round) (* (floor (/ (- max-z-round min-z-round) block-size)) block-size)) 2.0))
+           (diff-y (/ (- (- max-y-round min-y-round) (* (floor (/ (- max-y-round min-y-round) block-size)) block-size)) 2.0))
            (diff-z (/ (- (- max-z-round min-z-round) (* (floor (/ (- max-z-round min-z-round) block-size)) block-size)) 2.0))
            )
       ;; calculate position of hand, x and y
@@ -229,7 +225,7 @@
       (format t "target bb region:~%x: ~A ~A, y: ~A ~A, z: ~A ~A, size: (~A, ~A, ~A)~%"
               min-x max-x min-y max-y min-z max-z (- max-x min-x) (- max-y min-y) (- max-z min-z))
       (format t "clipped bb region:~%x: ~A ~A, y: ~A ~A, z: ~A ~A, size: (~A, ~A, ~A)~%"
-              min-x-round max-x-round min-y-round max-y-round min-z max-z (- max-x-round min-x-round) (- max-y-round min-y-round) (- max-z min-z))
+              min-x-round max-x-round min-y-round max-y-round min-z-round max-z-round (- max-x-round min-x-round) (- max-y-round min-y-round) (- max-z-round min-z-round))
       (ros::spin-once)
       ;; TODO some offset may be needed for creating unknown-distribution
       ;; TODO block size maybe should be set smaller (e.g. 30)
@@ -242,7 +238,7 @@
           (when (< max-val (aref unknown-dist i j))
             (setq max-val (aref unknown-dist i j))
             (setq max-place (list i j)))))
-      (setf (aref (send target-coords :worldpos) 0) max-x)
+      (setf (aref (send target-coords :worldpos) 0) min-x)
       (setf (aref (send target-coords :worldpos) 1) (+ min-y (/ block-size 2.0) (* (car max-place) block-size)))
       (setf (aref (send target-coords :worldpos) 2) (+ min-z (/ block-size 2.0) (* (cadr max-place) block-size)))
 
@@ -315,6 +311,8 @@
     ;; (send *fetch* :torso :waist-z :joint-angle 50)
     ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
     ;; (send *ri* :wait-interpolation)
+
+    (break)
 
     (format t "start tracing~%")
     ;; move hand until detecting object. move-end-pos 10cm, 10cm, 10cm ...  gradually.
