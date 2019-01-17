@@ -112,6 +112,7 @@
       (send *ri* :wait-interpolation)
       ;; set environment as collision object for moveit
       (collision-object-for-microwave target-region)
+      (send *ri* :wipe-all)
       )
 
     (break)
@@ -196,7 +197,7 @@
     (send *ri* :go-grasp :pos 0.03 :wait t)
     ;; first, moving hand up
     (format t "set prepose for main experiment. preparing...~%")
-    (prepose-for-main)
+    (prepose-for-main) ;; NOTE use moveit and collision object in this function
 
     ;; calculate where to grope, during moving hand up (time saving)
     (let* ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
