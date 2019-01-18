@@ -252,9 +252,6 @@
           (when (< max-val (aref unknown-dist i j))
             (setq max-val (aref unknown-dist i j))
             (setq max-place (list i j)))))
-      (setf (aref (send target-coords :worldpos) 0) min-x)
-      (setf (aref (send target-coords :worldpos) 1) (+ min-y (/ block-size 2.0) (* (car max-place) block-size)))
-      (setf (aref (send target-coords :worldpos) 2) (+ min-z (/ block-size 2.0) (* (cadr max-place) block-size)))
 
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;; Start, replace: x->y, y->z ;;
@@ -287,13 +284,17 @@
             (if (<= random-y (/ (cadr (array-dimensions unknown-dist)) 2))
               (setq adjacent-max-place (list 0 1))
               (setq adjacent-max-place (list 0 -1)))))
+        ;; move target-coords to max-place
+        (setf (aref (send target-coords :worldpos) 0) min-x)
+        (setf (aref (send target-coords :worldpos) 1) (+ min-y (/ block-size 2.0) (* (car max-place) block-size)))
+        (setf (aref (send target-coords :worldpos) 2) (+ min-z (/ block-size 2.0) (* (cadr max-place) block-size)))
         ;; calculate direction of trace motion
         (setq direction (+ 90 (rad2deg (atan2 (cadr adjacent-max-place) (car adjacent-max-place)))))
-        (print (list direction adjacent-max-place))
+        (print (list max-place direction adjacent-max-place))
         ;; visualize the direction
         (setq direction-arrow
               (make-arrow
-               (float-vector (- *min-x* 20)
+               (float-vector (+ *min-x* 100)
                              (+ (* block-size (+ (car max-place) 0.5)) min-y-round)
                              (+ (* block-size (+ (cadr max-place) 0.5)) min-z-round)) ;; pos
                (float-vector 0
@@ -777,7 +778,7 @@
           (dotimes (j (cadr (array-dimensions octomap-2d)))
             (setq cube (make-cube *resolution* *resolution* *resolution*))
             (send cube :set-color (float-vector (/ (max 0 (aref octomap-2d i j)) max-num) 0 0))
-            (send cube :translate (float-vector *max-x* (+ (* *resolution* (+ i 0.5)) *min-y*) (+ (* *resolution* (+ j 0.5)) *min-z*)) :world)
+            (send cube :translate (float-vector (+ *min-x* 120) (+ (* *resolution* (+ i 0.5)) *min-y*) (+ (* *resolution* (+ j 0.5)) *min-z*)) :world)
             (setq vis-list (append vis-list (list cube)))))
         (setq *resolution* 10)
         (objects (append (list *fetch*) vis-list))
@@ -834,7 +835,7 @@
           (dotimes (l (cadr (array-dimensions dist-mat)))
             (setq cube (make-cube *resolution* (/ (- max-y min-y) y-size) (/ (- max-z min-z) z-size)))
             (send cube :set-color (float-vector 0 0 (max (/ (aref dist-mat k l) (float max-unknown)) 0)))
-            (send cube :translate (float-vector *max-x* (+ (* (/ (- max-y min-y) y-size) (+ k 0.5)) min-y) (+ (* (/ (- max-z min-z) z-size) (+ l 0.5)) min-z)) :world)
+            (send cube :translate (float-vector (+ *min-x* 120) (+ (* (/ (- max-y min-y) y-size) (+ k 0.5)) min-y) (+ (* (/ (- max-z min-z) z-size) (+ l 0.5)) min-z)) :world)
             (setq dist-vis-list (append dist-vis-list (list cube)))))
         ;; (objects (append (list *fetch*) dist-vis-list region-edge))
         (when visualize-arrow
