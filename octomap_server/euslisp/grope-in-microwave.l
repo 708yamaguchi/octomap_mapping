@@ -117,6 +117,8 @@
       ;; set environment as collision object for moveit
       (setq *collision-objects* (collision-object-for-microwave target-region))
       (send *co* :wipe-all)
+      ;; visualization of target region and collision objects
+      ;; (objects (append (list *fetch*) *collision-objects* (send *target-region* :edges))9
       )
 
     (break)
@@ -775,7 +777,7 @@
           (dotimes (j (cadr (array-dimensions octomap-2d)))
             (setq cube (make-cube *resolution* *resolution* *resolution*))
             (send cube :set-color (float-vector (/ (max 0 (aref octomap-2d i j)) max-num) 0 0))
-            (send cube :translate (float-vector *min-x* (+ (* *resolution* (+ i 0.5)) *min-y*) (+ (* *resolution* (+ j 0.5)) *min-z*)) :world)
+            (send cube :translate (float-vector *max-x* (+ (* *resolution* (+ i 0.5)) *min-y*) (+ (* *resolution* (+ j 0.5)) *min-z*)) :world)
             (setq vis-list (append vis-list (list cube)))))
         (setq *resolution* 10)
         (objects (append (list *fetch*) vis-list))
@@ -832,7 +834,7 @@
           (dotimes (l (cadr (array-dimensions dist-mat)))
             (setq cube (make-cube *resolution* (/ (- max-y min-y) y-size) (/ (- max-z min-z) z-size)))
             (send cube :set-color (float-vector 0 0 (max (/ (aref dist-mat k l) (float max-unknown)) 0)))
-            (send cube :translate (float-vector *min-x* (+ (* (/ (- max-y min-y) y-size) (+ k 0.5)) min-y) (+ (* (/ (- max-z min-z) z-size) (+ l 0.5)) min-z)) :world)
+            (send cube :translate (float-vector *max-x* (+ (* (/ (- max-y min-y) y-size) (+ k 0.5)) min-y) (+ (* (/ (- max-z min-z) z-size) (+ l 0.5)) min-z)) :world)
             (setq dist-vis-list (append dist-vis-list (list cube)))))
         ;; (objects (append (list *fetch*) dist-vis-list region-edge))
         (when visualize-arrow
