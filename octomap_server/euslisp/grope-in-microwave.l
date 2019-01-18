@@ -32,7 +32,10 @@
 (setq *torso* 20)
 ;; direction accumulation
 (setq *direction-accum* 0)
+
 ;; collision objects for moveit
+(unless (boundp '*co*)
+  (setq *co* (instance collision-object-publisher :init)))
 (unless (boundp '*collision-objects*)
   (setq *collision-objects* nil))
 
@@ -111,8 +114,8 @@
       (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
       (send *ri* :wait-interpolation)
       ;; set environment as collision object for moveit
-      (collision-object-for-microwave target-region)
-      (send *ri* :wipe-all)
+      (setq *collision-objects* (collision-object-for-microwave target-region))
+      (send *co* :wipe-all)
       )
 
     (break)
@@ -197,7 +200,9 @@
     (send *ri* :go-grasp :pos 0.03 :wait t)
     ;; first, moving hand up
     (format t "set prepose for main experiment. preparing...~%")
-    (prepose-for-main) ;; NOTE use moveit and collision object in this function
+    (unless *collision-objects*
+      (setq *collision-objects* (collision-object-for-microwave target-region)))
+    (prepose-for-main *collision-objects*) ;; NOTE use moveit and collision object in this function
 
     ;; calculate where to grope, during moving hand up (time saving)
     (let* ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
@@ -864,8 +869,8 @@
     (send target-region :newcoords
           (send (send *tfl* :lookup-transform "/base_link" (send boxes :header :frame_id) (ros::time 0))
                 :transform (ros::tf-pose->coords (send box :pose))))
-    (send target-region :translate (float-vector (- (+ (* 1000 (send (send (send (car (send boxes :boxes)) :pose) :position) :x)) (* 0.5 (- 300 offset))) (aref (send target-region :worldpos) 0)) 0 0) :world)
-    (setq *target-region* (copy-object target-region))
+    (send target-region :translate (float-vector (* 0.5 (x-of-cube target-region)) 0 0) :world)
+    (send target-region :worldcoords)
     target-region))
 
 (defun collision-object-for-microwave (target-region)
@@ -881,10 +886,10 @@
     (setq microwave-box-up (make-cube xoc yoc 700))
     (setq microwave-box-left (make-cube xoc 200 (+ (z-of-cube microwave-box-down) zoc (z-of-cube microwave-box-up))))
     (setq microwave-box-right (make-cube xoc 200 (+ (z-of-cube microwave-box-down) zoc (z-of-cube microwave-box-up))))
-    (send microwave-box-down :locate (float-vector (+ (aref (send target-region :centroid) 0) (* 0.5 (x-of-cube microwave-box-down))) 0 (* 0.5 (z-of-cube microwave-box-down))))
-    (send microwave-box-up :locate (float-vector (+ (aref (send target-region :centroid) 0) (* 0.5 (x-of-cube microwave-box-up))) 0 (+ (aref (send target-region :centroid) 2) (* 0.5 zoc) (* 0.5 (z-of-cube microwave-box-up)))))
-    (send microwave-box-left :locate (float-vector (+ (aref (send target-region :centroid) 0) (* 0.5 (x-of-cube microwave-box-left))) (* 0.5 (+ yoc (y-of-cube microwave-box-left))) (* 0.5 (z-of-cube microwave-box-left))))
-    (send microwave-box-right :locate (float-vector (+ (aref (send target-region :centroid) 0) (* 0.5 (x-of-cube microwave-box-right))) (* -0.5 (+ yoc (y-of-cube microwave-box-right))) (* 0.5 (z-of-cube microwave-box-left))))
+    (send microwave-box-down :locate (float-vector (+ (aref (send target-region :centroid) 0) (- (* 0.5 (x-of-cube microwave-box-down)) (* 0.5 xoc))) 0 (* 0.5 (z-of-cube microwave-box-down))))
+    (send microwave-box-up :locate (float-vector (+ (aref (send target-region :centroid) 0) (- (* 0.5 (x-of-cube microwave-box-up)) (* 0.5 xoc))) 0 (+ (aref (send target-region :centroid) 2) (* 0.5 zoc) (* 0.5 (z-of-cube microwave-box-up)))))
+    (send microwave-box-left :locate (float-vector (+ (aref (send target-region :centroid) 0) (- (* 0.5 (x-of-cube microwave-box-left)) (* 0.5 xoc))) (* 0.5 (+ yoc (y-of-cube microwave-box-left))) (* 0.5 (z-of-cube microwave-box-left))))
+    (send microwave-box-right :locate (float-vector (+ (aref (send target-region :centroid) 0) (- (* 0.5 (x-of-cube microwave-box-right)) (* 0.5 xoc))) (* -0.5 (+ yoc (y-of-cube microwave-box-right))) (* 0.5 (z-of-cube microwave-box-left))))
     (setq box-list (list microwave-box-down microwave-box-up microwave-box-left microwave-box-right))
     (let ((i 0) (name-list (list "box-down" "box-up" "box-left" "box-right")))
       (dolist (microwave-box box-list)
@@ -903,14 +908,13 @@
           :relative-pose (send microwave-door :copy-worldcoords)
           :object-id "microwave-door")
     ;; (objects (append box-list (list microwave-door *fetch*)))
-    (setq *collision-objects* (append box-list (list microwave-door)))
+    (append box-list (list microwave-door))
     ))
 
-(defun prepose-for-main ()
+(defun prepose-for-main (&optional (collision-objects nil))
   (send *co* :wipe-all)
-  (if *collision-objects*
-    (dolist (object *collision-objects*)
-      (send *co* :add-object object)))
+  (dolist (object collision-objects)
+    (send *co* :add-object object))
   (send *fetch* :reset-pose)
   (send *fetch* :torso :waist-z :joint-angle 290)
   (send *fetch* :rarm :shoulder-y :joint-angle -80)
@@ -925,6 +929,7 @@
                                         (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link)
                                         (list -90)))
   (send *ri* :angle-vector (send *fetch* :angle-vector) 6000)
+  (send *ri* :wait-interpolation)
   (send *co* :wipe-all)
   )
 
