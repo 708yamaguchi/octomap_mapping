@@ -118,10 +118,8 @@
       (setq *collision-objects* (collision-object-for-microwave target-region))
       (send *co* :wipe-all)
       ;; visualization of target region and collision objects
-      ;; (objects (append (list *fetch*) *collision-objects* (send *target-region* :edges))9
+      ;; (objects (append (list *fetch*) *collision-objects* (send *target-region* :edges)))
       )
-
-    (break)
 
     (if (equal type :setting)
       (return-from main t))
