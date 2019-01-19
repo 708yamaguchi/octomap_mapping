@@ -176,12 +176,22 @@
                (setq detectp nil)
                (return))))
          (if detectp ;; if something is in front of gripper, do pre-grasp
-           (let ((angle-list nil) (max-angle nil) (min-angle nil)
-                 (now-angle (send *fetch* :rarm :wrist-r :joint-angle)))
-             (setq angle-list (pqp-with-hand *collision-objects*))
+           (let ((angle-list nil) (max-angle nil) (min-angle nil) (now-angle nil)
+                 (smaller-target-region nil) (offset 50)
+                 )
+             (setq now-angle (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t)))
+             ;; TODO make target-region smaller and changd collision-objects temporally and locally.
+             ;; TODO in order to avoid collision when rotating hand.
+             (setq smaller-target-region (make-cube (- (x-of-cube target-region) offset)
+                                                    (- (y-of-cube target-region) offset)
+                                                    (- (z-of-cube target-region) offset)))
+             (send smaller-target-region :move-coords (send target-region :copy-worldcoords) (make-coords))
+             (setq angle-list (pqp-with-hand (collision-object-for-microwave smaller-target-region)))
              (setq max-angle (car angle-list))
              (setq min-angle (cadr angle-list))
-             (setq graspp (pre-grasp (max (- max-angle 10) now-angle) (min (+ min-angle 10) now-angle)))))
+             ;; (setq graspp (pre-grasp (max (- max-angle 5) now-angle) (min (+ min-angle 5) now-angle)))
+             (setq graspp (pre-grasp max-angle min-angle))
+             ))
          (if graspp
            (return)))
        (if graspp ;; if pre-grasp is succeeded and the robot can grasp the target object, return from do-until-key loop
