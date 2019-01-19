@@ -34,8 +34,8 @@
 (setq *direction-accum* 0)
 
 ;; collision objects for moveit
-(unless (boundp '*co*)
-  (setq *co* (instance collision-object-publisher :init)))
+;; (unless (boundp '*co*)
+;;   (setq *co* (instance collision-object-publisher :init)))
 (unless (boundp '*collision-objects*)
   (setq *collision-objects* nil))
 
@@ -880,9 +880,6 @@
         (microwave-door nil)
         (xoc (x-of-cube target-region)) (yoc (y-of-cube target-region)) (zoc (z-of-cube target-region))
         )
-    (when (not (boundp '*co*))
-      (setq *co* (instance collision-object-publisher :init))
-      (send *co* :wipe-all))
     ;; microwave box
     (setq microwave-box-down (make-cube xoc yoc (- (aref (send target-region :centroid) 2) (* 0.5 zoc))))
     (setq microwave-box-up (make-cube xoc yoc 700))
@@ -901,12 +898,6 @@
                                                     (+ (* -0.5 (+ yoc (y-of-cube microwave-box-right))) (aref (send target-region :centroid) 1))
                                                     (* 0.5 (z-of-cube microwave-box-left))))
     (setq box-list (list microwave-box-down microwave-box-up microwave-box-left microwave-box-right))
-    (let ((i 0) (name-list (list "box-down" "box-up" "box-left" "box-right")))
-      (dolist (microwave-box box-list)
-        (send *co* :add-object microwave-box :frame-id "base_link"
-              :relative-pose (send microwave-box :copy-worldcoords)
-              :object-id (nth i name-list))
-        (setq i (+ i 1))))
 
     ;; microwave door
     (setq microwave-door (make-cube 300 300 zoc))
@@ -914,9 +905,6 @@
                                      (scale 0.5 (float-vector (+ (* -1 (x-of-cube microwave-door)))
                                                               (+ (y-of-cube microwave-door) yoc)
                                                               0))))
-    (send *co* :add-object microwave-door :frame-id "base_link"
-          :relative-pose (send microwave-door :copy-worldcoords)
-          :object-id "microwave-door")
     ;; (objects (append box-list (list microwave-door *fetch*)))
     (append box-list (list microwave-door))
     ))
