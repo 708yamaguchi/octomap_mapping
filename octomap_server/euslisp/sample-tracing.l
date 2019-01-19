@@ -2,8 +2,12 @@
 
 (load "package://octomap_server/euslisp/grope-in-box.l")
 
+;; sample pre-pose
+;; (send *fetch* :angle-vector #f(291.486 12.3107 -40.2392 -29.2975 65.6551 23.4392 70.1274 74.0977 0.305897 0.71599))
+
 (defun sample-tracing ()
   (send *ri* :go-grasp :pos 0.03 :wait t)
+  (sensor-calib)
   (let ((count 0))
     (while (< count 3) ;; vertical hand move and horizontal hand move, alternately
       ;; move hand down
@@ -25,8 +29,8 @@
                                                                              (list "/left" "/side2") (list "/right" "/side2"))
                                                      :close-thre (list 25 25
                                                                        hand-cover-thick hand-cover-thick
-                                                                       (+ 15 gripper-handside-distance) ;; +10 is safety margin
-                                                                       (+ 15 gripper-handside-distance))
+                                                                       (+ 0 gripper-handside-distance) ;; +10 is safety margin
+                                                                       (+ 0 gripper-handside-distance))
                                                      :tm 7000)))
                 (cond
                  ;; NOTE select to use horizontal move caused by "/top" sensors
@@ -93,7 +97,7 @@
             (let ((result (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(0 0 -100))
                                   :close-frame-list (list (list "/left" "/side3") (list "/right" "/side3"))
                                   :away-frame-list (list (list "/left" "/top") (list "/right" "/top"))
-                                  :close-thre 50 :away-thre 50)))
+                                  :close-thre 50 :away-thre 30)))
               (when (equal result :ik-not-solved)
                 (return-from create-map t))
               (when (equal (car result) :close-frame-list)
