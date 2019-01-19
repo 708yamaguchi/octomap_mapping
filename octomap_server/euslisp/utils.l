@@ -168,6 +168,41 @@
       (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)))
   (send *fetch* :rarm :wrist-r :joint-angle))
 
+(defun pqp-with-hand (collision-objects)
+  (let ((hand-cover (make-cube 120 120 25))
+        (devide 300.0) (av-orig (send *fetch* :angle-vector))
+        (wrist-angle-1 (send *fetch* :rarm :wrist-r :joint-angle))
+        (wrist-angle-2 (send *fetch* :rarm :wrist-r :joint-angle)))
+    ;; assoc hand cover to hand
+    (send hand-cover :set-color #f(0.5 0.5 0.5))
+    (send hand-cover :move-coords
+          (send (send *fetch* :gripper_link_lk) :copy-worldcoords)
+          (make-coords))
+    (send hand-cover :translate #f(-90 0 50) :local)
+    (send (send *fetch* :gripper_link_lk) :assoc hand-cover)
+    ;; (objects (list *fetch* hand-cover))
+    ;; pqp collision check
+    (dotimes (i devide)
+      (if (pqp-collision-check-objects
+           (list hand-cover (send *fetch* :gripper_link_lk)
+                 (send *fetch* :l_gripper_finger_link_lk) (send *fetch* :r_gripper_finger_link_lk))
+           collision-objects)
+        (return))
+      (setq wrist-angle-1 (+ wrist-angle-1 (/ 180.0 devide)))
+      (send *fetch* :rarm :wrist-r :joint-angle wrist-angle-1))
+    (send *fetch* :angle-vector av-orig)
+    (dotimes (i devide)
+      (if (pqp-collision-check-objects
+           (list hand-cover (send *fetch* :gripper_link_lk)
+                 (send *fetch* :l_gripper_finger_link_lk) (send *fetch* :r_gripper_finger_link_lk))
+           collision-objects)
+        (return))
+      (setq wrist-angle-2 (- wrist-angle-2 (/ 180.0 devide)))
+      (send *fetch* :rarm :wrist-r :joint-angle wrist-angle-2))
+    (send *fetch* :angle-vector av-orig)
+    (list wrist-angle-1 wrist-angle-2)
+    ))
+
 
 ;; Method for writing words on IRTviewer
 ;; See https://github.com/euslisp/jskeus/pull/530
