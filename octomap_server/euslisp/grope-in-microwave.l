@@ -172,9 +172,13 @@
                (format t "cannot find object~%")
                (setq detectp nil)
                (return))))
-         ;; TODO PLEASE WRITE (pre-grasp) function
          (if detectp ;; if something is in front of gripper, do pre-grasp
-           (setq graspp (pre-grasp)))
+           (let ((angle-list nil) (max-angle nil) (min-angle nil)
+                 (now-angle (send *fetch* :rarm :wrist-r :joint-angle)))
+             (setq angle-list (pqp-with-hand *collision-objects*))
+             (setq max-angle (car angle-list))
+             (setq min-angle (cadr angle-list))
+             (setq graspp (pre-grasp (max (- max-angle 10) now-angle) (min (+ min-angle 10) now-angle)))))
          (if graspp
            (return)))
        (if graspp ;; if pre-grasp is succeeded and the robot can grasp the target object, return from do-until-key loop

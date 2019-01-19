@@ -30,7 +30,7 @@
 
 ;; NOTE before using this function, make sure that object is in front of top of finger
 ;; this function returns t if grasp is succeeded. Else, return nil.
-(defun pre-grasp ()
+(defun pre-grasp (&optional (max-wrist-angle nil) (min-wrist-angle nil))
   (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
   (send *ri* :start-grasp :wait t)
   (let ((l-min *inf*) (r-min *inf*) (target-finger nil) (another-finger nil) (rotate-max-distance 0) (rotate-angle 0) (interpolatingp nil))
@@ -46,21 +46,46 @@
       (setq target-finger "/right"))
 
     ;; measure direction of edge
-    (send *fetch* :rarm :wrist-r :joint-angle (+ 179 (send *fetch* :rarm :wrist-r :joint-angle)))
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
-    (while (not (setq interplatingp (send *ri* :interpolatingp))) ;; wait until interpolatingp becomes t
-      (ros::spin-once)
-      (unix:usleep 10000))
-    (while (setq interplatingp (send *ri* :interpolatingp))
-      (ros::spin-once)
-      (when (< rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
-        (setq rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
-        (setq rotate-angle (aref (send *ri* :state :potentio-vector :wait-until-update t) 7))) ;; update wrist-r angle
-      (unix:usleep (* 10 1000)))
-    (send *fetch* :rarm :wrist-r :joint-angle rotate-angle)
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
-    (send *ri* :wait-interpolation)
-    (format t "most graspable angle is: ~A~%" rotate-angle)
+    (let ((now-wrist-angle (send *fetch* :rarm :wrist-r :joint-angle)))
+      ;; for positive angle direction
+      (if max-wrist-angle
+        (send *fetch* :rarm :wrist-r :joint-angle max-wrist-angle)
+        (send *fetch* :rarm :wrist-r :joint-angle
+              (+ 90 (send *fetch* :rarm :wrist-r :joint-angle))))
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
+      (while (not (setq interplatingp (send *ri* :interpolatingp))) ;; wait until interpolatingp becomes t
+        (ros::spin-once)
+        (unix:usleep 10000))
+      (while (setq interplatingp (send *ri* :interpolatingp))
+        (ros::spin-once)
+        (when (< rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
+          (setq rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
+          (setq rotate-angle (aref (send *ri* :state :potentio-vector :wait-until-update t) 7))) ;; update wrist-r angle
+        (unix:usleep (* 10 1000)))
+      ;; reset wrist joint angle
+      (send *fetch* :rarm :wrist-r :joint-angle now-wrist-angle)
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
+      (send *ri* :wait-interpolation)
+      ;; for negative angle direction
+      (if min-wrist-angle
+        (send *fetch* :rarm :wrist-r :joint-angle min-wrist-angle)
+        (send *fetch* :rarm :wrist-r :joint-angle
+              (+ -90 (send *fetch* :rarm :wrist-r :joint-angle))))
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
+      (while (not (setq interplatingp (send *ri* :interpolatingp))) ;; wait until interpolatingp becomes t
+        (ros::spin-once)
+        (unix:usleep 10000))
+      (while (setq interplatingp (send *ri* :interpolatingp))
+        (ros::spin-once)
+        (when (< rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
+          (setq rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
+          (setq rotate-angle (aref (send *ri* :state :potentio-vector :wait-until-update t) 7))) ;; update wrist-r angle
+        (unix:usleep (* 10 1000)))
+      ;; finally rotate wrist joint to most graspable angle
+      (send *fetch* :rarm :wrist-r :joint-angle rotate-angle)
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+      (send *ri* :wait-interpolation)
+      (format t "most graspable angle is: ~A~%" rotate-angle))
 
     ;; move hand horizontally such that target object come to center of grippers.
     (send *ri* :stop-grasp :wait t)
@@ -188,7 +213,7 @@
                  (send *fetch* :l_gripper_finger_link_lk) (send *fetch* :r_gripper_finger_link_lk))
            collision-objects)
         (return))
-      (setq wrist-angle-1 (+ wrist-angle-1 (/ 180.0 devide)))
+      (setq wrist-angle-1 (+ wrist-angle-1 (/ 90.0 devide)))
       (send *fetch* :rarm :wrist-r :joint-angle wrist-angle-1))
     (send *fetch* :angle-vector av-orig)
     (dotimes (i devide)
@@ -197,7 +222,7 @@
                  (send *fetch* :l_gripper_finger_link_lk) (send *fetch* :r_gripper_finger_link_lk))
            collision-objects)
         (return))
-      (setq wrist-angle-2 (- wrist-angle-2 (/ 180.0 devide)))
+      (setq wrist-angle-2 (- wrist-angle-2 (/ 90.0 devide)))
       (send *fetch* :rarm :wrist-r :joint-angle wrist-angle-2))
     (send *fetch* :angle-vector av-orig)
     (list wrist-angle-1 wrist-angle-2)
