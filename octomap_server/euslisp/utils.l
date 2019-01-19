@@ -193,6 +193,7 @@
       (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)))
   (send *fetch* :rarm :wrist-r :joint-angle))
 
+;; NOTE use (send *ri* :state :potentio-vector :wait-until-update t) before using this function
 (defun pqp-with-hand (collision-objects)
   (let ((hand-cover (make-cube 120 120 25))
         (devide 300.0) (av-orig (send *fetch* :angle-vector))

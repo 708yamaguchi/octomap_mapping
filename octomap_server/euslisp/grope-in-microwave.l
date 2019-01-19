@@ -63,8 +63,9 @@
 (defun main-in-microwave (&key (type :all))
   (if (not (or (equal type :setting) (equal type :main) (equal type :all)))
     (progn (format t "argument :type is not correctly set~%") (return-from main nil)))
-  (if (boundp '*co*)
-    (send *co* :wipe-all))
+  (unless (boundp '*co*)
+    (setq *co* (instance collision-object-publisher :init)))
+  (send *co* :wipe-all)
   (setq *direction-accum* 0)
   (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
     (when (or (equal type :all) (equal type :setting))
@@ -123,6 +124,8 @@
 
     (if (equal type :setting)
       (return-from main t))
+
+    (break)
 
     ;; grasp object with octomap and grope. TODO simultaneous execution of (create-map) and (decide-grope-point) may be needed.
     ;; flowchart of this (do-until-key) is loop of following steps:
@@ -187,9 +190,12 @@
 
     ;; finally, lift the target object up
     (dotimes (i 3)
-      (unless (send *fetch* :rarm :move-end-pos (float-vector -100 0 0) :world)
-        (return)))
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 7000)
+      (if (send *fetch* :rarm :move-end-pos (float-vector -100 0 0) :world)
+        (if (send *ri* :angle-vector (send *fetch* :angle-vector) 7000)
+          nil
+          (return))
+        (return))
+      (send *ri* :wait-interpolation))
     (format t "grope succeeded~%")
     ))
 
