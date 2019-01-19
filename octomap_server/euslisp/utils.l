@@ -93,8 +93,8 @@
       (ros::spin-once)
       (if (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/top")) :data) cons))
              (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons)))
-        (send *fetch* :rarm :move-end-pos #f(15 10 0) :local :use-torso nil)
-        (send *fetch* :rarm :move-end-pos #f(15 -10 0) :local :use-torso nil))
+        (send *fetch* :rarm :move-end-pos #f(20 10 0) :local :use-torso nil) ;; 20 is right parameter?
+        (send *fetch* :rarm :move-end-pos #f(20 -10 0) :local :use-torso nil)) ;; 20 is right parameter?
       (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
       (send *ri* :wait-interpolation))
     (sensor-calib)

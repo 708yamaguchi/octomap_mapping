@@ -367,7 +367,7 @@
           (progn
             (format t "move hand until detecting object~%")
             (let ((detected-frame nil) (min-distance nil)
-                  (hand-cover-thick 30)
+                  (hand-cover-thick 25)
                   ;; when :gripper :position is 0.3, gripper-handside-distance is about 25
                   (gripper-handside-distance (- 35 (* 0.5 1000 (- (send *ri* :gripper :position) 0.01)))))
               ;; check if there is object near top of the grippers.
@@ -375,10 +375,10 @@
                                                      :close-frame-list (list (list "/left" "/top") (list "/right" "/top")
                                                                              (list "/left" "/side1") (list "/right" "/side1")
                                                                              (list "/left" "/side2") (list "/right" "/side2"))
-                                                     :close-thre (list 35 35
+                                                     :close-thre (list 30 30
                                                                        hand-cover-thick hand-cover-thick
-                                                                       (+ 15 gripper-handside-distance) ;; +10 is safety margin
-                                                                       (+ 15 gripper-handside-distance))
+                                                                       (+ 10 gripper-handside-distance) ;; +10 is safety margin
+                                                                       (+ 10 gripper-handside-distance))
                                                      :tm 7000)))
                 (cond
                  ((equal detected-frame (list "/left" "/top")) ;; object is near left top
