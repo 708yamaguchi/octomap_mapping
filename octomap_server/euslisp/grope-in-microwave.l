@@ -137,8 +137,10 @@
        (dotimes (i 30)
          (create-map target-region)
          (let ((av (send *fetch* :angle-vector)))
-           (when (and (< 15 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 20 :y-offset 40 :z-offset 40))) ;; TODO decide proper threshold : maybe around 30?
-                      (> i 1)) ;; at least do (create-map) 2 times
+           ;; TODO decide proper threshold
+           ;; NOTE pointcloud is decimated now
+           (when (and (< 5 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 20 :y-offset 40 :z-offset 40)))
+                      (> i 2)) ;; at least do (create-map) 3 times
              (setq find-grasp-pointp t)
              (format t "find graspable point, so start grasping~%")
              (return))
@@ -151,17 +153,33 @@
            (setq find-grasp-pointp nil))
 
          ;; extend hand to target object with pre-grasp motion by proximity sensors
-         ;; first, move hand up
-         (let ((ec-x (aref (send (send *fetch* :rarm :end-coords :copy-worldcoords) :worldpos) 0)))
+         ;; first, withdraw hand from microwave
+         (let ((ec-x (aref (send (send *fetch* :rarm :end-coords :copy-worldcoords) :worldpos) 0))
+               (ec-y (aref (send (send *fetch* :rarm :end-coords :copy-worldcoords) :worldpos) 1))
+               (ec-z (aref (send (send *fetch* :rarm :end-coords :copy-worldcoords) :worldpos) 2))
+               (av-orig (send *fetch* :angle-vector)))
            (format t "try to solve IK~%")
            ;; (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* ec-z)) :world)
+           (send *co* :wipe-all)
+           (send *fetch* :rarm :move-end-pos (float-vector
+                                              -50
+                                              (- (aref (send target-region :centroid) 1) ec-y)
+                                              (- (aref (send target-region :centroid) 2) ec-z))
+                 :world)
+           (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+           (send *ri* :wait-interpolation)
+           (send *fetch* :angle-vector av-orig)
+           (dolist (object *collision-objects*)
+             (send *co* :add-object object))
            (dotimes (i 3)
              (unless (send *fetch* :rarm :move-end-pos (float-vector -100 0 0) :world)
                (return)))
            (format t "IK solved ??~%")
            (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
-           (send *ri* :wait-interpolation))
+           (send *ri* :wait-interpolation)
+           (send *co* :wipe-all))
          (sensor-calib) ;; calibrate sensors for grasping
+
          ;; second, extend hand to target object with pre-grasp motion
          (while t
            (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
@@ -199,14 +217,18 @@
        ))
 
     ;; finally, lift the target object up
+    (send *co* :wipe-all)
+    (dolist (object *collision-objects*)
+      (send *co* :add-object object))
     (dotimes (i 3)
-      (if (send *fetch* :rarm :move-end-pos (float-vector -100 0 0) :world)
+      (if (send *fetch* :rarm :move-end-pos (float-vector -100 0 10) :world)
         (if (send *ri* :angle-vector (send *fetch* :angle-vector) 7000)
           nil
           (return))
         (return))
       (send *ri* :wait-interpolation))
     (format t "grope succeeded~%")
+    (send *co* :wipe-all)
     ))
 
 ;; TODO: what method is best solution to create map?
@@ -377,15 +399,15 @@
                                                                              (list "/left" "/side2") (list "/right" "/side2"))
                                                      :close-thre (list 30 30
                                                                        hand-cover-thick hand-cover-thick
-                                                                       (+ 10 gripper-handside-distance) ;; +10 is safety margin
-                                                                       (+ 10 gripper-handside-distance))
+                                                                       (+ 5 gripper-handside-distance) ;; +5 is safety margin
+                                                                       (+ 5 gripper-handside-distance))
                                                      :tm 7000)))
                 (cond
                  ((equal detected-frame (list "/left" "/top")) ;; object is near left top
                   (when (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons)) 40) ;; both left and right finger top is near object, start moving horizontally
                     (format t "start moving horizontally~%")
                     (return))
-                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (+ gripper-handside-distance 10) 0))
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (+ gripper-handside-distance 20) 0))
                                 :close-frame-list (list (list "/right" "/side2")) :close-thre gripper-handside-distance :tm 3000)
                     (format t "something is right of my gripper~%"))
                   (return))
@@ -393,7 +415,7 @@
                   (when (< (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/top")) :data) cons)) 40) ;; both left and right finger top is near object, start moving horizontally
                     (format t "start moving horizontally~%")
                     (return))
-                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (* -1 (+ gripper-handside-distance 10)) 0))
+                  (when (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 (* -1 (+ gripper-handside-distance 20)) 0))
                                 :close-frame-list (list (list "/left" "/side2")) :close-thre gripper-handside-distance :tm 3000)
                     (format t "something is left of my finger~%"))
                   (return))
@@ -544,12 +566,16 @@
       ;; exclude points which is out of target region
       ;; NOTE if execution of (search-graspable-point) is slow, let's make pointcloud sparse
       ;; NOTE by using (dotimes (point point-list) (when (eq (random 4) 0) ~~~))
-      (dolist (point point-list)
-        (when t ;; (eq (random 4) 0)
-          (setq point-list-sorted (append point-list-sorted (list point)))
-          (if (and (<= min-x (aref point 0) max-x) (<= min-y (aref point 1) max-y) (<= min-z (aref point 2) max-z))
-            (setq point-list-inside (append point-list-inside (list point)))
-            (setq point-list-outside (append point-list-outside (list point))))))
+      (let ((count 0))
+        (dolist (point point-list)
+          (setq count (+ 1 count))
+          (when (eq (mod count 3) 0)
+            ;; (when t ;; (eq (random 4) 0)
+            (setq point-list-sorted (append point-list-sorted (list point)))
+            (if (and (<= min-x (aref point 0) max-x) (<= min-y (aref point 1) max-y) (<= min-z (aref point 2) max-z))
+              (setq point-list-inside (append point-list-inside (list point)))
+              (setq point-list-outside (append point-list-outside (list point))))))
+        )
       (setq point-list-sorted (copy-object point-list-sorted))
       ;; (sort) is destructively sort
       (sort point-list-sorted #'(lambda (x y) (< (aref x 0) (aref y 0))))
@@ -569,7 +595,7 @@
         (setq random-y (+ (random (- max-y min-y)) min-y))
         (setq random-z (+ (random (- max-z min-z)) min-z))
         ;; NOTE if considering gravity direction, you can restrict random-rot. e.g. you can choose pi/2 for wrist angle range
-        (setq random-rot (funcall #'(lambda (range) (- (random range) (/ range 2.0))) pi/2)) ;; maybe pi/2 does better than pi
+        (setq random-rot (funcall #'(lambda (range) (- (random range) (/ range 2.0))) (/ pi 3.0))) ;; maybe pi/2 does better than pi
         (send gripper-inside :locate (float-vector 0 random-y random-z) :world) ;; change position absolutely
         (send gripper-inside :orient random-rot :z :local) ;; change rotation absolutely
 
@@ -715,7 +741,7 @@
         (max-y (- (reduce #'max (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))) y-offset))
         (min-z (+ (reduce #'min (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))) z-offset))
         (max-z (- (reduce #'max (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))) z-offset)))
-    (setq points (search-graspable-point pc :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z :iter-count 500 :visualize-searching visualize-searching))
+    (setq points (search-graspable-point pc :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z :iter-count 300 :visualize-searching visualize-searching))
     (setq max-points points)
     (setq fetch-copy (copy-object *fetch*))
     (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
@@ -723,7 +749,7 @@
     (setq x (aref hand-pos 0))
     (setq y (aref hand-pos 1))
     (setq z (aref hand-pos 2))
-    (setq points (search-graspable-point pc :min-x min-x :max-x max-x :min-y (max min-y (- y 100)) :max-y (min max-y (+ y 100)) :min-z (max min-z (- z 100)) :max-z (min max-z (+ z 100)) :iter-count 500 :visualize-searching visualize-searching))
+    (setq points (search-graspable-point pc :min-x min-x :max-x max-x :min-y (max min-y (- y 100)) :max-y (min max-y (+ y 100)) :min-z (max min-z (- z 100)) :max-z (min max-z (+ z 100)) :iter-count 300 :visualize-searching visualize-searching))
     (when (< max-points points)
       (setq fetch-copy (copy-object *fetch*))
       (setq max-points points)
@@ -732,7 +758,7 @@
     (setq x (aref hand-pos 0))
     (setq y (aref hand-pos 1))
     (setq z (aref hand-pos 2))
-    (setq points (search-graspable-point pc :min-x min-x :max-x max-x :min-y (max min-y (- y 50)) :max-y (min max-y (+ y 50)) :min-z (max min-z (- z 50)) :max-z (min max-z (+ z 50)) :iter-count 500 :visualize-searching visualize-searching))
+    (setq points (search-graspable-point pc :min-x min-x :max-x max-x :min-y (max min-y (- y 50)) :max-y (min max-y (+ y 50)) :min-z (max min-z (- z 50)) :max-z (min max-z (+ z 50)) :iter-count 300 :visualize-searching visualize-searching))
     (when (< max-points points)
       (setq fetch-copy (copy-object *fetch*))
       (setq max-points points)
