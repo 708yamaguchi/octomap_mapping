@@ -9,6 +9,7 @@
 
   <arg name="filename" />
   <arg name="rviz" default="true"/>
+  <arg name="microwave" default="true"/>
 
   <param name="use_sim_time" value="true" />
   <node name="rosbag_play"
@@ -41,8 +42,43 @@
     <param name="default_duration" value="86400" />
   </node>
 
-  <!-- octomap -->
-  <node pkg="jsk_pcl_ros" type="octomap_server_contact" name="octomap_server_contact"
+  <!-- octomap for microwave -->
+  <node if="$(arg microwave)" pkg="jsk_pcl_ros" type="octomap_server_contact" name="octomap_server_contact"
+        output="screen" >
+    <param name="resolution" value="0.01" />
+    <!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
+    <param name="frame_id" type="string" value="base_link" />
+    <!-- <param name="frame_id" type="string" value="octomap_world" /> -->
+    <!-- maximum range to integrate (speedup!) -->
+    <param name="sensor_model/max_range" value="5.0" />
+    <param name="publish_free_space" value="true"/>
+    <param name="publish_unknown_space" value="true"/>
+    <param name="publish_frontier_space" value="false"/>
+    <param name="latch" value="false"/>
+    <!-- data source to integrate (PointCloud2) -->
+    <remap from="/cloud_in" to="camera_in" />
+    <remap from="/proximity_in" to="proximity_in" />
+    <!-- <remap from="/proximity_in" to="proximity_pointcloud/all" /> -->
+    <remap from="/contact_sensors_in" to="contact_sensors_in" />
+    <!-- Sensor Input PassThrough Filter Params -->
+    <!-- in front of fetch -->
+    <param name="occupancy_min_x" value="0.45" />
+    <param name="occupancy_max_x" value="0.95" />
+    <param name="occupancy_min_y" value="-0.2" />
+    <param name="occupancy_max_y" value="0.2" />
+    <param name="occupancy_min_z" value="0.4" />
+    <param name="occupancy_max_z" value="1.0" />
+
+    <param name="use_vertex" value="false" /> <!-- to speedup insertContactSensor -->
+    <param name="sensor_model/max" value="0.60" /> <!-- default: 0.97 -->
+    <param name="sensor_model/min" value="0.45" /> <!-- default: 0.12 -->
+    <param name="sensor_model/hit" value="0.95" /> <!-- default: 0.7 -->
+    <param name="sensor_model/miss" value="0.15" /> <!-- default: 0.4 -->
+
+    <rosparam command="load" file="$(find octomap_server)/config/fetch_contact_sensor_config.yaml" />
+  </node>
+  <!-- octomap for box -->
+  <node unless="$(arg microwave)" pkg="jsk_pcl_ros" type="octomap_server_contact" name="octomap_server_contact"
         output="screen" >
     <param name="resolution" value="0.01" />
     <!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
@@ -67,27 +103,6 @@
     <param name="occupancy_max_y" value="0.2" />
     <param name="occupancy_min_z" value="0.45" />
     <param name="occupancy_max_z" value="1.0" />
-    <!-- for right side of fetch -->
-    <!-- <param name="occupancy_min_x" value="-0.3" /> -->
-    <!-- <param name="occupancy_max_x" value="0.2" /> -->
-    <!-- <param name="occupancy_min_y" value="-1.1" /> -->
-    <!-- <param name="occupancy_max_y" value="-0.6" /> -->
-    <!-- <param name="occupancy_min_z" value="0.3" /> -->
-    <!-- <param name="occupancy_max_z" value="0.9" /> -->
-    <!-- for bag -->
-    <!-- <param name="occupancy_min_x" value="-0.3" /> -->
-    <!-- <param name="occupancy_max_x" value="0.2" /> -->
-    <!-- <param name="occupancy_min_y" value="-0.6" /> -->
-    <!-- <param name="occupancy_max_y" value="-0.1" /> -->
-    <!-- <param name="occupancy_min_z" value="0.2" /> -->
-    <!-- <param name="occupancy_max_z" value="0.8" /> -->
-    <!-- for table top -->
-    <!-- <param name="occupancy_min_x" value="0.4" /> -->
-    <!-- <param name="occupancy_max_x" value="0.8" /> -->
-    <!-- <param name="occupancy_min_y" value="-0.25" /> -->
-    <!-- <param name="occupancy_max_y" value="0.25" /> -->
-    <!-- <param name="occupancy_min_z" value="0.6" /> -->
-    <!-- <param name="occupancy_max_z" value="1.0" /> -->
 
     <param name="use_vertex" value="false" /> <!-- to speedup insertContactSensor -->
     <param name="sensor_model/max" value="0.60" /> <!-- default: 0.97 -->
@@ -96,7 +111,8 @@
     <param name="sensor_model/miss" value="0.15" /> <!-- default: 0.4 -->
 
     <rosparam command="load" file="$(find octomap_server)/config/fetch_contact_sensor_config.yaml" />
-</node>
+  </node>
+
 
   <!-- make tf of octomap_world, and rosservice call passthrough/request -->
   <node pkg="octomap_server" type="octomap-setup.l" name="octomap_setup" output="screen"/>
@@ -106,16 +122,31 @@
         >
   </node>
 
-  <!-- for color recognition -->
-  <include file="$(find octomap_server)/launch/box_recog.launch">
-    <arg name="INPUT" value="/camera_in"/>
-    <arg name="h_max" value="110"/>
-    <arg name="h_min" value="80"/>
-    <arg name="s_max" value="255"/>
-    <arg name="s_min" value="31"/>
-    <arg name="i_max" value="255"/>
-    <arg name="i_min" value="0"/>
-  </include>
+  <!-- for color recognition for microwav -->
+  <group if="$(arg microwave)">
+    <include file="$(find octomap_server)/launch/box_recog.launch">
+      <arg name="INPUT" value="/camera_in"/>
+      <arg name="h_max" value="127"/>
+      <arg name="h_min" value="80"/>
+      <arg name="s_max" value="255"/>
+      <arg name="s_min" value="85"/>
+      <arg name="i_max" value="255"/>
+      <arg name="i_min" value="0"/>
+    </include>
+  </group>
+  <!-- for color recognition for box -->
+  <group unless="$(arg microwave)">
+    <include file="$(find octomap_server)/launch/box_recog.launch">
+      <arg name="INPUT" value="/camera_in"/>
+      <arg name="h_max" value="110"/>
+      <arg name="h_min" value="80"/>
+      <arg name="s_max" value="255"/>
+      <arg name="s_min" value="31"/>
+      <arg name="i_max" value="255"/>
+      <arg name="i_min" value="0"/>
+    </include>
+  </group>
+
 
   <!-- for visualization of octomap -->
   <node if="$(arg rviz)" name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/octomap_frontier.rviz"/>

@@ -2,6 +2,7 @@
   <include file="$(find octomap_server)/launch/play_rosbag.launch">
     <arg name="filename" value="$(find octomap_server)/rosbag/pencase_success.bag" />
     <arg name="rviz" value="false"/>
+    <arg name="microwave" value="false"/>
   </include>
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/pencase_success.rviz"/>
