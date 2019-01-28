@@ -8,11 +8,6 @@
 (setq *octomap-reset-service* "/octomap_server_contact/reset")
 (setq *proximitycloud-request-service* "/proximitycloud_passthrough/request")
 
-;; start camera and proximity sensor
-(ros::subscribe "/camera_request" std_msgs::Empty #'camera-request)
-(ros::subscribe "/camera_stop" std_msgs::Empty #'camera-stop)
-(ros::subscribe "/octomap_reset" std_msgs::Empty #'octomap-reset)
-
 (defun camera-request (msg)
    (ros::wait-for-service *camera-request-service*)
    (ros::service-call *camera-request-service* (instance std_srvs::EmptyRequest :init))
@@ -30,3 +25,13 @@
   (ros::wait-for-service *octomap-reset-service*)
   (ros::service-call *octomap-reset-service* (instance std_srvs::EmptyRequest :init))
   )
+
+;; start camera and proximity sensor
+(ros::subscribe "/camera_request" std_msgs::Empty #'camera-request)
+(ros::subscribe "/camera_stop" std_msgs::Empty #'camera-stop)
+(ros::subscribe "/octomap_reset" std_msgs::Empty #'octomap-reset)
+
+;; ros::spin
+(ros::rate 100)
+(do-until-key
+ (ros::spin-once))

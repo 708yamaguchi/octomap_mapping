@@ -1,6 +1,6 @@
 <launch>
   <include file="$(find octomap_server)/launch/play_rosbag.launch">
-    <arg name="filename" value="$(find octomap_server)/rosbag/microwave.bag" />
+    <arg name="filename" value="$(find octomap_server)/rosbag/2019-01-26-in-microwave.bag" />
     <arg name="rviz" value="false"/>
   </include>
 
