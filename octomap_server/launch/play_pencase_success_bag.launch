@@ -6,5 +6,5 @@
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/pencase_success.rviz"/>
 
-  <node name="service_call_for_rosbag" pkg="octomap_server" type="service-call-for-rosbag.l" />
+  <node name="service_call_for_rosbag" pkg="octomap_server" type="service-call-for-rosbag-pencase-success.l" />
 </launch>
