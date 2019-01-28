@@ -125,8 +125,6 @@
     (if (equal type :setting)
       (return-from main t))
 
-    (break)
-
     ;; grasp object with octomap and grope. TODO simultaneous execution of (create-map) and (decide-grope-point) may be needed.
     ;; flowchart of this (do-until-key) is loop of following steps:
     ;; 1. first create octomap, and then try to grasp the target object with the same octomap up to 5 times.
@@ -140,7 +138,7 @@
            ;; TODO decide proper threshold
            ;; NOTE pointcloud is decimated now
            (when (and (< 5 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 20 :y-offset 40 :z-offset 40)))
-                      (> i 2)) ;; at least do (create-map) 3 times
+                      (> i 1)) ;; at least do (create-map) 2 times
              (setq find-grasp-pointp t)
              (format t "find graspable point, so start grasping~%")
              (return))
@@ -161,6 +159,9 @@
            (format t "try to solve IK~%")
            ;; (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* ec-z)) :world)
            (send *co* :wipe-all)
+           (send *fetch* :rarm :move-end-pos #f(-100 0 0) :world)
+           (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+           (send *ri* :wait-interpolation)
            (send *fetch* :rarm :move-end-pos (float-vector
                                               -50
                                               (- (aref (send target-region :centroid) 1) ec-y)
@@ -595,7 +596,7 @@
         (setq random-y (+ (random (- max-y min-y)) min-y))
         (setq random-z (+ (random (- max-z min-z)) min-z))
         ;; NOTE if considering gravity direction, you can restrict random-rot. e.g. you can choose pi/2 for wrist angle range
-        (setq random-rot (funcall #'(lambda (range) (- (random range) (/ range 2.0))) (/ pi 3.0))) ;; maybe pi/2 does better than pi
+        (setq random-rot (funcall #'(lambda (range) (- (random range) (/ range 2.0))) (/ pi 5.0))) ;; maybe pi/2 does better than pi
         (send gripper-inside :locate (float-vector 0 random-y random-z) :world) ;; change position absolutely
         (send gripper-inside :orient random-rot :z :local) ;; change rotation absolutely
 
