@@ -1,0 +1,11 @@
+<launch>
+  <include file="$(find octomap_server)/launch/play_rosbag.launch">
+    <arg name="filename" value="$(find octomap_server)/rosbag/2019-01-19-sample-tracing.bag" />
+    <arg name="rviz" value="false"/>
+    <arg name="microwave" value="false"/>
+  </include>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/sample_tracing.rviz"/>
+
+  <node name="service_call_for_rosbag" pkg="octomap_server" type="service-call-for-rosbag-pencase-success.l" />
+</launch>
