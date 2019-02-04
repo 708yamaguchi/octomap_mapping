@@ -14,7 +14,7 @@
   <param name="use_sim_time" value="true" />
   <node name="rosbag_play"
         pkg="rosbag" type="play"
-        args="$(arg filename) --clock --loop"/> <!-- do not loop for octomap calculation and /camera(proximity)_passthrough/request -->
+        args="$(arg filename) --clock --loop --pause"/> <!-- do not loop for octomap calculation and /camera(proximity)_passthrough/request -->
 
   <param name="robot_description" command="$(find xacro)/xacro.py $(find fetch_description)/robots/fetch.urdf" />
 
