@@ -64,13 +64,13 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /occupied_cells_vis_array
       Name: OccupiedCells
       Namespaces:
-        base_link: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -110,13 +110,13 @@ Visualization Manager:
       Queue Size: 100
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /unknown_cells_vis_array
       Name: UnknownCells
       Namespaces:
-        base_link: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /frontier_cells_vis_array
@@ -627,22 +627,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.48431
+      Distance: 2.15471
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.292032
-        Y: 0.12949
-        Z: 0.765198
+        X: 0.221734
+        Y: 0.150978
+        Z: 0.732769
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.530205
+      Pitch: 0.405205
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.903132
+      Yaw: 1.02313
     Saved: ~
 Window Geometry:
   Displays:
