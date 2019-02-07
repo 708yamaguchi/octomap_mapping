@@ -661,7 +661,7 @@
                                                             (apply #'matrix point-list-outside-gripper)))
                          (send pc-outside-gripper :point-size 4.0)
                          (send pc-outside-gripper :colors (apply #'matrix (make-list (length point-list-outside-gripper)
-                                                                                     :initial-element #f(0.3 0.3 0.5)))))
+                                                                                     :initial-element #f(0 0 1)))))
                   (setq pc-outside-gripper (instance pointcloud :init)))
                 ;; (send *irtviewer* :redraw)
                 (send *irtviewer* :objects (append (list *fetch* pc-inside-gripper pc-outside-gripper) region))

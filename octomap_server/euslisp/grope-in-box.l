@@ -569,15 +569,17 @@
                                                             (apply #'matrix point-list-outside-gripper)))
                          (send pc-outside-gripper :point-size 4.0)
                          (send pc-outside-gripper :colors (apply #'matrix (make-list (length point-list-outside-gripper)
-                                                                                     :initial-element #f(0.3 0.3 0.5)))))
+                                                                                     :initial-element #f(0 0 1)))))
                   (setq pc-outside-gripper (instance pointcloud :init)))
                 ;; (send *irtviewer* :redraw)
                 (send *irtviewer* :objects (append (list *fetch* pc-inside-gripper pc-outside-gripper) region))
                 (send *irtviewer* :viewer :viewing :look viewpoint viewtarget #f(0 0 1)) ;; fix camera position and posture
                 ;; (send *irtviewer* :change-background (float-vector (/ inside-point 30.0) 0 0)) ;; 30.0 is given by human, tuned parameter.
                 (send *irtviewer* :draw-objects :flush t)
-                (send *irtviewer* :viewer :viewsurface :string 5 20 (format nil "points:"))
-                (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" inside-point))
+                ;; (send *irtviewer* :viewer :viewsurface :string 5 20 (format nil "points: "))
+                ;; (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" inside-point))
+                (send *irtviewer* :viewer :viewsurface :string 30 20 (format nil "Grids in"))
+                (send *irtviewer* :viewer :viewsurface :string 30 50 (format nil "gripper: ~A" inside-point))
                 (send *irtviewer* :viewer :viewsurface :flush)
                 ;; (objects (append (list *fetch* pc stick-l stick-r stick-center gripper-inside) region))
                 ;; TODO (maybe bug) this when block should be out of (when visualize-searching). See grope-in-microwave.l
@@ -626,8 +628,10 @@
               (format t "max-inside-point: ~A" max-inside-point)
               ;; (send *irtviewer* :change-background (float-vector (/ max-inside-point 30.0) 0 0)) ;; 30.0 is given by human, tuned parameter.
               (send *irtviewer* :draw-objects :flush t)
-              (send *irtviewer* :viewer :viewsurface :string 5 20 (format nil "points:"))
-              (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" max-inside-point))
+              ;; (send *irtviewer* :viewer :viewsurface :string 5 20 (format nil "points:"))
+              ;; (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" max-inside-point))
+                (send *irtviewer* :viewer :viewsurface :string 30 20 (format nil "Grids in"))
+                (send *irtviewer* :viewer :viewsurface :string 30 50 (format nil "gripper: ~A" max-inside-point))
               (send *irtviewer* :viewer :viewsurface :flush)
               )
             (objects (append (list *fetch* pc) region)))

@@ -25,12 +25,13 @@
       (send *fetch* :reset-pose)
       (send *irtviewer* :viewer :viewing :look #f(1528.4 1471.28 1304.32) #f(604.334 -129.251 631.657) #f(0 0 1))
       (send *irtviewer* :draw-objects :flush t)
+      (send *irtviewer* :resize 500 500)
       (format t "Press Enter key to start~%")
       (do-until-key
        (x::window-main-one)
        (unix:sleep 1))
 
-    (search-graspable-point pc :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z :iter-count 300 :visualize-searching t))))
+    (search-graspable-point pc :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z :iter-count 500 :visualize-searching t))))
 
 
 (main)
