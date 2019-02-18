@@ -1,3 +1,6 @@
+;; this file corresponds to rosbag file 2018-12-26-octomap-distribution.bag, namely, 3 chapter of IROS2019
+;; unknown distribution is shown by loading this file.
+
 (load "package://fetcheus/fetch.l")
 (ros::load-ros-manifest "jsk_recognition_msgs")
 
@@ -15,7 +18,14 @@
 
   (format t "
 (unknown-distribution occupied-pointcloud unknown-pointcloud :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z)")
-  (unknown-distribution occupied-pointcloud unknown-pointcloud :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z)
+  (unknown-distribution occupied-pointcloud unknown-pointcloud
+    :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z
+    :view-octomap-2d nil
+    :view-unknown-distribution t)
+  ;; (unknown-distribution occupied-pointcloud unknown-pointcloud
+  ;;   :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z
+  ;;   :view-octomap-2d t
+  ;;   :view-unknown-distribution nil)
   (send *irtviewer* :change-background (float-vector (/ 153 255.0) (/ 255 255.0) (/ 255 255.0)))
   (send *irtviewer* :draw-objects)
 )
