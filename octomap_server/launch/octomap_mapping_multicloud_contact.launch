@@ -12,6 +12,7 @@
   <arg name="fcn" default="false"/>
   <arg name="octomap_with_proximity" default="true"/>
   <arg name="rviz" default="true"/>
+  <arg name="box_recog" default="true"/>
 
   <!-- publish pointcloud with proximity sensor -->
   <group if="$(arg octomap_with_proximity)">
@@ -64,12 +65,12 @@
 	<remap from="/contact_sensors_in" to="contact_sensors_in" />
     <!-- Sensor Input PassThrough Filter Params -->
     <!-- for microwave -->
-    <param name="occupancy_min_x" value="0.45" />
-    <param name="occupancy_max_x" value="0.95" />
-    <param name="occupancy_min_y" value="-0.2" />
-    <param name="occupancy_max_y" value="0.2" />
-    <param name="occupancy_min_z" value="0.4" />
-    <param name="occupancy_max_z" value="1.0" />
+    <!-- <param name="occupancy_min_x" value="0.45" /> -->
+    <!-- <param name="occupancy_max_x" value="0.95" /> -->
+    <!-- <param name="occupancy_min_y" value="-0.2" /> -->
+    <!-- <param name="occupancy_max_y" value="0.2" /> -->
+    <!-- <param name="occupancy_min_z" value="0.4" /> -->
+    <!-- <param name="occupancy_max_z" value="1.0" /> -->
     <!-- for box on the table -->
     <!-- <param name="occupancy_min_x" value="0.45" /> -->
     <!-- <param name="occupancy_max_x" value="0.95" /> -->
@@ -85,12 +86,12 @@
     <!-- <param name="occupancy_min_z" value="0.3" /> -->
     <!-- <param name="occupancy_max_z" value="0.9" /> -->
     <!-- for bag -->
-    <!-- <param name="occupancy_min_x" value="-0.3" /> -->
-    <!-- <param name="occupancy_max_x" value="0.2" /> -->
-    <!-- <param name="occupancy_min_y" value="-0.6" /> -->
-    <!-- <param name="occupancy_max_y" value="-0.1" /> -->
-    <!-- <param name="occupancy_min_z" value="0.2" /> -->
-    <!-- <param name="occupancy_max_z" value="0.8" /> -->
+    <param name="occupancy_min_x" value="-0.3" />
+    <param name="occupancy_max_x" value="0.2" />
+    <param name="occupancy_min_y" value="-0.6" />
+    <param name="occupancy_max_y" value="-0.1" />
+    <param name="occupancy_min_z" value="0.2" />
+    <param name="occupancy_max_z" value="0.8" />
     <!-- for table top -->
     <!-- <param name="occupancy_min_x" value="0.4" /> -->
     <!-- <param name="occupancy_max_x" value="0.8" /> -->
@@ -120,23 +121,25 @@
   <!-- <node pkg="octomap_server" type="get_frontier.py" name="get_frontier" output="screen" /> -->
 
   <!-- color recognition for detecting box's top side -->
-  <include file="$(find octomap_server)/launch/box_recog.launch">
-    <arg name="INPUT" value="/camera_in"/>
-    <!-- for box edge -->
-    <!-- <arg name="h_max" value="110"/> -->
-    <!-- <arg name="h_min" value="80"/> -->
-    <!-- <arg name="s_max" value="255"/> -->
-    <!-- <arg name="s_min" value="31"/> -->
-    <!-- <arg name="i_max" value="255"/> -->
-    <!-- <arg name="i_min" value="0"/> -->
-    <!-- for microwave -->
-    <arg name="h_max" value="127"/>
-    <arg name="h_min" value="80"/>
-    <arg name="s_max" value="255"/>
-    <arg name="s_min" value="85"/>
-    <arg name="i_max" value="255"/>
-    <arg name="i_min" value="0"/>
-  </include>
+  <group if="$(arg box_recog)">
+    <include file="$(find octomap_server)/launch/box_recog.launch">
+      <arg name="INPUT" value="/camera_in"/>
+      <!-- for box edge -->
+      <!-- <arg name="h_max" value="110"/> -->
+      <!-- <arg name="h_min" value="80"/> -->
+      <!-- <arg name="s_max" value="255"/> -->
+      <!-- <arg name="s_min" value="31"/> -->
+      <!-- <arg name="i_max" value="255"/> -->
+      <!-- <arg name="i_min" value="0"/> -->
+      <!-- for microwave -->
+      <arg name="h_max" value="127"/>
+      <arg name="h_min" value="80"/>
+      <arg name="s_max" value="255"/>
+      <arg name="s_min" value="85"/>
+      <arg name="i_max" value="255"/>
+      <arg name="i_min" value="0"/>
+    </include>
+  </group>
 
   <!-- rviz -->
   <group if="$(arg rviz)">

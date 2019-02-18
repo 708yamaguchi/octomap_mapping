@@ -1,0 +1,36 @@
+<launch>
+  <arg name="rviz" default="false"/>
+  <arg name="box_recog" default="false"/>
+  <arg name="create_manager" default="true"/>
+  <arg name="manager" default="manager_for_bag"/>
+
+  <!-- create octomap but do not color recognition -->
+  <include file="$(find octomap_server)/launch/octomap_mapping_multicloud_contact.launch">
+    <arg name="rviz" value="false"/>
+    <arg name="box_recog" value="$(arg box_recog)"/>
+  </include>
+
+  <node if="$(arg create_manager)"
+        pkg="nodelet" type="nodelet" name="$(arg manager)"
+        args="manager" output="screen"/>
+
+  <!-- for creating BoundingBoxArray of inside of bag -->
+  <node name="attention_clipper" pkg="nodelet" type="nodelet"
+        args="load jsk_pcl/AttentionClipper $(arg manager)" output="screen">
+    <remap from="~input/points" to="/camera_remote/depth_registered/points" />
+    <rosparam>
+      <!-- inside of bag -->
+      initial_pos: [0.0, -0.7, 0.7]
+      initial_rot: [0, 0, 0]
+      dimension_x: 0.5
+      dimension_y: 0.6
+      dimension_z: 0.6
+      frame_id: base_link
+    </rosparam>
+  </node>
+
+  <!-- rviz -->
+  <group if="$(arg rviz)">
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/octomap_for_bag.rviz"/>
+  </group>
+</launch>
