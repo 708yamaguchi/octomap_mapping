@@ -1,3 +1,5 @@
+#!/usr/bin/env roseus
+
 ;; this file corresponds to rosbag file 2018-12-26-octomap-distribution.bag, namely, 3 chapter of IROS2019
 ;; unknown distribution is shown by loading this file.
 
