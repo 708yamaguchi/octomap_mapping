@@ -47,36 +47,27 @@
 
 ;; TODO asita, KOKOKARA
 ;; memo for pre-pose
-;; (progn (send *fetch* :reset-pose)
-;;        (send *fetch* :torso :waist-z :joint-angle 350)
-;;        (send *fetch* :rarm :shoulder-y :joint-angle -80)
-;;        (send *fetch* :rarm :inverse-kinematics
-;;             (make-coords :pos (float-vector -100 -350 850) :rpy (float-vector pi/2 (/ pi 3) 0))
-;;             :use-torso nil
-;;             :debug-view nil
-;;             :min-loop 100
-;;             :revert-if-fail nil
-;;             :additional-nspace-list (mapcar #'(lambda (link refangle)
-;;                                                 (eval `(list link #'(lambda () (* 0.01 (- ,refangle (send ,link :joint :joint-angle)))))))
-;;                                             (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link) ;; 5th joint equals to (send *fetch* :rarm :wrist-p)
-;;                                             (list 0))))
 
-(warning-message 3 (format nil "~%fetch's pre-pose:~%  (progn (send *fetch* :reset-pose) (send *fetch* :torso :waist-z :joint-angle 290) (send *fetch* :rarm :shoulder-y :joint-angle -80) (send *fetch* :inverse-kinematics
-            (make-coords :pos (float-vector 500 0 700))
+(warning-message 3 (format nil "~%fetch's pre-pose:~%  (progn (send *fetch* :reset-pose)
+       (send *fetch* :torso :waist-z :joint-angle 350)
+       (send *fetch* :rarm :shoulder-y :joint-angle -80)
+       (send *fetch* :rarm :inverse-kinematics
+            (make-coords :pos (float-vector -100 -350 850) :rpy (float-vector pi/2 (/ pi 3) 0))
             :use-torso nil
             :debug-view nil
-            :min-loop 50
+            :min-loop 100
             :revert-if-fail nil
             :additional-nspace-list (mapcar #'(lambda (link refangle)
-                                                (eval `(list link #'(lambda () (* 0.001 (- ,refangle (send ,link :joint :joint-angle)))))))
-                                            (send-all (list (nth 1 (send *fetch* :rarm :joint-list))) :child-link)
-                                            (list -90))))~%"))
+                                                (eval `(list link #'(lambda () (* 0.01 (- ,refangle (send ,link :joint :joint-angle)))))))
+                                            (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link) ;; 5th joint equals to (send *fetch* :rarm :wrist-p)
+                                            (list 0))))
+~%"))
 (warning-message 3 (format nil "~%send av to *ri*:~%  (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)~%"))
 
 ;; NOTE type is :setting, :main or :all
 ;; :setting does setting of this function, :main does main part of this function and :all does both of them.
 ;; NOTE do pre-pose before executing this function
-(defun main-in-microwave (&key (type :all))
+(defun main-in-bag (&key (type :all))
   (if (not (or (equal type :setting) (equal type :main) (equal type :all)))
     (progn (format t "argument :type is not correctly set~%") (return-from main nil)))
   (unless (boundp '*co*)
@@ -86,30 +77,11 @@
   (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
     (when (or (equal type :all) (equal type :setting))
       ;; settings for experiment
-      ;; below is IK program for stretching wrist_flex_joint
-      (send *fetch* :reset-pose)
-      (send *fetch* :torso :waist-z :joint-angle 290)
-      (send *fetch* :rarm :shoulder-y :joint-angle -80)
-      (send *fetch* :inverse-kinematics
-            (make-coords :pos (float-vector 500 (/ (+ *min-y* *max-y*) 2.0) (/ (+ *min-z* *max-z*) 2.0)))
-            :use-torso nil
-            :debug-view :no-message
-            :min-loop 50
-            :revert-if-fail nil
-            :additional-nspace-list (mapcar #'(lambda (link refangle)
-                                                (eval `(list link #'(lambda () (* 0.001 (- ,refangle (send ,link :joint :joint-angle)))))))
-                                            (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link)
-                                            (list -90))
-            )
-      ;; above is IK program for stretching wrist_flex_joint
-      (send *fetch* :head :look-at (float-vector (/ (+ *max-x* *min-x*) 2.0) (/ (+ *max-y* *min-y*) 2.0) (/ (+ *max-z* *min-z*) 2.0)))
-      (send *fetch* :rarm :move-end-pos #f(0 -400 0) :world :use-torso nil) ;; move hand sideway to avoid occlusion
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
+      ;; look at bag
+      (send *fetch* :head :neck-p :joint-angle 80)
+      (send *fetch* :head :neck-y :joint-angle -90)
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
       (send *ri* :wait-interpolation)
-      (send *ri* :go-grasp :pos 0.03 :wait t)
-      (unix:usleep (* 500 1000))
-      (send *ri* :set-init-proximities)
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
       ;; set octomap
       (camera-stop)
       (octomap-reset)
@@ -118,22 +90,24 @@
       (unix:usleep (* 500 1000))
       ;; use camera and decide target region
       (while t ;; wait for /HSI_color_filter/boxes comes once
-        (setq boxes (one-shot-subscribe "/HSI_color_filter/boxes" jsk_recognition_msgs::BoundingBoxArray))
+        (setq boxes (one-shot-subscribe "/attention_clipper/output/box_array" jsk_recognition_msgs::BoundingBoxArray))
         (when (send boxes :boxes)
           (return))
         (unix:usleep (* 100 1000)))
-      (setq target-region (box-recog boxes :offset 30)) ;; offset is to ignore box edge
-      (send target-region :translate #f(0 30 0) :world) ;; offset is to ignore green tape width on microwave
+      (setq target-region (box-recog boxes :offset 0)) ;; offset is to ignore box edge
+      (send target-region :translate #f(0 0 0) :world) ;; offset is to ignore green tape width on microwave
       (setq *target-region* (copy-object target-region))
       (camera-stop)
 
-      ;; set hand to initial experiment pose
-      (send *fetch* :rarm :move-end-pos #f(0 400 0) :world :use-torso nil)
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
-      (send *ri* :wait-interpolation)
+      ;; set hand to initial experiment pose ;; TODO check
+      (prepose-for-main)
+      (send *ri* :go-grasp :pos 0.03 :wait t)
+      (unix:usleep (* 500 1000))
+      (send *ri* :set-init-proximities)
+
       ;; set environment as collision object for moveit
-      (setq *collision-objects* (collision-object-for-microwave target-region))
-      (send *co* :wipe-all)
+      ;; (setq *collision-objects* (collision-object-for-microwave target-region))
+      ;; (send *co* :wipe-all)
       ;; visualization of target region and collision objects
       ;; (objects (append (list *fetch*) *collision-objects* (send *target-region* :edges)))
       )
@@ -149,11 +123,11 @@
      (let ((find-grasp-pointp nil) (detectp nil) (graspp nil))
        ;; create octomap by tracing environment, using proximity sensors on finger.
        (dotimes (i 30)
-         (create-map target-region)
+         (create-map target-region) ;; TODO check
          (let ((av (send *fetch* :angle-vector)))
            ;; TODO decide proper threshold
            ;; NOTE pointcloud is decimated now
-           (when (and (< 5 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 20 :y-offset 40 :z-offset 40)))
+           (when (and (< 15 (car (decide-grope-point (get-octo-pointcloud :type "occupied") target-region :x-offset 0 :y-offset 0 :z-offset 0)))
                       (> i 1)) ;; at least do (create-map) 2 times
              (setq find-grasp-pointp t)
              (format t "find graspable point, so start grasping~%")
@@ -174,22 +148,23 @@
                (av-orig (send *fetch* :angle-vector)))
            (format t "try to solve IK~%")
            ;; (send *fetch* :rarm :move-end-pos (float-vector 0 0 (- *max-z* ec-z)) :world)
-           (send *co* :wipe-all)
-           (send *fetch* :rarm :move-end-pos #f(-100 0 0) :world)
+           ;; (send *co* :wipe-all)
+           (send *fetch* :rarm :move-end-pos #f(0 0 100) :world)
            (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
            (send *ri* :wait-interpolation)
            (send *fetch* :rarm :move-end-pos (float-vector
-                                              -50
+                                              (- (aref (send target-region :centroid) 0) ec-x)
                                               (- (aref (send target-region :centroid) 1) ec-y)
-                                              (- (aref (send target-region :centroid) 2) ec-z))
+                                              50)
                  :world)
            (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
            (send *ri* :wait-interpolation)
            (send *fetch* :angle-vector av-orig)
-           (dolist (object *collision-objects*)
-             (send *co* :add-object object))
+           ;; (dolist (object *collision-objects*)
+           ;;   (send *co* :add-object object))
+           ;; TODO here, maybe default pose for bag should be used
            (dotimes (i 3)
-             (unless (send *fetch* :rarm :move-end-pos (float-vector -100 0 0) :world)
+             (unless (send *fetch* :rarm :move-end-pos (float-vector 0 0 100) :world)
                (return)))
            (format t "IK solved ??~%")
            (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
@@ -200,7 +175,7 @@
          ;; second, extend hand to target object with pre-grasp motion
          (while t
            (if (inside-region (send *fetch* :rarm :end-coords :copy-worldcoords)
-                              *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 20)
+                              *min-x* *max-x* *min-y* *max-y* *min-z* *max-z* 0)
              (if (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
                          :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre 20)
                (progn ;; if something is in front of the gripper, return from this while loop and try to pre-grasp
@@ -217,15 +192,16 @@
              (setq now-angle (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t)))
              ;; TODO make target-region smaller and changd collision-objects temporally and locally.
              ;; TODO in order to avoid collision when rotating hand.
-             (setq smaller-target-region (make-cube (- (x-of-cube target-region) offset)
-                                                    (- (y-of-cube target-region) offset)
-                                                    (- (z-of-cube target-region) offset)))
-             (send smaller-target-region :move-coords (send target-region :copy-worldcoords) (make-coords))
-             (setq angle-list (pqp-with-hand (collision-object-for-microwave smaller-target-region)))
-             (setq max-angle (car angle-list))
-             (setq min-angle (cadr angle-list))
-             ;; (setq graspp (pre-grasp (max (- max-angle 5) now-angle) (min (+ min-angle 5) now-angle)))
-             (setq graspp (pre-grasp max-angle min-angle))
+             ;; (setq smaller-target-region (make-cube (- (x-of-cube target-region) offset)
+             ;;                                        (- (y-of-cube target-region) offset)
+             ;;                                        (- (z-of-cube target-region) offset)))
+             ;; (send smaller-target-region :move-coords (send target-region :copy-worldcoords) (make-coords))
+             ;; (setq angle-list (pqp-with-hand (collision-object-for-microwave smaller-target-region)))
+             ;; (setq max-angle (car angle-list))
+             ;; (setq min-angle (cadr angle-list))
+             ;; ;; (setq graspp (pre-grasp (max (- max-angle 5) now-angle) (min (+ min-angle 5) now-angle)))
+             ;; (setq graspp (pre-grasp max-angle min-angle))
+             (setq graspp (pre-grasp))
              ))
          (if graspp
            (return)))
@@ -234,18 +210,22 @@
        ))
 
     ;; finally, lift the target object up
-    (send *co* :wipe-all)
-    (dolist (object *collision-objects*)
-      (send *co* :add-object object))
+    ;; (send *co* :wipe-all)
+    ;; (dolist (object *collision-objects*)
+    ;;   (send *co* :add-object object))
     (dotimes (i 3)
-      (if (send *fetch* :rarm :move-end-pos (float-vector -100 0 10) :world)
+      (if (send *fetch* :rarm :move-end-pos (float-vector 0 0 100) :world)
         (if (send *ri* :angle-vector (send *fetch* :angle-vector) 7000)
           nil
           (return))
         (return))
       (send *ri* :wait-interpolation))
     (format t "grope succeeded~%")
-    (send *co* :wipe-all)
+    ;; (send *co* :wipe-all)
+
+    ;; TODO put object on kitchen
+    ;; make trajectory to avoid kitchen
+    ;; TODO put object on kitchen
     ))
 
 ;; TODO: what method is best solution to create map?
@@ -260,9 +240,9 @@
     (send *ri* :go-grasp :pos 0.03 :wait t)
     ;; first, moving hand up
     (format t "set prepose for main experiment. preparing...~%")
-    (unless *collision-objects*
-      (setq *collision-objects* (collision-object-for-microwave target-region)))
-    (prepose-for-main *collision-objects*) ;; NOTE use moveit and collision object in this function
+    ;; (unless *collision-objects*
+    ;;   (setq *collision-objects* (collision-object-for-microwave target-region)))
+    (prepose-for-main *collision-objects*) ;; NOTE use moveit and collision object in this function. now, *collision-objects* is nil
 
     ;; calculate where to grope, during moving hand up (time saving)
     (let* ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
@@ -530,15 +510,10 @@
 (load "package://octomap_server/euslisp/av-and-groped-pc2.l")
 (setq *pc1* (cadr av-and-groped-pc1))
 (setq *pc2* (cadr av-and-groped-pc1))
-;; NOTE the dump file below is too big. load the file only when you need
-;; (load "package://octomap_server/euslisp/microwave-env.l")
-;; NOTE
 
-;; when using microwave-env.l, do sample code below
-;; (search-graspable-point occupied-pointcloud :min-x 710 :max-x 810 :min-y -45 :max-y 215 :min-z 1000 :max-z 1150 :visualize-searching t :iter-count 100)
-(defun search-graspable-point (pc &key (min-x 750) (max-x 850) (min-y -100) (max-y 100) (min-z 950) (max-z 1100) (iter-count 1000) (visualize-searching nil))
+(defun search-graspable-point (pc &key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (iter-count 1000) (visualize-searching nil))
   (let* (stick-l stick-r stick-center
-         random-y random-z random-rot
+         random-x random-y random-rot
          best-x best-y best-z best-rot
          (gr-x 40.0) (gr-y 30.0) (gr-z 60.0) (gr-open 100.0) (hand-x 70.0)
          (gripper-l (send (make-cube gr-x gr-y gr-z) :locate (float-vector 0 (/ gr-open -2) 0)))
@@ -546,12 +521,12 @@
          (gripper-inside (make-cube gr-x (- gr-open gr-y) gr-z))
          (point-list (send pc :point-list))
          (point-list-sorted nil) (point-list-inside nil) (point-list-outside nil)
-         nearest-x
+         highest-z
          (inside-point 0) (max-inside-point 0) (best-pc-inside-gripper nil) (best-pc-outside-gripper nil)
          (viewpoint #f(1528.4 1471.28 1304.32))
-         (viewtarget #f(604.334 -129.251 831.657))
+         (viewtarget #f(604.334 -129.251 631.657))
          )
-    (send *fetch* :torso :waist-z :joint-angle 290)
+    (send *fetch* :torso :waist-z :joint-angle 300)
     (send *fetch* :stop-grasp)
 
     (let ((cube (make-cube (- max-x min-x) (- max-y min-y) (- max-z min-z))) (region nil))
@@ -566,40 +541,32 @@
       (send gripper-r :set-color #f(0 1 0))
       (send gripper-inside :set-color #f(0 0 1))
       ;; stick is the xy-plane field occupied by gripper
-      (setq stick-l (send (make-cube (- max-x min-x) gr-x gr-y) :locate (float-vector (/ (+ max-x min-x) 2.0) (/ gr-open -2) 0)))
+      (setq stick-l (send (make-cube gr-x gr-y (- max-z min-z)) :locate (float-vector 0 (/ gr-open -2) (/ (+ max-z min-z) 2.0))))
       (send stick-l :set-color #f(1 0 0 0.5))
-      (setq stick-r (send (make-cube (- max-x min-x) gr-x gr-y) :locate (float-vector (/ (+ max-x min-x) 2.0) (/ gr-open 2) 0)))
+      (setq stick-r (send (make-cube gr-x gr-y (- max-z min-z)) :locate (float-vector 0 (/ gr-open 2) (/ (+ max-z min-z) 2.0))))
       (send stick-r :set-color #f(0 1 0 0.5))
-      (setq stick-center (send (make-cube (- max-x min-x) hand-x (- gr-open gr-y)) :locate (float-vector (/ (+ max-x min-x) 2.0) 0 0)))
+      (setq stick-center (send (make-cube hand-x (- gr-open gr-y) (- max-z min-z)) :locate (float-vector 0 0 (/ (+ max-z min-z) 2.0))))
       (send stick-center :set-color #f(0 0 1 0.5))
       (send gripper-inside :assoc gripper-l)
       (send gripper-inside :assoc gripper-r)
-      (send gripper-inside :rotate -pi/2 :y) ;; to change depth direction from z-axis to x-axis
       (send gripper-inside :assoc stick-l)
       (send gripper-inside :assoc stick-r)
       (send gripper-inside :assoc stick-center)
 
       ;; sort points in the order of z-height
       ;; exclude points which is out of target region
-      ;; NOTE if execution of (search-graspable-point) is slow, let's make pointcloud sparse
-      ;; NOTE by using (dotimes (point point-list) (when (eq (random 4) 0) ~~~))
-      (let ((count 0))
-        (dolist (point point-list)
-          (setq count (+ 1 count))
-          (when (eq (mod count 3) 0)
-            ;; (when t ;; (eq (random 4) 0)
-            (setq point-list-sorted (append point-list-sorted (list point)))
-            (if (and (<= min-x (aref point 0) max-x) (<= min-y (aref point 1) max-y) (<= min-z (aref point 2) max-z))
-              (setq point-list-inside (append point-list-inside (list point)))
-              (setq point-list-outside (append point-list-outside (list point))))))
-        )
+      (dolist (point point-list)
+        (setq point-list-sorted (append point-list-sorted (list point)))
+        (if (and (<= min-x (aref point 0) max-x) (<= min-y (aref point 1) max-y) (<= min-z (aref point 2) max-z))
+          (setq point-list-inside (append point-list-inside (list point)))
+          (setq point-list-outside (append point-list-outside (list point)))))
       (setq point-list-sorted (copy-object point-list-sorted))
       ;; (sort) is destructively sort
-      (sort point-list-sorted #'(lambda (x y) (< (aref x 0) (aref y 0))))
+      (sort point-list-sorted #'(lambda (x y) (> (aref x 2) (aref y 2))))
       ;; search for most graspable point
       (dotimes (i iter-count)
         ;; reset variables
-        (setq nearest-x nil)
+        (setq highest-z nil)
         (setq inside-point 0)
         ;; move gripper randomly and get the highest point under the gripper
         ;; update objects related counting pointcloud
@@ -607,42 +574,39 @@
         (send stick-r :worldcoords)
         (send stick-center :worldcoords)
         (send gripper-inside :worldcoords)
-
         ;; set random point to grope
+        (setq random-x (+ (random (- max-x min-x)) min-x))
         (setq random-y (+ (random (- max-y min-y)) min-y))
-        (setq random-z (+ (random (- max-z min-z)) min-z))
-        ;; NOTE if considering gravity direction, you can restrict random-rot. e.g. you can choose pi/2 for wrist angle range
-        (setq random-rot (funcall #'(lambda (range) (- (random range) (/ range 2.0))) (/ pi 5.0))) ;; maybe pi/2 does better than pi
-        (send gripper-inside :locate (float-vector 0 random-y random-z) :world) ;; change position absolutely
-        (send gripper-inside :orient random-rot :z :local) ;; change rotation absolutely
-
+        (setq random-rot (- (random pi) pi/2))
+        (send gripper-inside :locate (float-vector random-x random-y 0) :world) ;; change position absolutely
+        (send gripper-inside :orient random-rot :z :world) ;; change rotation absolutely
         ;; calc point at which the gripper and the hand collides with pointcloud
         (let ((l/r-flag nil) (center-flag nil))
           (dolist (point point-list-sorted)
             (when (and (not l/r-flag)
                        (or (equal (send stick-l :insidep point) :inside)
                            (equal (send stick-r :insidep point) :inside)))
-              (if nearest-x
-                (setq nearest-x (min nearest-x (aref point 0)))
-                (setq nearest-x (aref point 0)))
+              (if highest-z
+                (setq highest-z (max highest-z (aref point 2)))
+                (setq highest-z (aref point 2)))
               (setq l/r-flag t)
               (if (and l/r-flag center-flag)
                 (return)))
             (when (and (not center-flag)
                        (equal (send stick-center :insidep point) :inside))
-              (if nearest-x
-                (setq nearest-x (min nearest-x (+ (aref point 0) gr-z)))
-                (setq nearest-x (+ (aref point 0) gr-z)))
+              (if highest-z
+                (setq highest-z (max highest-z (- (aref point 2) gr-z)))
+                (setq highest-z (- (aref point 2) gr-z)))
               (setq center-flag t)
               (if (and l/r-flag center-flag)
                 (return)))))
 
-        (when nearest-x
+        (when highest-z
           ;; move the hand down until collision with the highest point, and count the points inside the gripper.
           (send gripper-inside :dissoc stick-l)
           (send gripper-inside :dissoc stick-r)
           (send gripper-inside :dissoc stick-center)
-          (send gripper-inside :locate (float-vector 0 0 (* -1 (- nearest-x (/ gr-z 2.0)))) :local)
+          (send gripper-inside :locate (float-vector 0 0 (+ highest-z (/ gr-z 2.0))) :local)
           ;; update objects related counting pointcloud
           (send gripper-inside :worldcoords)
           ;; count the point inside of gripper-inside
@@ -655,16 +619,14 @@
                   (setq point-list-inside-gripper (append point-list-inside-gripper (list point))))
                 (setq point-list-outside-gripper (append point-list-outside-gripper (list point)))))
 
-            (let ((pc-inside-gripper nil) (pc-outside-gripper nil))
-              ;; for visualization
-              (when visualize-searching
-                (send *fetch* :angle-vector #f(290.0 -91.1404 64.5379 31.0038 101.51 96.5575 58.5683 102.242 0.0 0.0)) ;; pre-pose for IK
-                (send *fetch* :inverse-kinematics
-                      (make-coords :pos (float-vector (- nearest-x (/ gr-z 2.0)) random-y random-z)
-                                   :rpy (float-vector 0 0 (* -1 random-rot)))
-                      :use-torso nil)
-                (send *irtviewer* :objects (append (list *fetch* pc) region))
-
+            ;; for visualization
+            (when visualize-searching
+              (send *fetch* :inverse-kinematics
+                    (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
+                                 :rpy (float-vector 0 pi/2 (* -1 random-rot))
+                                 :use-torso nil))
+              ;; (send *irtviewer* :objects (append (list *fetch* pc) region))
+              (let ((pc-inside-gripper nil) (pc-outside-gripper nil))
                 (if point-list-inside-gripper
                   (progn (setq pc-inside-gripper (instance pointcloud :init :points
                                                            (apply #'matrix point-list-inside-gripper)))
@@ -684,48 +646,47 @@
                 (send *irtviewer* :viewer :viewing :look viewpoint viewtarget #f(0 0 1)) ;; fix camera position and posture
                 ;; (send *irtviewer* :change-background (float-vector (/ inside-point 30.0) 0 0)) ;; 30.0 is given by human, tuned parameter.
                 (send *irtviewer* :draw-objects :flush t)
-                (send *irtviewer* :viewer :viewsurface :string 5 20 (format nil "points:"))
-                (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" inside-point))
-                (send *irtviewer* :viewer :viewsurface :flush))
-
-              (when (> inside-point max-inside-point)
-                (setq max-inside-point inside-point)
-                (setq best-x nearest-x)
-                (setq best-y random-y)
-                (setq best-z random-z)
-                (setq best-rot random-rot)
-                (when visualize-searching
+                ;; (send *irtviewer* :viewer :viewsurface :string 5 20 (format nil "points: "))
+                ;; (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" inside-point))
+                (send *irtviewer* :viewer :viewsurface :string 30 20 (format nil "Grids in"))
+                (send *irtviewer* :viewer :viewsurface :string 30 50 (format nil "gripper: ~A" inside-point))
+                (send *irtviewer* :viewer :viewsurface :flush)
+                ;; (objects (append (list *fetch* pc stick-l stick-r stick-center gripper-inside) region))
+                ;; TODO (maybe bug) this when block should be out of (when visualize-searching). See grope-in-microwave.l
+                (when (> inside-point max-inside-point)
+                  (setq max-inside-point inside-point)
+                  (setq best-x random-x)
+                  (setq best-y random-y)
+                  (setq best-z highest-z)
+                  (setq best-rot random-rot)
                   (setq best-pc-inside-gripper (copy-object pc-inside-gripper))
-                  (setq best-pc-outside-gripper (copy-object pc-outside-gripper))))))
-
+                  (setq best-pc-outside-gripper (copy-object pc-outside-gripper))
+                  ))))
           ;; redo the movement of gripper-l, gripper-r and gripper-inside
           (send gripper-inside :locate (float-vector 0 0 0) :world)
-          (send stick-l :locate (float-vector (/ (+ max-x min-x) 2.0) (/ gr-open -2.0) 0) :world)
-          (send stick-r :locate (float-vector (/ (+ max-x min-x) 2.0) (/ gr-open 2.0) 0) :world)
-          (send stick-center :locate (float-vector (/ (+ max-x min-x) 2.0) 0 0) :world)
+          (send stick-l :locate (float-vector 0 (/ gr-open -2.0) (/ (+ max-z min-z) 2.0)) :world)
+          (send stick-r :locate (float-vector 0 (/ gr-open 2.0) (/ (+ max-z min-z) 2.0)) :world)
+          (send stick-center :locate (float-vector 0 0 (/ (+ max-z min-z) 2.0)) :world)
           (send gripper-inside :orient 0 :z :world) ;; change rotation absolutely
           (send stick-l :orient 0 :z :world)
           (send stick-r :orient 0 :z :world)
           (send stick-center :orient 0 :z :world)
-          (send gripper-inside :rotate -pi/2 :y)
           (send gripper-inside :assoc stick-l)
           (send gripper-inside :assoc stick-r)
           (send gripper-inside :assoc stick-center)
           ))
       (format t "max-inside-point:~A~%" max-inside-point)
-
-      (if best-x
+      (if best-z
         (progn
-          (send *fetch* :angle-vector #f(290.0 -91.1404 64.5379 31.0038 101.51 96.5575 58.5683 102.242 0.0 0.0)) ;; pre-pose for IK
           (send *fetch* :inverse-kinematics
-                (make-coords :pos (float-vector (- best-x (/ gr-z 2.0)) best-y best-z)
-                             :rpy (float-vector 0 0 (* -1 best-rot))
+                (make-coords :pos (float-vector best-x best-y (+ best-z (/ gr-z 2.0)))
+                             :rpy (float-vector 0 pi/2 (* -1 best-rot))
                              :use-torso nil))
-          (send gripper-inside :locate (float-vector (- best-x (/ gr-z 2.0)) best-y best-z) :world) ;; change position absolutely
+          (send gripper-inside :locate (float-vector best-x best-y (+ best-z (/ gr-z 2.0))) :world) ;; change position absolutely
           (send gripper-inside :orient best-rot :z :world) ;; change rotation absolutely
-          (send stick-l :translate (float-vector (- (/ (+ max-x min-x) 2.0) (aref (send stick-l :worldpos) 0)) 0 0) :world)
-          (send stick-r :translate (float-vector (- (/ (+ max-x min-x) 2.0) (aref (send stick-l :worldpos) 0)) 0 0) :world)
-          (send stick-center :translate (float-vector (- (/ (+ max-x min-x) 2.0) (aref (send stick-l :worldpos) 0)) 0 0) :world)
+          (send stick-l :translate (float-vector 0 0 (- (/ (+ max-z min-z) 2.0) (aref (send stick-l :worldpos) 2))) :world)
+          (send stick-r :translate (float-vector 0 0 (- (/ (+ max-z min-z) 2.0) (aref (send stick-r :worldpos) 2))) :world)
+          (send stick-center :translate (float-vector 0 0 (- (/ (+ max-z min-z) 2.0) (aref (send stick-center :worldpos) 2))) :world)
           ;; (objects (append (list *fetch* pc stick-l stick-r stick-center) region)) ;; for debug view
           (if visualize-searching
             (progn
@@ -737,8 +698,10 @@
               (format t "max-inside-point: ~A" max-inside-point)
               ;; (send *irtviewer* :change-background (float-vector (/ max-inside-point 30.0) 0 0)) ;; 30.0 is given by human, tuned parameter.
               (send *irtviewer* :draw-objects :flush t)
-              (send *irtviewer* :viewer :viewsurface :string 5 20 (format nil "points:"))
-              (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" max-inside-point))
+              ;; (send *irtviewer* :viewer :viewsurface :string 5 20 (format nil "points:"))
+              ;; (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" max-inside-point))
+                (send *irtviewer* :viewer :viewsurface :string 30 20 (format nil "Grids in"))
+                (send *irtviewer* :viewer :viewsurface :string 30 50 (format nil "gripper: ~A" max-inside-point))
               (send *irtviewer* :viewer :viewsurface :flush)
               )
             (objects (append (list *fetch* pc) region)))
@@ -748,8 +711,9 @@
           0))
       )))
 
-;; sample for microwave
-;; (decide-grope-point occupied-pointcloud target-region :x-offset 100 :y-offset 45 :z-offset 40 :visualize-searching t)
+
+;; sample
+;; decide-grope-point occupied-pointcloud target-region :x-offset 80 :y-offset 80 :z-offset 60
 (defun decide-grope-point (pc target-region &key (x-offset 0) (y-offset 0) (z-offset 0) (visualize-searching nil))
   (let ((hand-pos nil) (x nil) (y nil) (z nil) (fetch-copy nil) (points 0) (max-points 0)
         (min-x (+ (reduce #'min (mapcar #'(lambda (x) (aref x 0)) (send target-region :vertices))) x-offset))
@@ -758,7 +722,7 @@
         (max-y (- (reduce #'max (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))) y-offset))
         (min-z (+ (reduce #'min (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))) z-offset))
         (max-z (- (reduce #'max (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))) z-offset)))
-    (setq points (search-graspable-point pc :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z :iter-count 300 :visualize-searching visualize-searching))
+    (setq points (search-graspable-point pc :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z :iter-count 500 :visualize-searching visualize-searching))
     (setq max-points points)
     (setq fetch-copy (copy-object *fetch*))
     (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
@@ -766,7 +730,7 @@
     (setq x (aref hand-pos 0))
     (setq y (aref hand-pos 1))
     (setq z (aref hand-pos 2))
-    (setq points (search-graspable-point pc :min-x min-x :max-x max-x :min-y (max min-y (- y 100)) :max-y (min max-y (+ y 100)) :min-z (max min-z (- z 100)) :max-z (min max-z (+ z 100)) :iter-count 300 :visualize-searching visualize-searching))
+    (setq points (search-graspable-point pc :min-x (max min-x (- x 100)) :max-x (min max-x (+ x 100)) :min-y (max min-y (- y 100)) :max-y (min max-y (+ y 100)) :min-z min-z :max-z max-z :iter-count 500 :visualize-searching visualize-searching))
     (when (< max-points points)
       (setq fetch-copy (copy-object *fetch*))
       (setq max-points points)
@@ -775,7 +739,7 @@
     (setq x (aref hand-pos 0))
     (setq y (aref hand-pos 1))
     (setq z (aref hand-pos 2))
-    (setq points (search-graspable-point pc :min-x min-x :max-x max-x :min-y (max min-y (- y 50)) :max-y (min max-y (+ y 50)) :min-z (max min-z (- z 50)) :max-z (min max-z (+ z 50)) :iter-count 300 :visualize-searching visualize-searching))
+    (setq points (search-graspable-point pc :min-x (max min-x (- x 50)) :max-x (min max-x (+ x 50)) :min-y (max min-y (- y 50)) :max-y (min max-y (+ y 50)) :min-z min-z :max-z max-z :iter-count 500 :visualize-searching visualize-searching))
     (when (< max-points points)
       (setq fetch-copy (copy-object *fetch*))
       (setq max-points points)
@@ -789,18 +753,17 @@
 
 ;; NOTE arguments of this function means region of the target space, not octomap region.
 ;; return map of where is not explored very much
-;; example code
-;; (progn (unknown-distribution occupied-pointcloud unknown-pointcloud :min-x 570 :max-x 870 :min-y -84 :max-y 156 :min-z 1020 :max-z 1140 :block-size 30.0) (objects occupied-pointcloud))
+;; (unknown-distribution :min-x *min-x* :max-x *max-x* :min-y *min-y* :max-y *max-y* :min-z *min-z* :max-z *max-z* :block-size 50.0)
 (defun unknown-distribution (occupied-pointcloud unknown-pointcloud
                              &key (min-x *min-x*) (max-x *max-x*) (min-y *min-y*) (max-y *max-y*) (min-z *min-z*) (max-z *max-z*) (block-size 50.0)
-                             (view-octomap-2d nil) (view-unknown-distribution t) (visualize-arrow nil))
-  (unless (and (eq (mod (round (- *max-y* *min-y*)) (round block-size)) 0)
-               (eq (mod (round (- *max-z* *min-z*)) (round block-size)) 0))
+                             (view-octomap-2d nil) (view-unknown-distribution t))
+  (unless (and (eq (mod (round (- *max-x* *min-x*)) (round block-size)) 0)
+               (eq (mod (round (- *max-y* *min-y*)) (round block-size)) 0))
     (format t "target region is not a multiple of block-size~%")
     (return-from unknown-distribution nil))
   (let* ((occupied-pc occupied-pointcloud)
          (unknown-pc unknown-pointcloud)
-         (octomap-2d (apply #'matrix (make-list (round (/ (- max-y min-y) *resolution*)) :initial-element (make-list (round (/ (- max-z min-z) *resolution*)) :initial-element 0))))
+         (octomap-2d (apply #'matrix (make-list (round (/ (- max-x min-x) *resolution*)) :initial-element (make-list (round (/ (- max-y min-y) *resolution*)) :initial-element 0))))
          direction-arrow)
     (when (eq occupied-pc nil)
       (format t "cannot find occupied grids~%")
@@ -811,20 +774,19 @@
     ;; look up occupied pointcloud firstly
     (dotimes (i (send occupied-pc :size))
       (let* ((occupied (matrix-row (send occupied-pc :points) i))
-             (y (round (/ (- (aref occupied 1) min-y (/ *resolution* 2.0)) *resolution*)))
-             (z (round (/ (- (aref occupied 2) min-z (/ *resolution* 2.0)) *resolution*)))
-             ) ;; y and z are index
+             (x (round (/ (- (aref occupied 0) min-x (/ *resolution* 2.0)) *resolution*)))
+             (y (round (/ (- (aref occupied 1) min-y (/ *resolution* 2.0)) *resolution*)))) ;; x and y are index
         ;; (if (and (< min-x (aref occupied 0) max-x) (< min-y (aref occupied 1) max-y) (< min-z (aref occupied 2) max-z))
-        (if (and (<= 0 y) (< y (car (array-dimensions octomap-2d))) (<= 0 z) (< z (cadr (array-dimensions octomap-2d))))
-          (setf (aref octomap-2d y z) -1))))
+        (if (and (<= 0 x) (< x (car (array-dimensions octomap-2d))) (<= 0 y) (< y (cadr (array-dimensions octomap-2d))))
+          (setf (aref octomap-2d x y) -1))))
     ;; look up unknown pointcloud secondly
     (dotimes (j (send unknown-pc :size))
       (let* ((unknown (matrix-row (send unknown-pc :points) j))
-             (y (/ (round (- (aref unknown 1) min-y *resolution*)) *resolution*))
-             (z (/ (round (- (aref unknown 2) min-z *resolution*)) *resolution*))) ;; y and z are index
-        (if (and (<= 0 y) (< y (car (array-dimensions octomap-2d))) (<= 0 z) (< z (cadr (array-dimensions octomap-2d))) ;; target point is inside the target region?
-                 (not (eq (aref octomap-2d y z) -1)))
-          (setf (aref octomap-2d y z) (+ 1 (aref octomap-2d y z)))
+             (x (/ (round (- (aref unknown 0) min-x *resolution*)) *resolution*))
+             (y (/ (round (- (aref unknown 1) min-y *resolution*)) *resolution*))) ;; x and y are index
+        (if (and (<= 0 x) (< x (car (array-dimensions octomap-2d))) (<= 0 y) (< y (cadr (array-dimensions octomap-2d))) ;; target point is inside the target region?
+                 (not (eq (aref octomap-2d x y) -1)))
+          (setf (aref octomap-2d x y) (+ 1 (aref octomap-2d x y)))
           )))
 
     ;; visualization of octomap-2d
@@ -833,14 +795,16 @@
         (setq *resolution* 10)
         (dotimes (k (car (array-dimensions octomap-2d)))
           (dotimes (l (cadr (array-dimensions octomap-2d)))
-            (if (< max-num (aref octomap-2d k l))
-              (setq max-num (aref octomap-2d k l)))))
+            (unless (or (eq k 0) (eq l 0)) ;; this is deprecated, find the root of this bug
+              (if (< max-num (aref octomap-2d k l))
+                (setq max-num (aref octomap-2d k l))))))
         (dotimes (i (car (array-dimensions octomap-2d)))
           (dotimes (j (cadr (array-dimensions octomap-2d)))
-            (setq cube (make-cube *resolution* *resolution* *resolution*))
-            (send cube :set-color (float-vector (/ (max 0 (aref octomap-2d i j)) max-num) 0 0))
-            (send cube :translate (float-vector (+ *min-x* 120) (+ (* *resolution* (+ i 0.5)) *min-y*) (+ (* *resolution* (+ j 0.5)) *min-z*)) :world)
-            (setq vis-list (append vis-list (list cube)))))
+            (unless (or (eq i 0) (eq j 0)) ;; this is deprecated, find the root of this bug
+              (setq cube (make-cube *resolution* *resolution* *resolution*))
+              (send cube :set-color (float-vector 0 0 (/ (max 0 (aref octomap-2d i j)) max-num)))
+              (send cube :translate (float-vector (+ (* *resolution* (+ i 0.5)) *min-x*) (+ (* *resolution* (+ j 0.5)) *min-y*) *min-z*) :world)
+              (setq vis-list (append vis-list (list cube))))))
         (setq *resolution* 10)
         (objects (append (list *fetch*) vis-list))
         (send *irtviewer* :change-background #f(0.3 0.3 0.1))
@@ -848,9 +812,9 @@
         (x::window-main-one)))
 
     ;; calculate unknown-distribution matrix. this shows rough distribution of unknown area, and visualize it.
-    (let* ((y-size (round (/ (- max-y min-y) block-size))) ;; y-size of target region, not octomap region. divide octomap area into (y-size * z-size) areas
-           (z-size (round (/ (- max-z min-z) block-size))) ;; z-size of target region, not octomap region.
-           (dist-mat (apply #'matrix (make-list y-size :initial-element (make-list z-size :initial-element 0))))
+    (let* ((x-size (round (/ (- max-x min-x) block-size))) ;; x-size of target region, not octomap region. divide octomap area into (x-size * y-size) areas
+           (y-size (round (/ (- max-y min-y) block-size))) ;; y-size of target region, not octomap region.
+           (dist-mat (apply #'matrix (make-list x-size :initial-element (make-list y-size :initial-element 0))))
            (max-unknown 0) max-unknown-place dist-vis-list cube
            (adjacent-max-unknown 0) adjacent-max-unknown-place
            (region-cube (send (make-cube (- max-x min-x) (- max-y min-y) (- max-z min-z))
@@ -859,10 +823,10 @@
       ;; octomap-2d is composed of very fine grids, so make it rougher and create dist-mat (distribution matrix of unknown grids)
       (dotimes (i (car (array-dimensions octomap-2d)))
         (dotimes (j (cadr (array-dimensions octomap-2d)))
-          (let ((y-index (/ i (round (/ block-size *resolution*))))
-                (z-index (/ j (round (/ block-size *resolution*)))))
-            (setf (aref dist-mat y-index z-index)
-                  (+ (aref octomap-2d i j) (aref dist-mat y-index z-index)))
+          (let ((x-index (/ i (round (/ block-size *resolution*))))
+                (y-index (/ j (round (/ block-size *resolution*)))))
+            (setf (aref dist-mat x-index y-index)
+                  (+ (aref octomap-2d i j) (aref dist-mat x-index y-index)))
         )))
 
       (when view-unknown-distribution
@@ -872,9 +836,6 @@
             (when (< max-unknown (aref dist-mat k l))
               (setq max-unknown-place (list k l))
               (setq max-unknown (aref dist-mat k l)))))
-        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        ;; Start, replace: x->y, y->z ;;
-        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         ;; calculate the most unknown adjacent place
         (dotimes (i 4)
           (let ((x nil) (y nil))
@@ -888,29 +849,24 @@
               (when (< adjacent-max-unknown (aref dist-mat (+ (car max-unknown-place) x) (+ (cadr max-unknown-place) y)))
                 (setq adjacent-max-unknown (aref dist-mat (+ (car max-unknown-place) x) (+ (cadr max-unknown-place) y)))
                 (setq adjacent-max-unknown-place (list x y))))))
-        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        ;; End, replace: x->y, y->z ;;
-        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
         (dotimes (k (car (array-dimensions dist-mat)))
           (dotimes (l (cadr (array-dimensions dist-mat)))
-            (setq cube (make-cube *resolution* (/ (- max-y min-y) y-size) (/ (- max-z min-z) z-size)))
+            (setq cube (make-cube (/ (- max-x min-x) x-size) (/ (- max-y min-y) y-size) *resolution*))
             (send cube :set-color (float-vector 0 0 (max (/ (aref dist-mat k l) (float max-unknown)) 0)))
-            (send cube :translate (float-vector (+ *min-x* 120) (+ (* (/ (- max-y min-y) y-size) (+ k 0.5)) min-y) (+ (* (/ (- max-z min-z) z-size) (+ l 0.5)) min-z)) :world)
+            (send cube :translate (float-vector (+ (* (/ (- max-x min-x) x-size) (+ k 0.5)) min-x) (+ (* (/ (- max-y min-y) y-size) (+ l 0.5)) min-y) *min-z*) :world)
             (setq dist-vis-list (append dist-vis-list (list cube)))))
         ;; (objects (append (list *fetch*) dist-vis-list region-edge))
-        (when visualize-arrow
-          (setq direction-arrow
-                (make-arrow
-                 (float-vector (- *min-x* 20)
-                               (+ (* (/ (- max-y min-y) y-size) (+ (car max-unknown-place) 0.5)) min-y)
-                               (+ (* (/ (- max-z min-z) z-size) (+ (cadr max-unknown-place) 0.5)) min-z)) ;; pos
-                 (float-vector 0
-                               (* (/ (- max-y min-y) y-size) (car adjacent-max-unknown-place))
-                               (* (/ (- max-z min-z) z-size) (cadr adjacent-max-unknown-place))) ;; vec
-                 :color #f(1 0 0)))
-          (objects (append (list *fetch*) dist-vis-list direction-arrow)))
-        (objects (append (list *fetch*) dist-vis-list))
+        (setq direction-arrow
+              (make-arrow
+               (float-vector (+ (* (/ (- max-x min-x) x-size) (+ (car max-unknown-place) 0.5)) min-x)
+                             (+ (* (/ (- max-y min-y) y-size) (+ (cadr max-unknown-place) 0.5)) min-y)
+                             (+ *min-z* 20)) ;; pos
+               (float-vector (* (/ (- max-x min-x) x-size) (car adjacent-max-unknown-place))
+                             (* (/ (- max-y min-y) y-size) (cadr adjacent-max-unknown-place))
+                             0) ;; vec
+               :color #f(1 0 0)))
+        (objects (append (list *fetch*) dist-vis-list direction-arrow))
         ;; (send *irtviewer* :change-background #f(0.3 0.3 0.1))
         (send *irtviewer* :change-background #f(0.2 0.2 0.2))
         ;; (send *irtviewer* :viewer :viewing :look #f(640.0 0.0 1200) #f(640.0 0.0 550.0) #f(0 0 1)) ;; above view
@@ -919,22 +875,22 @@
         (send *irtviewer* :redraw)
         ;; draw arrow to move hand
         (x::window-main-one))
-
       dist-mat)
     ))
+
 
 (defun box-recog (boxes &key (offset 0))
   (let* ((box (car (send boxes :boxes)))
          (dims (ros::tf-point->pos (send box :dimensions)))
          (target-region nil))
     (setq target-region
-          (make-cube (- 300 offset) (- (elt dims 1) offset) (- (elt dims 2) offset))) ;; 300 is for microwave
+          (make-cube (- (elt dims 0) offset) (- (elt dims 1) offset) (- (elt dims 2) offset))) ;; 300 is for microwave
     (if (not (and (boundp '*tfl*) *tfl*))
       (setq *tfl* (instance ros::transform-listener :init)))
     (send target-region :newcoords
           (send (send *tfl* :lookup-transform "/base_link" (send boxes :header :frame_id) (ros::time 0))
                 :transform (ros::tf-pose->coords (send box :pose))))
-    (send target-region :translate (float-vector (* 0.5 (x-of-cube target-region)) 0 0) :world)
+    ;; (send target-region :translate (float-vector (* 0.5 (x-of-cube target-region)) 0 0) :world)
     (send target-region :worldcoords)
     target-region))
 
@@ -974,26 +930,27 @@
 
 (defun prepose-for-main (&optional (collision-objects nil))
   (send *co* :wipe-all)
-  (dolist (object collision-objects)
-    (send *co* :add-object object))
+  ;; (dolist (object collision-objects)
+  ;;   (send *co* :add-object object))
   (send *fetch* :reset-pose)
-  (send *fetch* :torso :waist-z :joint-angle 290)
+  (send *fetch* :torso :waist-z :joint-angle 350)
   (send *fetch* :rarm :shoulder-y :joint-angle -80)
-  (send *fetch* :inverse-kinematics
-        (make-coords :pos (float-vector 500 (/ (+ *min-y* *max-y*) 2.0) (/ (+ *min-z* *max-z*) 2.0)))
+  (send *fetch* :rarm :inverse-kinematics
+        (make-coords :pos (float-vector -100 -350 850) :rpy (float-vector pi/2 (/ pi 3) 0))
         :use-torso nil
-        :debug-view :no-message
-        :min-loop 50
+        :debug-view nil
+        :min-loop 100
         :revert-if-fail nil
         :additional-nspace-list (mapcar #'(lambda (link refangle)
-                                            (eval `(list link #'(lambda () (* 0.001 (- ,refangle (send ,link :joint :joint-angle)))))))
-                                        (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link)
-                                        (list -90)))
-  (while (not (send *ri* :angle-vector (send *fetch* :angle-vector) 6000))
+                                            (eval `(list link #'(lambda () (* 0.01 (- ,refangle (send ,link :joint :joint-angle)))))))
+                                        (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link) ;; 5th joint equals to (send *fetch* :rarm :wrist-p)
+                                        (list 0)))
+
+  (while (not (send *ri* :angle-vector (send *fetch* :angle-vector) 10000))
     (format t "retry prepose-for-main~%")
     (unix:usleep (* 10 1000)))
   (send *ri* :wait-interpolation)
-  (send *co* :wipe-all)
+  ;; (send *co* :wipe-all)
   )
 
 nil
