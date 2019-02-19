@@ -55,6 +55,9 @@ If you want to set fetch's prepose from reset-pose,~%")
 (warning-message 3 "(prepose-for-main :type :part)~%")
 (format t "If you want to set fetch's reset-pose from the pose groping in the bag,~%")
 (warning-message 3 "(prepose-for-main :type :reverse)~%")
+(format t "Look at inside of the bag~%")
+(warning-message 3 "(progn (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t)) (send *fetch* :head :neck-p :joint-angle 80) (send *fetch* :head :neck-y :joint-angle -90))~%")
+
 
 ;; (warning-message 3 (format nil "~%fetch's pre-pose:~%
 ;; If you want to set fetch's prepose from reset-pose,
@@ -67,7 +70,8 @@ If you want to set fetch's prepose from reset-pose,~%")
 ;; (warning-message 3 (format nil "~%send av to *ri*:~%  (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)~%"))
 
 ;; NOTE type is :setting, :main or :all
-;; :setting does setting of this function, :main does main part of this function and :all does both of them.
+;; :setting does setting of this function, do (prepose-for-main :all) before doing this
+;; :main does main part of this function and :all does both of them.
 ;; NOTE do pre-pose before executing this function
 (defun main-in-bag (&key (type :all))
   (if (not (or (equal type :setting) (equal type :main) (equal type :all)))
@@ -79,10 +83,13 @@ If you want to set fetch's prepose from reset-pose,~%")
   (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
     (when (or (equal type :all) (equal type :setting))
       ;; settings for experiment
+      ;; NOTE make sure that fetch is the pose for manipulating the bag. (use prepose-for-main)
       ;; look at bag
+      ;; (prepose-for-main :type :all) or (prepose-for-main :type :part) at first
+      (send *fetch* :rarm :move-end-pos #f(300 0 0) :world :use-torso nil)
       (send *fetch* :head :neck-p :joint-angle 80)
       (send *fetch* :head :neck-y :joint-angle -90)
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
       (send *ri* :wait-interpolation)
       ;; set octomap
       (camera-stop)
@@ -102,7 +109,7 @@ If you want to set fetch's prepose from reset-pose,~%")
       (camera-stop)
 
       ;; set hand to initial experiment pose ;; TODO check
-      (prepose-for-main)
+      (prepose-for-main :type :part)
       (send *ri* :go-grasp :pos 0.03 :wait t)
       (unix:usleep (* 500 1000))
       (send *ri* :set-init-proximities)
@@ -115,7 +122,7 @@ If you want to set fetch's prepose from reset-pose,~%")
       )
 
     (if (equal type :setting)
-      (return-from main t))
+      (return-from main-in-bag t))
 
     ;; grasp object with octomap and grope. TODO simultaneous execution of (create-map) and (decide-grope-point) may be needed.
     ;; flowchart of this (do-until-key) is loop of following steps:
@@ -244,7 +251,7 @@ If you want to set fetch's prepose from reset-pose,~%")
     (format t "set prepose for main experiment. preparing...~%")
     ;; (unless *collision-objects*
     ;;   (setq *collision-objects* (collision-object-for-microwave target-region)))
-    (prepose-for-main *collision-objects*) ;; NOTE use moveit and collision object in this function. now, *collision-objects* is nil
+    (prepose-for-main :type :part) ;; NOTE use moveit and collision object in this function. now, *collision-objects* is nil
 
     ;; calculate where to grope, during moving hand up (time saving)
     (let* ((max-val -1) (max-place nil) (adjacent-max-val -1) (adjacent-max-place nil)
@@ -285,6 +292,8 @@ If you want to set fetch's prepose from reset-pose,~%")
                                                :min-y min-y-round :max-y (- max-y-round 50) ;; 50 is offset to avoid door of microwave
                                                :min-z min-z-round :max-z max-z-round
                                                :block-size block-size))
+      (break)
+
       ;; calculate most unknown area
       (dotimes (i (car (array-dimensions unknown-dist)))
         (dotimes (j (cadr (array-dimensions unknown-dist)))
@@ -954,7 +963,9 @@ If you want to set fetch's prepose from reset-pose,~%")
         (format t "retry prepose-for-main~%")
         (unix:usleep (* 10 1000)))
       (send *fetch* :angle-vector av3)
-      (send *ri* :wait-interpolation))
+      ;; (send *ri* :wait-interpolation)
+      (unix:sleep 10)
+      )
     (when (eq type :part)
       (while (not (send *ri* :angle-vector av3 3000))
         (format t "retry prepose-for-main~%")
