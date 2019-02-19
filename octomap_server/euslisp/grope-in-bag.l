@@ -34,8 +34,8 @@
 (setq *direction-accum* 0)
 
 ;; collision objects for moveit
-;; (unless (boundp '*co*)
-;;   (setq *co* (instance collision-object-publisher :init)))
+(unless (boundp '*co*)
+  (setq *co* (instance collision-object-publisher :init)))
 (unless (boundp '*collision-objects*)
   (setq *collision-objects* nil))
 
@@ -48,21 +48,23 @@
 ;; TODO asita, KOKOKARA
 ;; memo for pre-pose
 
-(warning-message 3 (format nil "~%fetch's pre-pose:~%  (progn (send *fetch* :reset-pose)
-       (send *fetch* :torso :waist-z :joint-angle 350)
-       (send *fetch* :rarm :shoulder-y :joint-angle -80)
-       (send *fetch* :rarm :inverse-kinematics
-            (make-coords :pos (float-vector -100 -350 850) :rpy (float-vector pi/2 (/ pi 3) 0))
-            :use-torso nil
-            :debug-view nil
-            :min-loop 100
-            :revert-if-fail nil
-            :additional-nspace-list (mapcar #'(lambda (link refangle)
-                                                (eval `(list link #'(lambda () (* 0.01 (- ,refangle (send ,link :joint :joint-angle)))))))
-                                            (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link) ;; 5th joint equals to (send *fetch* :rarm :wrist-p)
-                                            (list 0))))
-~%"))
-(warning-message 3 (format nil "~%send av to *ri*:~%  (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)~%"))
+(format t "~%fetch's pre-pose:
+If you want to set fetch's prepose from reset-pose,~%")
+(warning-message 3 "(prepose-for-main :type :all)~%")
+(format t "If you want to set fetch's prepose from the pose groping in the bag,~%")
+(warning-message 3 "(prepose-for-main :type :part)~%")
+(format t "If you want to set fetch's reset-pose from the pose groping in the bag,~%")
+(warning-message 3 "(prepose-for-main :type :reverse)~%")
+
+;; (warning-message 3 (format nil "~%fetch's pre-pose:~%
+;; If you want to set fetch's prepose from reset-pose,
+;; (prepose-for-main :type :all)
+;; If you want to set fetch's prepose from the pose groping in the bag,
+;; (prepose-for-main :type :part)
+;; If you want to set fetch's reset-pose from the pose groping in the bag,
+;; (prepose-for-main :type :reverse)
+;; ~%"))
+;; (warning-message 3 (format nil "~%send av to *ri*:~%  (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)~%"))
 
 ;; NOTE type is :setting, :main or :all
 ;; :setting does setting of this function, :main does main part of this function and :all does both of them.
@@ -928,29 +930,45 @@
     (append box-list (list microwave-door))
     ))
 
-(defun prepose-for-main (&optional (collision-objects nil))
-  (send *co* :wipe-all)
-  ;; (dolist (object collision-objects)
-  ;;   (send *co* :add-object object))
-  (send *fetch* :reset-pose)
-  (send *fetch* :torso :waist-z :joint-angle 350)
-  (send *fetch* :rarm :shoulder-y :joint-angle -80)
-  (send *fetch* :rarm :inverse-kinematics
-        (make-coords :pos (float-vector -100 -350 850) :rpy (float-vector pi/2 (/ pi 3) 0))
-        :use-torso nil
-        :debug-view nil
-        :min-loop 100
-        :revert-if-fail nil
-        :additional-nspace-list (mapcar #'(lambda (link refangle)
-                                            (eval `(list link #'(lambda () (* 0.01 (- ,refangle (send ,link :joint :joint-angle)))))))
-                                        (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link) ;; 5th joint equals to (send *fetch* :rarm :wrist-p)
-                                        (list 0)))
+(defun prepose-for-main (&key (type :all))
+  (let ((av0 nil) (av1 nil) (av2 nil) (av3 nil))
+    (setq av0 (send *fetch* :reset-pose))
+    (setq av1 (send *fetch* :rarm :move-end-pos #f(100 -100 100) :world :use-torso nil))
+    (send *fetch* :reset-pose)
+    (send *fetch* :torso :waist-z :joint-angle *torso*)
+    (send *fetch* :rarm :shoulder-y :joint-angle -80)
+    (setq av3 (send *fetch* :rarm :inverse-kinematics
+                    (make-coords :pos (float-vector -100 -400 950) :rpy (float-vector pi/2 (/ pi 3) 0))
+                    :use-torso nil
+                    :debug-view nil
+                    :min-loop 100
+                    :revert-if-fail nil
+                    :additional-nspace-list (mapcar #'(lambda (link refangle)
+                                                        (eval `(list link #'(lambda () (* 0.01 (- ,refangle (send ,link :joint :joint-angle)))))))
+                                                    (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link) ;; 5th joint equals to (send *fetch* :rarm :wrist-p)
+                                                    (list 0))))
+    (setq av2 (send *fetch* :inverse-kinematics (make-coords :pos (float-vector 200 -350 950) :rpy (float-vector 0 pi pi)) :use-torso nil))
 
-  (while (not (send *ri* :angle-vector (send *fetch* :angle-vector) 10000))
-    (format t "retry prepose-for-main~%")
-    (unix:usleep (* 10 1000)))
-  (send *ri* :wait-interpolation)
-  ;; (send *co* :wipe-all)
-  )
+    (when (eq type :all)
+      (while (not (send *ri* :angle-vector-sequence (list av1 av2 av3) (list 2500 2500 5000)))
+        (format t "retry prepose-for-main~%")
+        (unix:usleep (* 10 1000)))
+      (send *fetch* :angle-vector av3)
+      (send *ri* :wait-interpolation))
+    (when (eq type :part)
+      (while (not (send *ri* :angle-vector av3 3000))
+        (format t "retry prepose-for-main~%")
+        (unix:usleep (* 10 1000)))
+      (send *fetch* :angle-vector av3)
+      (send *ri* :wait-interpolation))
+    (when (eq type :reverse)
+      (while (not (send *ri* :angle-vector-sequence (list av3 av2 av1 av0) (list 5000 5000 2500 2500)))
+        (format t "retry prepose-for-main~%")
+        (unix:usleep (* 10 1000)))
+      (send *fetch* :angle-vector av1)
+      ;; (send *ri* :wait-interpolation)
+      (unix:sleep 15)
+      )
+    ))
 
 nil
