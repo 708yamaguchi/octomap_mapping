@@ -205,7 +205,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: RGB8
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -219,6 +219,36 @@ Visualization Manager:
       Size (m): 0.001
       Style: Flat Squares
       Topic: /camera_remote/depth_registered/points
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: false
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: RGB8
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: CameraIn
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.001
+      Style: Flat Squares
+      Topic: /camera_in
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -555,7 +585,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.17864
+      Distance: 1.21005
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -567,10 +597,10 @@ Visualization Manager:
         Z: 0.805638
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.459797
+      Pitch: 1.0298
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.80585
+      Yaw: 4.98085
     Saved: ~
 Window Geometry:
   Displays:
