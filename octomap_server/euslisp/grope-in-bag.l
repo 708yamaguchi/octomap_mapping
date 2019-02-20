@@ -713,14 +713,14 @@ If you want to set fetch's prepose from reset-pose,~%")
                   (setq point-list-inside-gripper (append point-list-inside-gripper (list point))))
                 (setq point-list-outside-gripper (append point-list-outside-gripper (list point)))))
 
-            ;; for visualization
-            (when visualize-searching
-              (send *fetch* :inverse-kinematics
-                    (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
-                                 :rpy (float-vector 0 pi/2 (* -1 random-rot))
-                                 :use-torso nil))
+            (let ((pc-inside-gripper nil) (pc-outside-gripper nil))
+              ;; for visualization
+              (when visualize-searching
+                (send *fetch* :inverse-kinematics
+                      (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
+                                   :rpy (float-vector 0 pi/2 (* -1 random-rot))
+                                   :use-torso nil))
               ;; (send *irtviewer* :objects (append (list *fetch* pc) region))
-              (let ((pc-inside-gripper nil) (pc-outside-gripper nil))
                 (if point-list-inside-gripper
                   (progn (setq pc-inside-gripper (instance pointcloud :init :points
                                                            (apply #'matrix point-list-inside-gripper)))
@@ -744,7 +744,7 @@ If you want to set fetch's prepose from reset-pose,~%")
                 ;; (send *irtviewer* :viewer :viewsurface :string 5 50 (format nil "~A" inside-point))
                 (send *irtviewer* :viewer :viewsurface :string 30 20 (format nil "Grids in"))
                 (send *irtviewer* :viewer :viewsurface :string 30 50 (format nil "gripper: ~A" inside-point))
-                (send *irtviewer* :viewer :viewsurface :flush)
+                (send *irtviewer* :viewer :viewsurface :flush))
                 ;; (objects (append (list *fetch* pc stick-l stick-r stick-center gripper-inside) region))
                 ;; TODO (maybe bug) this when block should be out of (when visualize-searching). See grope-in-microwave.l
                 (when (> inside-point max-inside-point)
@@ -755,7 +755,7 @@ If you want to set fetch's prepose from reset-pose,~%")
                   (setq best-rot random-rot)
                   (setq best-pc-inside-gripper (copy-object pc-inside-gripper))
                   (setq best-pc-outside-gripper (copy-object pc-outside-gripper))
-                  ))))
+                  )))
           ;; redo the movement of gripper-l, gripper-r and gripper-inside
           (send gripper-inside :locate (float-vector 0 0 0) :world)
           (send stick-l :locate (float-vector 0 (/ gr-open -2.0) (/ (+ max-z min-z) 2.0)) :world)
