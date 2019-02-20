@@ -129,6 +129,8 @@ If you want to set fetch's prepose from reset-pose,~%")
         (send *fetch* :rarm :move-end-pos #f(20 50 -150) :world :use-torso nil) 5000)
   (send *ri* :wait-interpolation)
 
+  ;; TODO maybed following steps need to be repeated, because grasp point is not always found at the first trial.
+
   ;; TODO search for objects to grasp by creating map
   (dotimes (i 6) (send *ri* :go-grasp :pos (* i 0.02) :wait t) (unix:usleep (* 500 1000)))
   (dotimes (i 6) (send *ri* :go-grasp :pos (- 0.1 (* i 0.02)) :wait t) (unix:usleep (* 500 1000)))
