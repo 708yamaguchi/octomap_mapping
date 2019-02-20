@@ -139,12 +139,12 @@ If you want to set fetch's prepose from reset-pose,~%")
   (let ((roi nil))
     (setq roi (make-cube 100 100 100))
     (send roi :locate (send (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0) :local) :pos) :world)
-    (decide-grope-point (get-octo-pointcloud :type "occupied") roi :x-offset 0 :y-offset 0 :z-offset 0 :visualize-searching t) ;; TODO (debug) I dont know the reason but searching fails if :visualize-searching is nil
+    (decide-grope-point (get-octo-pointcloud :type "occupied") roi :x-offset 0 :y-offset 0 :z-offset 0 :visualize-searching t) ;; TODO pose is not suitable for manipulating bag. extract pos of grasp pose
     )
 
   ;; TODO grasp with pre-grasp
 
-  ;; TODO classify shapes of objects
+  ;; TODO classify shapes of objects. before classification, reset octomap, and create octomap by trace motion. then, make bounding box and classify the shape of the bouding box (use euclidean clustering?)
 
   )
 
