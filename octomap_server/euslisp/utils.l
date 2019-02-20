@@ -183,14 +183,14 @@
         (return-from sensor-calib t))))
   (format t "failed to calibrate sensor~%"))
 
-(defun rotate-wrist-r (&optional angle)
+(defun rotate-wrist-r (&optional angle (time 3000))
   (ros::spin-once)
   (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
   (when (numberp angle)
     (progn
       (send *fetch* :rarm :wrist-r :joint-angle
             (+ angle (send *fetch* :rarm :wrist-r :joint-angle)))
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)))
+      (send *ri* :angle-vector (send *fetch* :angle-vector) time)))
   (send *fetch* :rarm :wrist-r :joint-angle))
 
 ;; NOTE use (send *ri* :state :potentio-vector :wait-until-update t) before using this function
