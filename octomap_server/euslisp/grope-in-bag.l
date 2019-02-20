@@ -614,10 +614,13 @@ If you want to set fetch's prepose from reset-pose,~%")
          (point-list-sorted nil) (point-list-inside nil) (point-list-outside nil)
          highest-z
          (inside-point 0) (max-inside-point 0) (best-pc-inside-gripper nil) (best-pc-outside-gripper nil)
-         (viewpoint #f(1528.4 1471.28 1304.32))
-         (viewtarget #f(604.334 -129.251 631.657))
+         (pc-inside-gripper nil) (pc-outside-gripper nil)
+         ;; (viewpoint #f(1528.4 1471.28 1304.32))
+         (viewpoint #f(869.451 -2358.41 1634.45))
+         ;; (viewtarget #f(604.334 -129.251 631.657))
+         (viewtarget #f(34.762 -65.1178 547.884))
          )
-    (send *fetch* :torso :waist-z :joint-angle 300)
+    (send *fetch* :torso :waist-z :joint-angle *torso*)
     (send *fetch* :stop-grasp)
 
     (let ((cube (make-cube (- max-x min-x) (- max-y min-y) (- max-z min-z))) (region nil))
@@ -1027,7 +1030,7 @@ If you want to set fetch's prepose from reset-pose,~%")
     (send *fetch* :torso :waist-z :joint-angle *torso*)
     (send *fetch* :rarm :shoulder-y :joint-angle -80)
     (setq av3 (send *fetch* :rarm :inverse-kinematics
-                    (make-coords :pos (float-vector -100 -400 950) :rpy (float-vector pi/2 (/ pi 3) 0))
+                    (make-coords :pos (float-vector -100 -400 950) :rpy (float-vector pi/2 (* pi 0.43) 0))
                     :use-torso nil
                     :debug-view nil
                     :min-loop 100
