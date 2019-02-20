@@ -59,15 +59,73 @@ If you want to set fetch's prepose from reset-pose,~%")
 (warning-message 3 "(progn (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t)) (send *fetch* :head :neck-p :joint-angle 80) (send *fetch* :head :neck-y :joint-angle -90))~%")
 
 
-;; (warning-message 3 (format nil "~%fetch's pre-pose:~%
-;; If you want to set fetch's prepose from reset-pose,
-;; (prepose-for-main :type :all)
-;; If you want to set fetch's prepose from the pose groping in the bag,
-;; (prepose-for-main :type :part)
-;; If you want to set fetch's reset-pose from the pose groping in the bag,
-;; (prepose-for-main :type :reverse)
-;; ~%"))
-;; (warning-message 3 (format nil "~%send av to *ri*:~%  (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)~%"))
+(defun main-former ()
+  ;; TODO 1. receive bag from human
+
+  ;; TODO 2. go to kitchen
+
+  ;; TODO 3. open the bag by using bag handle
+  )
+
+
+;; NOTE type is :setting, :main or :all
+;; :setting does setting of this function, do (prepose-for-main :all) before doing this
+;; :main does main part of this function and :all does both of them.
+;; NOTE do main-former beforehand (namely, open bag and move hand above the bag)
+(defun main-latter (&key (type :all))
+  (if (not (or (equal type :setting) (equal type :main) (equal type :all)))
+    (progn (format t "argument :type is not correctly set~%") (return-from main nil)))
+  (unless (boundp '*co*)
+    (setq *co* (instance collision-object-publisher :init)))
+  (send *co* :wipe-all)
+  (setq *direction-accum* 0)
+  (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
+    (when (or (equal type :all) (equal type :setting))
+      ;; settings for experiment
+      ;; NOTE make sure that fetch is the pose for manipulating the bag. (use prepose-for-main)
+      ;; look at bag
+      ;; (prepose-for-main :type :all) or (prepose-for-main :type :part) at first
+      (send *fetch* :rarm :move-end-pos #f(300 0 0) :world :use-torso nil)
+      (send *fetch* :head :neck-p :joint-angle 80)
+      (send *fetch* :head :neck-y :joint-angle -90)
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+      (send *ri* :wait-interpolation)
+      ;; set octomap
+      (camera-stop)
+      (octomap-reset)
+      (send *ri* :wait-interpolation)
+      (camera-request)
+      (unix:usleep (* 500 1000))
+      ;; use camera and decide target region
+      (while t ;; wait for /HSI_color_filter/boxes comes once
+        (setq boxes (one-shot-subscribe "/attention_clipper/output/box_array" jsk_recognition_msgs::BoundingBoxArray))
+        (when (send boxes :boxes)
+          (return))
+        (unix:usleep (* 100 1000)))
+      (setq target-region (box-recog boxes :offset 0)) ;; offset is to ignore box edge
+      (send target-region :translate #f(0 0 0) :world) ;; offset is to ignore green tape width on microwave
+      (setq *target-region* (copy-object target-region))
+      (camera-stop)
+
+      ;; set hand to initial experiment pose ;; TODO check
+      (prepose-for-main :type :part)
+      (send *ri* :go-grasp :pos 0.03 :wait t)
+      (unix:usleep (* 500 1000))
+      (send *ri* :set-init-proximities)
+
+      ;; set environment as collision object for moveit
+      ;; (setq *collision-objects* (collision-object-for-microwave target-region))
+      ;; (send *co* :wipe-all)
+      ;; visualization of target region and collision objects
+      ;; (objects (append (list *fetch*) *collision-objects* (send *target-region* :edges)))
+      )
+
+    (if (equal type :setting)
+      (return-from main-in-bag t))
+
+
+    ))
+
 
 ;; NOTE type is :setting, :main or :all
 ;; :setting does setting of this function, do (prepose-for-main :all) before doing this
