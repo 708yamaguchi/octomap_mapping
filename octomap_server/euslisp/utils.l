@@ -93,11 +93,34 @@
       (ros::spin-once)
       (if (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/top")) :data) cons))
              (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons)))
-        (send *fetch* :rarm :move-end-pos #f(20 10 0) :local :use-torso nil) ;; 20 is right parameter?
-        (send *fetch* :rarm :move-end-pos #f(20 -10 0) :local :use-torso nil)) ;; 20 is right parameter?
+        (progn
+          (send *fetch* :rarm :move-end-pos #f(20 10 0) :local :use-torso nil) ;; 20 is right parameter?
+          ;; TODO check this function
+          (let ((r-dist (send (one-shot-subscribe "/proximity_distance/right/side0" euslib::ProximityDistances) :data))
+                (odd-list nil) (even-list nil) (i 0))
+            (dolist (dist r-dist)
+              (if (evenp i)
+                (setq even-list (append even-list (list dist)))
+                (setq odd-list (append odd-list (list dist)))))
+            (if (< (apply #'min even-list) (apply #'min odd-list))
+              (send *fetch* :rarm :move-end-pos #f(0 0 10) :local :use-torso nil)
+              (send *fetch* :rarm :move-end-pos #f(0 0 -10) :local :use-torso nil))))
+        (progn
+          (send *fetch* :rarm :move-end-pos #f(20 -10 0) :local :use-torso nil) ;; 20 is right parameter?
+          ;; TODO check this function
+          (let ((l-dist (send (one-shot-subscribe "/proximity_distance/left/side0" euslib::ProximityDistances) :data))
+                (odd-list nil) (even-list nil) (i 0))
+            (dolist (dist r-dist)
+              (if (evenp i)
+                  (setq even-list (append even-list (list dist)))
+                  (setq odd-list (append odd-list (list dist)))))
+            (if (< (apply #'min even-list) (apply #'min odd-list))
+                (send *fetch* :rarm :move-end-pos #f(0 0 -10) :local :use-torso nil)
+                (send *fetch* :rarm :move-end-pos #f(0 0 10) :local :use-torso nil))))
+        )
       (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
       (send *ri* :wait-interpolation))
-    (sensor-calib)
+    ;; (sensor-calib)
 
     ;; move hand down and grasp object
     (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(50 0 0) :local)
