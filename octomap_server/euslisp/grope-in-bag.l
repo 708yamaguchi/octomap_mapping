@@ -140,49 +140,58 @@ If you want to set fetch's prepose from reset-pose,~%")
     (send *ri* :wait-interpolation))
 
   ;; TODO search grasp pose
+  (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
   (let ((roi nil) (prev-av (send *fetch* :angle-vector)) (post-av nil) (diff-av nil))
     (setq roi (make-cube 200 100 100))
-    (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
     (send roi :locate (send (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(80 0 0) :local) :pos) :world)
     (send roi :worldcoords)
     (decide-grope-point (get-octo-pointcloud :type "occupied") roi :x-offset 0 :y-offset 0 :z-offset 0 :visualize-searching t) ;; TODO pose is not suitable for manipulating bag. extract pos of grasp pose
-    (setq post-av (send *fetch* :angle-vector))
-
-    ;; TODO maybe classify object can be executed here
-    ;; WRITE ME !!
-    ;; TODO maybe classify object can be executed here
+    ;; (setq post-av (send *fetch* :angle-vector))
 
     ;; TODO grasp with pre-grasp
-    (send *ri* :start-grasp :wait t)
-    (setq diff-av
-          (v- (progn
-                (send *fetch* :angle-vector post-av)
-                (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
-              (progn
-                (send *fetch* :angle-vector prev-av)
-                (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))))
-    (send *fetch* :rarm :move-end-pos diff-av :world :use-torso nil)
-    (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso nil)
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
-    (send *ri* :wait-interpolation)
-    (pre-grasp) ;; TODO do not grasp in pre-grasp
+    ;; (send *ri* :start-grasp :wait t)
+    ;; (setq diff-av
+    ;;       (v- (progn
+    ;;             (send *fetch* :angle-vector post-av)
+    ;;             (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
+    ;;           (progn
+    ;;             (send *fetch* :angle-vector prev-av)
+    ;;             (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))))
+    ;; (send *fetch* :rarm :move-end-pos diff-av :world :use-torso nil)
+    ;; (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso nil)
+    ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
+    ;; (send *ri* :wait-interpolation)
+    ;; (pre-grasp) ;; TODO do not grasp in pre-grasp
     )
 
   ;; TODO classify shapes of objects. before classification, reset octomap, and create octomap by trace motion. then, make bounding box and classify the shape of the bouding box (use euclidean clustering?)
   ;; Is this really needed?
-  (send *fetch* :rarm :move-end-pos #f(0 0 20) :local :use-torso nil)
-  (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
-  (send *ri* :wait-interpolation)
-  (send *fetch* :rarm :move-end-pos #f(0 0 -40) :local :use-torso nil)
-  (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
-  (send *ri* :wait-interpolation)
-  (send *fetch* :rarm :move-end-pos #f(0 0 20) :local :use-torso nil)
-  (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
-  (send *ri* :wait-interpolation)
+  ;; (send *fetch* :rarm :move-end-pos #f(0 0 20) :local :use-torso nil)
+  ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+  ;; (send *ri* :wait-interpolation)
+  ;; (send *fetch* :rarm :move-end-pos #f(0 0 -40) :local :use-torso nil)
+  ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+  ;; (send *ri* :wait-interpolation)
+  ;; (send *fetch* :rarm :move-end-pos #f(0 0 20) :local :use-torso nil)
+  ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+  ;; (send *ri* :wait-interpolation)
 
-  (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "occupied"))
+  ;; classify shapes of object by using occupied cloud in the gripper
+  ;; now, fetch's angle vector is output of search of grasp point
+  (unless
+    (eq :ball
+        (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "occupied")))
+    (return-from main-latter))
+
+  (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
+  (send *ri* :wait-interpolation)
+  (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
+          :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre 20)
+
+  (pre-grasp)
+
   )
-
 
 (defun classify-object (av occupied-pointcloud)
   (let ((region-left (make-cube 70 (/ 100 3.0) 80)) (point-left 0)
@@ -215,7 +224,7 @@ If you want to set fetch's prepose from reset-pose,~%")
           (setq flag t))))
     (format t "left: ~A, center: ~A, right: ~A~%" point-left point-center point-right)
     (if (> (max point-left point-center point-right) (* (min point-left point-center point-right) 1.5))
-      :cube
+      :ball
       :cuboid)
     ;; (objects (list *fetch* region-left region-center region-right))
     )
@@ -792,8 +801,8 @@ If you want to set fetch's prepose from reset-pose,~%")
                 (send *fetch* :angle-vector #f(350.0 -69.9524 -47.1977 -66.0171 104.822 32.2963 69.0654 122.165 0.0 0.0)) ;; pre-pose for IK
                 (send *fetch* :inverse-kinematics
                       (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
-                                   :rpy (float-vector 0 pi/2 (* -1 random-rot))
-                                   :use-torso nil))
+                                   :rpy (float-vector 0 pi/2 (* -1 random-rot)))
+                                   :use-torso nil)
               ;; (send *irtviewer* :objects (append (list *fetch* pc) region))
                 (if point-list-inside-gripper
                   (progn (setq pc-inside-gripper (instance pointcloud :init :points
@@ -849,8 +858,8 @@ If you want to set fetch's prepose from reset-pose,~%")
           (send *fetch* :angle-vector #f(350.0 -69.9524 -47.1977 -66.0171 104.822 32.2963 69.0654 122.165 0.0 0.0)) ;; pre-pose for IK
           (send *fetch* :inverse-kinematics
                 (make-coords :pos (float-vector best-x best-y (+ best-z (/ gr-z 2.0)))
-                             :rpy (float-vector 0 pi/2 (* -1 best-rot))
-                             :use-torso nil))
+                             :rpy (float-vector 0 pi/2 (* -1 best-rot)))
+                :use-torso nil)
           (send gripper-inside :locate (float-vector best-x best-y (+ best-z (/ gr-z 2.0))) :world) ;; change position absolutely
           (send gripper-inside :orient best-rot :z :world) ;; change rotation absolutely
           (send stick-l :translate (float-vector 0 0 (- (/ (+ max-z min-z) 2.0) (aref (send stick-l :worldpos) 2))) :world)
