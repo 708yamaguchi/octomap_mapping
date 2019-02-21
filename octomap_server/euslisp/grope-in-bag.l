@@ -124,6 +124,7 @@ If you want to set fetch's prepose from reset-pose,~%")
   ;;     (return-from main-in-bag t))
 
   ;; NOTE START
+  (sensor-calib)
   (send *ri* :start-grasp :wait t)
   (send *ri* :angle-vector
         (send *fetch* :rarm :move-end-pos #f(20 50 -150) :world :use-torso nil) 5000)
@@ -132,15 +133,18 @@ If you want to set fetch's prepose from reset-pose,~%")
   ;; TODO maybed following steps need to be repeated, because grasp point is not always found at the first trial.
 
   ;; TODO search for objects to grasp by creating map
-  (dotimes (i 6) (send *ri* :go-grasp :pos (* i 0.02) :wait t) (unix:usleep (* 500 1000)))
-  (dotimes (i 6) (send *ri* :go-grasp :pos (- 0.1 (* i 0.02)) :wait t) (unix:usleep (* 500 1000)))
-  (rotate-wrist-r -90 10000)
-  (rotate-wrist-r 90 10000)
+  (octomap-reset)
+  (dotimes (i 3)
+    (send *ri* :go-grasp :pos (* i 0.05) :wait t)
+    (rotate-wrist-r (* 179 (* (- (mod i 2) 0.5) 2)) 10000)
+    (send *ri* :wait-interpolation))
 
   ;; TODO search grasp pose
   (let ((roi nil))
     (setq roi (make-cube 100 100 100))
+    (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
     (send roi :locate (send (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0) :local) :pos) :world)
+    (send roi :worldcoords)
     (decide-grope-point (get-octo-pointcloud :type "occupied") roi :x-offset 0 :y-offset 0 :z-offset 0 :visualize-searching t) ;; TODO pose is not suitable for manipulating bag. extract pos of grasp pose
     )
 
@@ -605,6 +609,7 @@ If you want to set fetch's prepose from reset-pose,~%")
 (setq *pc2* (cadr av-and-groped-pc1))
 
 (defun search-graspable-point (pc &key (min-x 300) (max-x 800) (min-y -300) (max-y 300) (min-z 400) (max-z 1000) (iter-count 1000) (visualize-searching nil))
+  (print (list min-x max-x min-y max-y min-z max-z))
   (let* (stick-l stick-r stick-center
          random-x random-y random-rot
          best-x best-y best-z best-rot
@@ -695,7 +700,7 @@ If you want to set fetch's prepose from reset-pose,~%")
                 (setq highest-z (- (aref point 2) gr-z)))
               (setq center-flag t)
               (if (and l/r-flag center-flag)
-                (return)))))
+                  (return)))))
 
         (when highest-z
           ;; move the hand down until collision with the highest point, and count the points inside the gripper.
