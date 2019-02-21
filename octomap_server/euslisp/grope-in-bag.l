@@ -148,6 +148,10 @@ If you want to set fetch's prepose from reset-pose,~%")
     (decide-grope-point (get-octo-pointcloud :type "occupied") roi :x-offset 0 :y-offset 0 :z-offset 0 :visualize-searching t) ;; TODO pose is not suitable for manipulating bag. extract pos of grasp pose
     (setq post-av (send *fetch* :angle-vector))
 
+    ;; TODO maybe classify object can be executed here
+    ;;
+    ;; TODO maybe classify object can be executed here
+
     ;; TODO grasp with pre-grasp
     (send *ri* :start-grasp :wait t)
     (setq diff-av
@@ -161,13 +165,61 @@ If you want to set fetch's prepose from reset-pose,~%")
     (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso nil)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
     (send *ri* :wait-interpolation)
-    (print 2222222222)
-    (pre-grasp)
+    (pre-grasp) ;; TODO do not grasp in pre-grasp
     )
-  ;; TODO classify shapes of objects. before classification, reset octomap, and create octomap by trace motion. then, make bounding box and classify the shape of the bouding box (use euclidean clustering?)
 
+  ;; TODO classify shapes of objects. before classification, reset octomap, and create octomap by trace motion. then, make bounding box and classify the shape of the bouding box (use euclidean clustering?)
+  ;; Is this really needed?
+  (send *fetch* :rarm :move-end-pos #f(0 0 20) :local :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+  (send *ri* :wait-interpolation)
+  (send *fetch* :rarm :move-end-pos #f(0 0 -40) :local :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+  (send *ri* :wait-interpolation)
+  (send *fetch* :rarm :move-end-pos #f(0 0 20) :local :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+  (send *ri* :wait-interpolation)
+
+  (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "occupied"))
   )
 
+
+(defun classify-object (av occupied-pointcloud)
+  (let ((region-left (make-cube 70 (/ 100 3.0) 80)) (point-left 0)
+        (region-center (make-cube 70 (/ 100 3.0) 80)) (point-center 0)
+        (region-right (make-cube 70 (/ 100 3.0) 80)) (point-right 0)
+        (occupied-point-list (send occupied-pointcloud :point-list))
+        (fetch-copy (copy-object *fetch*))
+        )
+    (send fetch-copy :angle-vector av)
+    (send region-left :translate (float-vector 0 (/ 100 -3.0) 0) :local)
+    (send region-right :translate (float-vector 0 (/ 100 3.0) 0) :local)
+    (send region-right :move-coords (send *fetch* :rarm :end-coords :copy-worldcoords) (make-coords))
+    (send region-center :move-coords (send *fetch* :rarm :end-coords :copy-worldcoords) (make-coords))
+    (send region-left :move-coords (send *fetch* :rarm :end-coords :copy-worldcoords) (make-coords))
+    (send region-left :set-color #f(1 0 0 0.5))
+    (send region-center :set-color #f(0 1 0 0.5))
+    (send region-right :set-color #f(0 0 1 0.5))
+
+    ;; count the number of points in each region
+    (dolist (point occupied-point-list)
+      (let ((flag nil))
+        (when (and (eq flag nil) (eq (send region-left :insidep point) :inside))
+          (setq point-left (+ 1 point-left))
+          (setq flag t))
+        (when (and (eq flag nil) (eq (send region-center :insidep point) :inside))
+          (setq point-center (+ 1 point-center))
+          (setq flag t))
+        (when (and (eq flag nil) (eq (send region-right :insidep point) :inside))
+          (setq point-right (+ 1 point-right))
+          (setq flag t))))
+    (format t "left: ~A, center: ~A, right: ~A~%" point-left point-center point-right)
+    (if (> (max point-left point-center point-right) (* (min point-left point-center point-right) 1.5))
+      :cube
+      :cuboid)
+    ;; (objects (list *fetch* region-left region-center region-right))
+    )
+  )
 
 ;; NOTE type is :setting, :main or :all
 ;; :setting does setting of this function, do (prepose-for-main :all) before doing this
