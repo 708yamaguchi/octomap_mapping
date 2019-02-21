@@ -140,16 +140,30 @@ If you want to set fetch's prepose from reset-pose,~%")
     (send *ri* :wait-interpolation))
 
   ;; TODO search grasp pose
-  (let ((roi nil))
-    (setq roi (make-cube 100 100 100))
+  (let ((roi nil) (prev-av (send *fetch* :angle-vector)) (post-av nil) (diff-av nil))
+    (setq roi (make-cube 200 100 100))
     (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-    (send roi :locate (send (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0) :local) :pos) :world)
+    (send roi :locate (send (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(80 0 0) :local) :pos) :world)
     (send roi :worldcoords)
     (decide-grope-point (get-octo-pointcloud :type "occupied") roi :x-offset 0 :y-offset 0 :z-offset 0 :visualize-searching t) ;; TODO pose is not suitable for manipulating bag. extract pos of grasp pose
+    (setq post-av (send *fetch* :angle-vector))
+
+    ;; TODO grasp with pre-grasp
+    (send *ri* :start-grasp :wait t)
+    (setq diff-av
+          (v- (progn
+                (send *fetch* :angle-vector post-av)
+                (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
+              (progn
+                (send *fetch* :angle-vector prev-av)
+                (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))))
+    (send *fetch* :rarm :move-end-pos diff-av :world :use-torso nil)
+    (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso nil)
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
+    (send *ri* :wait-interpolation)
+    (print 2222222222)
+    (pre-grasp)
     )
-
-  ;; TODO grasp with pre-grasp
-
   ;; TODO classify shapes of objects. before classification, reset octomap, and create octomap by trace motion. then, make bounding box and classify the shape of the bouding box (use euclidean clustering?)
 
   )
@@ -723,6 +737,7 @@ If you want to set fetch's prepose from reset-pose,~%")
             (let ((pc-inside-gripper nil) (pc-outside-gripper nil))
               ;; for visualization
               (when visualize-searching
+                (send *fetch* :angle-vector #f(350.0 -69.9524 -47.1977 -66.0171 104.822 32.2963 69.0654 122.165 0.0 0.0)) ;; pre-pose for IK
                 (send *fetch* :inverse-kinematics
                       (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
                                    :rpy (float-vector 0 pi/2 (* -1 random-rot))
@@ -779,6 +794,7 @@ If you want to set fetch's prepose from reset-pose,~%")
       (format t "max-inside-point:~A~%" max-inside-point)
       (if best-z
         (progn
+          (send *fetch* :angle-vector #f(350.0 -69.9524 -47.1977 -66.0171 104.822 32.2963 69.0654 122.165 0.0 0.0)) ;; pre-pose for IK
           (send *fetch* :inverse-kinematics
                 (make-coords :pos (float-vector best-x best-y (+ best-z (/ gr-z 2.0)))
                              :rpy (float-vector 0 pi/2 (* -1 best-rot))
@@ -831,22 +847,22 @@ If you want to set fetch's prepose from reset-pose,~%")
     (setq x (aref hand-pos 0))
     (setq y (aref hand-pos 1))
     (setq z (aref hand-pos 2))
-    (setq points (search-graspable-point pc :min-x (max min-x (- x 100)) :max-x (min max-x (+ x 100)) :min-y (max min-y (- y 100)) :max-y (min max-y (+ y 100)) :min-z min-z :max-z max-z :iter-count 500 :visualize-searching visualize-searching))
-    (when (< max-points points)
-      (setq fetch-copy (copy-object *fetch*))
-      (setq max-points points)
-      (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos)))
-    (print (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos)) ;; hand position
-    (setq x (aref hand-pos 0))
-    (setq y (aref hand-pos 1))
-    (setq z (aref hand-pos 2))
-    (setq points (search-graspable-point pc :min-x (max min-x (- x 50)) :max-x (min max-x (+ x 50)) :min-y (max min-y (- y 50)) :max-y (min max-y (+ y 50)) :min-z min-z :max-z max-z :iter-count 500 :visualize-searching visualize-searching))
-    (when (< max-points points)
-      (setq fetch-copy (copy-object *fetch*))
-      (setq max-points points)
-      (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos)))
-    (print (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos)) ;; hand position
-    (setq *fetch* fetch-copy)
+    ;; (setq points (search-graspable-point pc :min-x (max min-x (- x 100)) :max-x (min max-x (+ x 100)) :min-y (max min-y (- y 100)) :max-y (min max-y (+ y 100)) :min-z min-z :max-z max-z :iter-count 500 :visualize-searching visualize-searching))
+    ;; (when (< max-points points)
+    ;;   (setq fetch-copy (copy-object *fetch*))
+    ;;   (setq max-points points)
+    ;;   (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos)))
+    ;; (print (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos)) ;; hand position
+    ;; (setq x (aref hand-pos 0))
+    ;; (setq y (aref hand-pos 1))
+    ;; (setq z (aref hand-pos 2))
+    ;; (setq points (search-graspable-point pc :min-x (max min-x (- x 50)) :max-x (min max-x (+ x 50)) :min-y (max min-y (- y 50)) :max-y (min max-y (+ y 50)) :min-z min-z :max-z max-z :iter-count 500 :visualize-searching visualize-searching))
+    ;; (when (< max-points points)
+    ;;   (setq fetch-copy (copy-object *fetch*))
+    ;;   (setq max-points points)
+    ;;   (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos)))
+    ;; (print (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos)) ;; hand position
+    ;; (setq *fetch* fetch-copy)
     (objects (list *fetch* pc))
     (list max-points *fetch*)
     ))
