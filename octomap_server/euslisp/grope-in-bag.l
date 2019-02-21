@@ -149,7 +149,7 @@ If you want to set fetch's prepose from reset-pose,~%")
     (setq post-av (send *fetch* :angle-vector))
 
     ;; TODO maybe classify object can be executed here
-    ;;
+    ;; WRITE ME !!
     ;; TODO maybe classify object can be executed here
 
     ;; TODO grasp with pre-grasp
@@ -1134,7 +1134,7 @@ If you want to set fetch's prepose from reset-pose,~%")
       (while (not (send *ri* :angle-vector-sequence (list av3 av2 av1 av0) (list 5000 5000 2500 2500)))
         (format t "retry prepose-for-main~%")
         (unix:usleep (* 10 1000)))
-      (send *fetch* :angle-vector av1)
+      (send *fetch* :angle-vector av0)
       ;; (send *ri* :wait-interpolation)
       (unix:sleep 15)
       )
