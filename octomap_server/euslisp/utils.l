@@ -32,94 +32,99 @@
 ;; this function returns t if grasp is succeeded. Else, return nil.
 (defun pre-grasp (&optional (max-wrist-angle nil) (min-wrist-angle nil))
   (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-  (send *ri* :start-grasp :wait t)
+  ;; (send *ri* :start-grasp :wait t)
   (let ((l-min *inf*) (r-min *inf*) (target-finger nil) (another-finger nil) (rotate-max-distance 0) (rotate-angle 0) (interpolatingp nil))
+    ;; NOTE detect edge and detect direction of edge may not be needed.
     ;; open gripper and detect edge
-    (send *ri* :grasp-with-condition
-          0.05 ;; goal pos of gripper
-          #'(lambda ()
-              (ros::spin-once)
-              (and (< (setq l-min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/top")) :data) cons))) 50) ;; condition
-                   (< (setq r-min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons))) 50))))
-    (if (> l-min r-min)
-      (setq target-finger "/left")
-      (setq target-finger "/right"))
+    ;; (send *ri* :grasp-with-condition
+    ;;       0.05 ;; goal pos of gripper
+    ;;       #'(lambda ()
+    ;;           (ros::spin-once)
+    ;;           (and (< (setq l-min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/top")) :data) cons))) 50) ;; condition
+    ;;                (< (setq r-min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons))) 50))))
+    ;; (if (> l-min r-min)
+    ;;   (setq target-finger "/left")
+    ;;   (setq target-finger "/right"))
 
-    ;; measure direction of edge
-    (let ((now-wrist-angle (send *fetch* :rarm :wrist-r :joint-angle)))
-      ;; for positive angle direction
-      (if max-wrist-angle
-        (send *fetch* :rarm :wrist-r :joint-angle max-wrist-angle)
-        (send *fetch* :rarm :wrist-r :joint-angle
-              (+ 90 (send *fetch* :rarm :wrist-r :joint-angle))))
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
-      (while (not (setq interplatingp (send *ri* :interpolatingp))) ;; wait until interpolatingp becomes t
-        (ros::spin-once)
-        (unix:usleep 10000))
-      (while (setq interplatingp (send *ri* :interpolatingp))
-        (ros::spin-once)
-        (when (< rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
-          (setq rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
-          (setq rotate-angle (aref (send *ri* :state :potentio-vector :wait-until-update t) 7))) ;; update wrist-r angle
-        (unix:usleep (* 10 1000)))
-      ;; reset wrist joint angle
-      (send *fetch* :rarm :wrist-r :joint-angle now-wrist-angle)
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
-      (send *ri* :wait-interpolation)
-      ;; for negative angle direction
-      (if min-wrist-angle
-        (send *fetch* :rarm :wrist-r :joint-angle min-wrist-angle)
-        (send *fetch* :rarm :wrist-r :joint-angle
-              (+ -90 (send *fetch* :rarm :wrist-r :joint-angle))))
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
-      (while (not (setq interplatingp (send *ri* :interpolatingp))) ;; wait until interpolatingp becomes t
-        (ros::spin-once)
-        (unix:usleep 10000))
-      (while (setq interplatingp (send *ri* :interpolatingp))
-        (ros::spin-once)
-        (when (< rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
-          (setq rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
-          (setq rotate-angle (aref (send *ri* :state :potentio-vector :wait-until-update t) 7))) ;; update wrist-r angle
-        (unix:usleep (* 10 1000)))
-      ;; finally rotate wrist joint to most graspable angle
-      (send *fetch* :rarm :wrist-r :joint-angle rotate-angle)
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
-      (send *ri* :wait-interpolation)
-      (format t "most graspable angle is: ~A~%" rotate-angle))
+    ;; ;; measure direction of edge
+    ;; (let ((now-wrist-angle (send *fetch* :rarm :wrist-r :joint-angle)))
+    ;;   ;; for positive angle direction
+    ;;   (if max-wrist-angle
+    ;;     (send *fetch* :rarm :wrist-r :joint-angle max-wrist-angle)
+    ;;     (send *fetch* :rarm :wrist-r :joint-angle
+    ;;           (+ 90 (send *fetch* :rarm :wrist-r :joint-angle))))
+    ;;   (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
+    ;;   (while (not (setq interplatingp (send *ri* :interpolatingp))) ;; wait until interpolatingp becomes t
+    ;;     (ros::spin-once)
+    ;;     (unix:usleep 10000))
+    ;;   (while (setq interplatingp (send *ri* :interpolatingp))
+    ;;     (ros::spin-once)
+    ;;     (when (< rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
+    ;;       (setq rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
+    ;;       (setq rotate-angle (aref (send *ri* :state :potentio-vector :wait-until-update t) 7))) ;; update wrist-r angle
+    ;;     (unix:usleep (* 10 1000)))
+    ;;   ;; reset wrist joint angle
+    ;;   (send *fetch* :rarm :wrist-r :joint-angle now-wrist-angle)
+    ;;   (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
+    ;;   (send *ri* :wait-interpolation)
+    ;;   ;; for negative angle direction
+    ;;   (if min-wrist-angle
+    ;;     (send *fetch* :rarm :wrist-r :joint-angle min-wrist-angle)
+    ;;     (send *fetch* :rarm :wrist-r :joint-angle
+    ;;           (+ -90 (send *fetch* :rarm :wrist-r :joint-angle))))
+    ;;   (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
+    ;;   (while (not (setq interplatingp (send *ri* :interpolatingp))) ;; wait until interpolatingp becomes t
+    ;;     (ros::spin-once)
+    ;;     (unix:usleep 10000))
+    ;;   (while (setq interplatingp (send *ri* :interpolatingp))
+    ;;     (ros::spin-once)
+    ;;     (when (< rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
+    ;;       (setq rotate-max-distance (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance target-finger "/top")) :data) cons)))
+    ;;       (setq rotate-angle (aref (send *ri* :state :potentio-vector :wait-until-update t) 7))) ;; update wrist-r angle
+    ;;     (unix:usleep (* 10 1000)))
+    ;;   ;; finally rotate wrist joint to most graspable angle
+    ;;   (send *fetch* :rarm :wrist-r :joint-angle rotate-angle)
+    ;;   (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+    ;;   (send *ri* :wait-interpolation)
+    ;;   (format t "most graspable angle is: ~A~%" rotate-angle))
 
     ;; move hand horizontally such that target object come to center of grippers.
     (send *ri* :stop-grasp :wait t)
-    (dotimes (i 3)
-      (ros::spin-once)
-      (if (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/top")) :data) cons))
-             (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/top")) :data) cons)))
-        (progn
-          (send *fetch* :rarm :move-end-pos #f(20 10 0) :local :use-torso nil) ;; 20 is right parameter?
-          ;; TODO check this function
-          (let ((r-dist (send (one-shot-subscribe "/proximity_distance/right/side0" euslib::ProximityDistances) :data))
-                (odd-list nil) (even-list nil) (i 0))
-            (dolist (dist r-dist)
-              (if (evenp i)
-                (setq even-list (append even-list (list dist)))
-                (setq odd-list (append odd-list (list dist)))))
-            (if (< (apply #'min even-list) (apply #'min odd-list))
-              (send *fetch* :rarm :move-end-pos #f(0 0 10) :local :use-torso nil)
-              (send *fetch* :rarm :move-end-pos #f(0 0 -10) :local :use-torso nil))))
-        (progn
-          (send *fetch* :rarm :move-end-pos #f(20 -10 0) :local :use-torso nil) ;; 20 is right parameter?
-          ;; TODO check this function
-          (let ((l-dist (send (one-shot-subscribe "/proximity_distance/left/side0" euslib::ProximityDistances) :data))
-                (odd-list nil) (even-list nil) (i 0))
-            (dolist (dist r-dist)
-              (if (evenp i)
-                  (setq even-list (append even-list (list dist)))
-                  (setq odd-list (append odd-list (list dist)))))
-            (if (< (apply #'min even-list) (apply #'min odd-list))
-                (send *fetch* :rarm :move-end-pos #f(0 0 -10) :local :use-torso nil)
-                (send *fetch* :rarm :move-end-pos #f(0 0 10) :local :use-torso nil))))
-        )
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
-      (send *ri* :wait-interpolation))
+    (let ((l-dist nil)
+          (r-dist nil))
+      (dotimes (i 3)
+        (ros::spin-once)
+        (setq l-dist (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons))
+        (setq r-dist (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons))
+        (if (> (reduce #'min l-dist)
+               (reduce #'min r-dist))
+            (progn
+              (send *fetch* :rarm :move-end-pos #f(20 10 0) :local :use-torso nil) ;; 20 is right parameter?
+              ;; TODO check this function
+              (let ((odd-list nil) (even-list nil) (j 0))
+                (dolist (dist r-dist)
+                  (if (evenp j)
+                      (setq even-list (append even-list (list dist)))
+                      (setq odd-list (append odd-list (list dist))))
+                  (setq j (+ 1 j)))
+                (if (< (apply #'min even-list) (apply #'min odd-list))
+                    (send *fetch* :rarm :move-end-pos #f(0 0 10) :local :use-torso nil)
+                    (send *fetch* :rarm :move-end-pos #f(0 0 -10) :local :use-torso nil))))
+            (progn
+              (send *fetch* :rarm :move-end-pos #f(20 -10 0) :local :use-torso nil) ;; 20 is right parameter?
+              ;; TODO check this function
+              (let ((odd-list nil) (even-list nil) (j 0))
+                (dolist (dist l-dist)
+                  (if (evenp j)
+                      (setq even-list (append even-list (list dist)))
+                      (setq odd-list (append odd-list (list dist))))
+                  (setq j (+ 1 j)))
+                (if (< (apply #'min even-list) (apply #'min odd-list))
+                    (send *fetch* :rarm :move-end-pos #f(0 0 -10) :local :use-torso nil)
+                    (send *fetch* :rarm :move-end-pos #f(0 0 10) :local :use-torso nil)))))
+        (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+        (send *ri* :wait-interpolation))
+      )
     ;; (sensor-calib)
 
     ;; move hand down and grasp object
