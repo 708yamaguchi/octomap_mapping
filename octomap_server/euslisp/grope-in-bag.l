@@ -231,7 +231,7 @@ If you want to set fetch's prepose from reset-pose,~%")
         (when (and (eq flag nil) (eq (send region-lower :insidep point) :inside))
           (setq point-lower (+ 1 point-lower))
           (setq flag t))))
-    (format t "left: ~A, center: ~A, right: ~A~%" point-upper point-center point-lower)
+    (format t "upper: ~A, center: ~A, lower: ~A~%" point-upper point-center point-lower)
     (if (> (max point-upper point-center point-lower) (* (min point-upper point-center point-lower) 1.5))
       (progn (format t ":ball~%") :ball)
       (progn (format t ":cuboid~%") :cuboid))
@@ -808,10 +808,12 @@ If you want to set fetch's prepose from reset-pose,~%")
               ;; for visualization
               (when visualize-searching
                 (send *fetch* :angle-vector #f(350.0 -69.9524 -47.1977 -66.0171 104.822 32.2963 69.0654 122.165 0.0 0.0)) ;; pre-pose for IK
-                (send *fetch* :inverse-kinematics
-                      (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
-                                   :rpy (float-vector 0 pi/2 (* -1 random-rot)))
-                                   :use-torso nil)
+                (let ((coords (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
+                                           :rpy (float-vector 0 pi/2 (* -1 random-rot)))))
+                  (send coords :rotate (* pi 0.1) :x :world)
+                  (send *fetch* :inverse-kinematics
+                        coords
+                        :use-torso nil))
               ;; (send *irtviewer* :objects (append (list *fetch* pc) region))
                 (if point-list-inside-gripper
                   (progn (setq pc-inside-gripper (instance pointcloud :init :points
@@ -865,10 +867,12 @@ If you want to set fetch's prepose from reset-pose,~%")
       (if best-z
         (progn
           (send *fetch* :angle-vector #f(350.0 -69.9524 -47.1977 -66.0171 104.822 32.2963 69.0654 122.165 0.0 0.0)) ;; pre-pose for IK
-          (send *fetch* :inverse-kinematics
-                (make-coords :pos (float-vector best-x best-y (+ best-z (/ gr-z 2.0)))
-                             :rpy (float-vector 0 pi/2 (* -1 best-rot)))
-                :use-torso nil)
+          (let ((coords (make-coords :pos (float-vector best-x best-y (+ best-z (/ gr-z 2.0)))
+                                     :rpy (float-vector 0 pi/2 (* -1 best-rot)))))
+            (send coords :rotate (* pi 0.1) :x :world)
+            (send *fetch* :inverse-kinematics
+                  coords
+                  :use-torso nil))
           (send gripper-inside :locate (float-vector best-x best-y (+ best-z (/ gr-z 2.0))) :world) ;; change position absolutely
           (send gripper-inside :orient best-rot :z :world) ;; change rotation absolutely
           (send stick-l :translate (float-vector 0 0 (- (/ (+ max-z min-z) 2.0) (aref (send stick-l :worldpos) 2))) :world)
