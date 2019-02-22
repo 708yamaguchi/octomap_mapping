@@ -176,27 +176,31 @@ If you want to set fetch's prepose from reset-pose,~%")
   ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
   ;; (send *ri* :wait-interpolation)
 
-  ;; classify shapes of object by using occupied cloud in the gripper
   ;; now, fetch's angle vector is output of search of grasp point
-  (unless
-    (eq :ball
-        (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "occupied")))
-    (return-from main-latter))
+  ;; classify shapes of object by using occupied cloud in the gripper
+  ;; then, grasp object and put it on the kitchen
+  (let ((shape nil))
+    (setq shape (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "occupied")))
 
-  (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso)
-  (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
-  (send *ri* :wait-interpolation)
-  (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
-          :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre 20)
+    (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso)
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
+    (send *ri* :wait-interpolation)
+    (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
+            :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre 20)
 
-  (pre-grasp)
+    (pre-grasp)
 
+    (if (eq shape :ball)
+        ;; put object into box of ball
+        ;; put object into box of cuboid
+        )
+    )
   )
 
 ;; example
 ;; (load "package://octomap_server/euslisp/pointcloud-in-bag2.l")
-;;
-;; (classify-object av occupied-pointcloud)
+;; prev-av -> (search-graspable-point) -> post-av
+;; (classify-object post-av occupied-pointcloud)
 (defun classify-object (av occupied-pointcloud)
   (let ((region-upper (make-cube 80 80 25)) (point-upper 0)
         (region-center (make-cube 80 80 25)) (point-center 0)
@@ -231,7 +235,7 @@ If you want to set fetch's prepose from reset-pose,~%")
     (if (> (max point-upper point-center point-lower) (* (min point-upper point-center point-lower) 1.5))
       (progn (format t ":ball~%") :ball)
       (progn (format t ":cuboid~%") :cuboid))
-    (objects (list *fetch* region-upper region-center region-lower))
+    ;; (objects (list *fetch* region-upper region-center region-lower))
     )
   )
 
