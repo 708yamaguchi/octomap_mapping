@@ -145,7 +145,7 @@ If you want to set fetch's prepose from reset-pose,~%")
     (setq roi (make-cube 200 100 100))
     (send roi :locate (send (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(80 0 0) :local) :pos) :world)
     (send roi :worldcoords)
-    (decide-grope-point (get-octo-pointcloud :type "occupied") roi :x-offset 0 :y-offset 0 :z-offset 0 :visualize-searching t) ;; TODO pose is not suitable for manipulating bag. extract pos of grasp pose
+    (decide-grope-point (get-octo-pointcloud :type "occupied") roi :x-offset 0 :y-offset 0 :z-offset 0 :visualize-searching nil) ;; TODO pose is not suitable for manipulating bag. extract pos of grasp pose
     ;; (setq post-av (send *fetch* :angle-vector))
 
     ;; TODO grasp with pre-grasp
@@ -182,7 +182,7 @@ If you want to set fetch's prepose from reset-pose,~%")
   (let ((shape nil))
     (setq shape (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "occupied")))
 
-    (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso)
+    (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso nil)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
     (send *ri* :wait-interpolation)
     (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
