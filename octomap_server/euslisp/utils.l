@@ -137,10 +137,10 @@
     ;; move hand down and grasp object
     ;; (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(50 0 0) :local)
     ;;         :close-frame-list (list (list "/left" "/side0" ) (list "/right" "/side0")) :close-thre 15)
-    (send *ri* :start-grasp :wait nil :effort 60)
-    (ros::spin-once)
-    (unix:sleep 2)
-    (< 0.012 (send *ri* :gripper :position)) ;; if grasp is succeeded, return t. else, return nil
+    ;; (send *ri* :start-grasp :wait nil :effort 60)
+    ;; (ros::spin-once)
+    ;; (unix:sleep 2)
+    ;; (< 0.012 (send *ri* :gripper :position)) ;; if grasp is succeeded, return t. else, return nil
   ))
 
 ;; return if coords (arg) is inside of x/y/z-min/max
