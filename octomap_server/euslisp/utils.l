@@ -99,7 +99,7 @@
         (if (> (reduce #'min l-dist)
                (reduce #'min r-dist))
             (progn
-              (send *fetch* :rarm :move-end-pos #f(20 10 0) :local :use-torso nil) ;; 20 is right parameter?
+              (send *fetch* :rarm :move-end-pos (float-vector 20 10 0) :local :use-torso nil) ;; 20 is right parameter?
               ;; TODO check this function
               (let ((odd-list nil) (even-list nil) (j 0))
                 (dolist (dist r-dist)
@@ -111,7 +111,7 @@
                     (send *fetch* :rarm :move-end-pos #f(0 0 10) :local :use-torso nil)
                     (send *fetch* :rarm :move-end-pos #f(0 0 -10) :local :use-torso nil))))
             (progn
-              (send *fetch* :rarm :move-end-pos #f(20 -10 0) :local :use-torso nil) ;; 20 is right parameter?
+              (send *fetch* :rarm :move-end-pos (float-vector 20 -10 0) :local :use-torso nil) ;; 20 is right parameter?
               ;; TODO check this function
               (let ((odd-list nil) (even-list nil) (j 0))
                 (dolist (dist l-dist)
@@ -123,13 +123,20 @@
                     (send *fetch* :rarm :move-end-pos #f(0 0 -10) :local :use-torso nil)
                     (send *fetch* :rarm :move-end-pos #f(0 0 10) :local :use-torso nil)))))
         (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
-        (send *ri* :wait-interpolation))
+        (send *ri* :wait-interpolation)
+
+        (ros::spin-once)
+        (setq l-dist (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons))
+        (setq r-dist (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons))
+        (when (< (min (apply #'min l-dist) (apply #'min r-dist)) 15)
+          (return))
+        )
       )
     ;; (sensor-calib)
 
     ;; move hand down and grasp object
-    (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(50 0 0) :local)
-            :close-frame-list (list (list "/left" "/side0" ) (list "/right" "/side0")) :close-thre 15)
+    ;; (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(50 0 0) :local)
+    ;;         :close-frame-list (list (list "/left" "/side0" ) (list "/right" "/side0")) :close-thre 15)
     (send *ri* :start-grasp :wait nil :effort 60)
     (ros::spin-once)
     (unix:sleep 2)
