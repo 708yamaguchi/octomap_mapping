@@ -859,6 +859,8 @@ If you want to set fetch's prepose from reset-pose,~%")
                 (let ((coords (make-coords :pos (float-vector random-x random-y (+ highest-z (/ gr-z 2.0)))
                                            :rpy (float-vector 0 pi/2 (* -1 random-rot)))))
                   (send coords :rotate (* pi 0.1) :x :world)
+                  (if (< (aref (v- (send coords :transform-vector #f(0 0 1)) (send coords :worldpos)) 1) 0)
+                    (send coords :rotate pi :x))
                   (send *fetch* :inverse-kinematics
                         coords
                         :use-torso nil))
@@ -918,6 +920,8 @@ If you want to set fetch's prepose from reset-pose,~%")
           (let ((coords (make-coords :pos (float-vector best-x best-y (+ best-z (/ gr-z 2.0)))
                                      :rpy (float-vector 0 pi/2 (* -1 best-rot)))))
             (send coords :rotate (* pi 0.1) :x :world)
+            (if (< (aref (v- (send coords :transform-vector #f(0 0 1)) (send coords :worldpos)) 1) 0)
+              (send coords :rotate pi :x))
             (send *fetch* :inverse-kinematics
                   coords
                   :use-torso nil))
