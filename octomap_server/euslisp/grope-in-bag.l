@@ -189,23 +189,26 @@ If you want to set fetch's prepose from reset-pose,~%")
   ;; now, fetch's angle vector is output of search of grasp point
   ;; classify shapes of object by using occupied cloud in the gripper
   ;; then, grasp object and put it on the kitchen
-  (let ((shape nil))
-    (setq shape (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "occupied")))
 
-    (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso nil)
-    (send *ri* :angle-vector (send *fetch* :angle-vector) 6000)
-    (send *ri* :wait-interpolation)
+  (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 6000)
+  (send *ri* :wait-interpolation)
     ;; (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
     ;;         :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre 20)
 
-    (pre-grasp)
+  ;; pre-grasp and trace object to create object model by proximity sensor reaction
+  (pre-grasp)
+  (octomap-reset)
+  (trace :direction t :count 2)
+  (trace :direction nil :count 4)
+  (trace :direction t :count 2)
 
-    (if (eq shape :ball)
-        ;; put object into box of ball
-        (print :ball)
-        (print :cuboid)
-        ;; put object into box of cuboid
-        )
+  ;; classify object
+  (if (eq (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "occupied")) :ball)
+    ;; put object into box of ball
+    (print :ball)
+    (print :cuboid)
+    ;; put object into box of cuboid
     )
   )
 
@@ -214,6 +217,7 @@ If you want to set fetch's prepose from reset-pose,~%")
 ;; (load "package://octomap_server/euslisp/pointcloud-in-bag-banana.l")
 ;; prev-av -> (search-graspable-point) -> post-av
 ;; (classify-object post-av occupied-pointcloud)
+;; NOTE extract occupied grid in the gripper and classify object shape by using the grid.
 (defun classify-object (av occupied-pointcloud)
   (let ((region-upper (make-cube 80 80 25)) (point-upper 0)
         (region-center (make-cube 80 80 25)) (point-center 0)
@@ -286,6 +290,38 @@ If you want to set fetch's prepose from reset-pose,~%")
       )
     )
   )
+
+(defun trace (&key (direction t) (count 2))
+  (dotimes (i count)
+    (ros::spin-once)
+    (let ((l-dist (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons))
+          (r-dist (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons))
+          (angle nil))
+      ;; centering object in gripper
+      (send *fetch* :rarm :move-end-pos
+            (float-vector 0 (/ (- (apply #'min l-list) (apply #'min r-list)) 2.0) 0) :local
+            :use-torso nil)
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+      (send *ri* :wait-interpolation)
+      (send *ri* :grasp-with-condition
+          0.2 ;; goal pos of gripper
+          #'(lambda ()
+              (ros::spin-once)
+              (and (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons)) 20) ;; condition
+                   (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons)) 20))))
+      ;; ajust incline
+      (setq angle (/ (+ (send *ri* :plane-incline-side0 "/left")
+                        (send *ri* :plane-incline-side0 "/right")) 2.0))
+      (if (and angle (< (abs angle) 45))
+        (rotate-wrist-r (/ angle 2.0)))
+      (send *ri* :wait-interpolation)
+      ;; move hand up
+      (if direction
+        (send *fetch* :rarm :move-end-pos #f(0 0 20) :local :use-torso nil)
+        (send *fetch* :rarm :move-end-pos #f(0 0 -20) :local :use-torso nil))
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+      (send *ri* :wait-interpolation)
+      )))
 
 ;; NOTE type is :setting, :main or :all
 ;; :setting does setting of this function, do (prepose-for-main :all) before doing this
