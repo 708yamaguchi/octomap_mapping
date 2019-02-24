@@ -296,22 +296,25 @@ If you want to set fetch's prepose from reset-pose,~%")
     (ros::spin-once)
     (let ((l-dist (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons))
           (r-dist (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons))
-          (angle nil))
+          (angle nil) (gripper-pos nil))
       ;; centering object in gripper
       (send *fetch* :rarm :move-end-pos
-            (float-vector 0 (/ (- (apply #'min l-list) (apply #'min r-list)) 2.0) 0) :local
+            (float-vector 0 (/ (- (apply #'min l-dist) (apply #'min r-dist)) 2.0) 0) :local
             :use-torso nil)
       (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+      (setq gripper-pos (send *ri* :gripper :position))
       (send *ri* :wait-interpolation)
       (send *ri* :grasp-with-condition
-          0.2 ;; goal pos of gripper
+            (+ (- gripper-pos
+                  (* 0.001 (+ (apply #'min l-dist) (apply #'min r-dist))))
+               0.02) ;; goal pos of gripper
           #'(lambda ()
               (ros::spin-once)
               (and (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons)) 20) ;; condition
                    (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons)) 20))))
       ;; ajust incline
-      (setq angle (/ (+ (send *ri* :plane-incline-side0 "/left")
-                        (send *ri* :plane-incline-side0 "/right")) 2.0))
+      (setq angle (/ (+ (plane-incline-side0 "/left")
+                        (plane-incline-side0 "/right")) 2.0))
       (if (and angle (< (abs angle) 45))
         (rotate-wrist-r (/ angle 2.0)))
       (send *ri* :wait-interpolation)
