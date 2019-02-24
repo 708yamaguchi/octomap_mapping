@@ -205,12 +205,14 @@ If you want to set fetch's prepose from reset-pose,~%")
   ;; (trace :direction nil :count 4)
   ;; (trace :direction t :count 2)
 
-  ;; classify object
-  (if (eq (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "occupied")) :ball)
-    ;; put object into box of ball
-    (print :ball)
-    (print :cuboid)
-    ;; put object into box of cuboid
+  (let ((region-all (make-cube 100 100 100)))
+    (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+    (send region-all :translate #f(0 0 -20) :local)
+    (send region-all :move-coords (send *fetch* :rarm :end-coords :copy-worldcoords) (make-coords))
+    ;; classify object
+    (if (eq (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "occupied") :region region-all) :ball)
+        (print :ball) ;; TODO put apple on the kitchen
+        (print :cuboid)) ;; TODO put banana on the kitchen
     )
   )
 
@@ -219,8 +221,8 @@ If you want to set fetch's prepose from reset-pose,~%")
 ;; (load "package://octomap_server/euslisp/pointcloud-in-bag-banana.l")
 ;; prev-av -> (search-graspable-point) -> post-av
 ;; (classify-object post-av occupied-pointcloud)
-;; NOTE extract occupied grid in the gripper and classify object shape by using the grid.
-(defun classify-object (av occupied-pointcloud)
+;; NOTE by default (region is nil), extract occupied grid in the gripper and classify object shape by using the grid.
+(defun classify-object (av occupied-pointcloud &key (region nil))
   (let ((region-upper (make-cube 80 80 25)) (point-upper 0)
         (region-center (make-cube 80 80 25)) (point-center 0)
         (region-lower (make-cube 80 80 25)) (point-lower 0)
@@ -260,14 +262,21 @@ If you want to set fetch's prepose from reset-pose,~%")
     ;;   (progn (format t ":ball~%") :ball)
     ;;   (progn (format t ":cuboid~%") :cuboid))
     ;; (objects (list *fetch* region-upper region-center region-lower))
-    (objects (list *fetch* region-all))
+
+    ;; if keyword argument region is given, set the argument to region-all.
+    (when region
+      (setq region-all region))
+    (send region-all :worldcoords)
+    ;; (objects (list *fetch* region-all))
 
     ;; extract points in gripper
     (dolist (point occupied-point-list)
       (when (eq (send region-all :insidep point) :inside)
         (setq point-in-region (append point-in-region (list point)))))
+    (objects (append (list *fetch*) (send region-all :edges)))
     (if (eq point-in-region nil)
-        (format t "cannot find target points !!~%"))
+      (format t "cannot find target points !!~%")
+      (format t "~A points are inside of target region.~%" (length point-in-region)))
     ;; PCA
     (let ((x nil) (y nil) (z nil)
           (eigen-vector nil) (covariance-mat nil)
@@ -286,7 +295,7 @@ If you want to set fetch's prepose from reset-pose,~%")
                             (aref covariance-mat 1 0)
                             (aref covariance-mat 2 0))
               contribution-rate)
-      (if (< contribution-rate 0.6)
+      (if (< contribution-rate 0.7)
         :ball
         :cuboid)
       )
