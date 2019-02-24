@@ -199,9 +199,11 @@ If you want to set fetch's prepose from reset-pose,~%")
   ;; pre-grasp and trace object to create object model by proximity sensor reaction
   (pre-grasp)
   (octomap-reset)
+  (trace :direction nil :count 2)
   (trace :direction t :count 2)
-  (trace :direction nil :count 4)
-  (trace :direction t :count 2)
+  ;; (trace :direction t :count 2)
+  ;; (trace :direction nil :count 4)
+  ;; (trace :direction t :count 2)
 
   ;; classify object
   (if (eq (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "occupied")) :ball)
@@ -301,18 +303,27 @@ If you want to set fetch's prepose from reset-pose,~%")
       (send *fetch* :rarm :move-end-pos
             (float-vector 0 (/ (- (apply #'min l-dist) (apply #'min r-dist)) 2.0) 0) :local
             :use-torso nil)
+      ;; sensing object at the tip of side0
+      (ros::spin-once)
+      (let ((min-temp) (r-dist-list (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons)))
+        (setq min-temp (apply #'min r-dist-list)) ;; right is reliable
+        (if (or (eq min-temp (elt r-dist-list 6)) (eq min-temp (elt r-dist-list 7)))
+           (send *fetch* :rarm :move-end-pos #f(10 0 0) :local :use-torso nil)
+           (send *fetch* :rarm :move-end-pos #f(-10 0 0) :local :use-torso nil)))
       (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
       (setq gripper-pos (send *ri* :gripper :position))
       (send *ri* :wait-interpolation)
+      (ros::spin-once)
       (send *ri* :grasp-with-condition
             (+ (- gripper-pos
                   (* 0.001 (+ (apply #'min l-dist) (apply #'min r-dist))))
-               0.02) ;; goal pos of gripper
+               0.03) ;; goal pos of gripper
           #'(lambda ()
               (ros::spin-once)
               (and (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons)) 20) ;; condition
                    (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons)) 20))))
       ;; ajust incline
+      (ros::spin-once)
       (setq angle (/ (+ (plane-incline-side0 "/left")
                         (plane-incline-side0 "/right")) 2.0))
       (if (and angle (< (abs angle) 45))

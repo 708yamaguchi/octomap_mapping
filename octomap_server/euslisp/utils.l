@@ -219,15 +219,16 @@
   (format t "failed to calibrate sensor~%"))
 
 (defun plane-incline-side0 (finger)
-    (let ((distance-list (coerce (send (car (send *ri* :get-proximity-distance finger "/side0")) :data) cons))
-          (odd-element nil) (even-element nil) (i 0))
-      (if (> (apply #'min distance-list) 15)
+  (ros::spin-once)
+  (let ((distance-list (coerce (send (car (send *ri* :get-proximity-distance finger "/side0")) :data) cons))
+        (odd-element nil) (even-element nil) (i 0))
+    (if (> (apply #'min distance-list) 15)
         (progn (format t "cannot calculate incline with enough accuracy~%") 0)
         (progn
           (dolist (x distance-list)
             (if (oddp i)
-              (setq odd-element (append odd-element (list x)))
-              (setq even-element (append even-element (list x))))
+                (setq odd-element (append odd-element (list x)))
+                (setq even-element (append even-element (list x))))
             (setq i (+ i 1)))
           (rad2deg (atan (/ (- (apply #'min even-element) (apply #'min odd-element)) 6.5)))))))
 
