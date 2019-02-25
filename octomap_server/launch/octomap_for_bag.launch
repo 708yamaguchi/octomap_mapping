@@ -35,16 +35,16 @@
     <remap from="~input/points" to="$(arg input_occupied_grid)" />
     <rosparam>
       <!-- inside of bag -->
-      initial_pos: [0.02, 0, 0]
+      initial_pos: [0.01, 0, 0]
       initial_rot: [0, 0, 0]
-      dimension_x: 0.04
-      dimension_y: 0.08
+      dimension_x: 0.06
+      dimension_y: 0.09
       dimension_z: 0.12
       frame_id: gripper_link
     </rosparam>
   </node>
 
-    <node name="extract_indices"
+    <node name="extract_indices_for_octomap"
           pkg="nodelet" type="nodelet"
           args="load jsk_pcl/ExtractIndices $(arg manager)" >
       <remap from="~input" to="$(arg input_occupied_grid)" />  <!-- depth timestamp -->
