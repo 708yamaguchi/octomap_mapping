@@ -3,6 +3,7 @@
   <arg name="box_recog" default="false"/>
   <arg name="create_manager" default="true"/>
   <arg name="manager" default="manager_for_bag"/>
+  <arg name="input_occupied_grid" default="/octomap_point_cloud_centers"/>
 
   <!-- create octomap but do not color recognition -->
   <include file="$(find octomap_server)/launch/octomap_mapping_multicloud_contact.launch">
@@ -28,6 +29,32 @@
       frame_id: base_link
     </rosparam>
   </node>
+
+  <node name="attention_clipper_for_octomap" pkg="nodelet" type="nodelet"
+        args="load jsk_pcl/AttentionClipper $(arg manager)" output="screen">
+    <remap from="~input/points" to="$(arg input_occupied_grid)" />
+    <rosparam>
+      <!-- inside of bag -->
+      initial_pos: [0.02, 0, 0]
+      initial_rot: [0, 0, 0]
+      dimension_x: 0.04
+      dimension_y: 0.08
+      dimension_z: 0.12
+      frame_id: gripper_link
+    </rosparam>
+  </node>
+
+    <node name="extract_indices"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_pcl/ExtractIndices $(arg manager)" >
+      <remap from="~input" to="$(arg input_occupied_grid)" />  <!-- depth timestamp -->
+      <remap from="~indices" to="attention_clipper_for_octomap/output/point_indices" />  <!-- rgb timestamp -->
+      <rosparam>
+        approximate_sync: true
+        queue_size: 100
+        keep_organized: true
+      </rosparam>
+    </node>
 
   <!-- rviz -->
   <group if="$(arg rviz)">
