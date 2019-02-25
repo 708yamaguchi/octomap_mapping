@@ -206,15 +206,10 @@ If you want to set fetch's prepose from reset-pose,~%")
   ;; (trace :direction nil :count 4)
   ;; (trace :direction t :count 2)
 
-  (let ((region-all (make-cube 100 100 100)))
-    (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-    (send region-all :translate #f(0 0 -20) :local)
-    (send region-all :move-coords (send *fetch* :rarm :end-coords :copy-worldcoords) (make-coords))
-    ;; classify object
-    (if (eq (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "occupied") :region region-all) :ball)
-        (print :ball) ;; TODO put apple on the kitchen
-        (print :cuboid)) ;; TODO put banana on the kitchen
-    )
+  (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+  (if (eq (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "in-hand") :region nil) :ball)
+      (print :ball) ;; TODO put apple on the kitchen
+      (print :cuboid)) ;; TODO put banana on the kitchen
   )
 
 ;; example
@@ -265,19 +260,23 @@ If you want to set fetch's prepose from reset-pose,~%")
     ;; (objects (list *fetch* region-upper region-center region-lower))
 
     ;; if keyword argument region is given, set the argument to region-all.
-    (when region
-      (setq region-all region))
-    (send region-all :worldcoords)
-    ;; (objects (list *fetch* region-all))
+    (if region
+      (progn
+        (setq region-all region)
+        (send region-all :worldcoords)
+        ;; (objects (list *fetch* region-all))
 
-    ;; extract points in gripper
-    (dolist (point occupied-point-list)
-      (when (eq (send region-all :insidep point) :inside)
-        (setq point-in-region (append point-in-region (list point)))))
-    (objects (append (list *fetch*) (send region-all :edges)))
+        ;; extract points in gripper
+        (dolist (point occupied-point-list)
+          (when (eq (send region-all :insidep point) :inside)
+            (setq point-in-region (append point-in-region (list point))))))
+        ;; (objects (append (list *fetch*) (send region-all :edges)))
+      (progn
+        (setq point-in-region occupied-point-list)))
     (if (eq point-in-region nil)
-      (format t "cannot find target points !!~%")
-      (format t "~A points are inside of target region.~%" (length point-in-region)))
+        (format t "cannot find target points !!~%")
+        (format t "~A points are inside of target region.~%" (length point-in-region)))
+
     ;; visualize points
     ;; (send *irtviewer* :viewer :viewing :look #f(1547.99 103.739 1011.09) #f(149.955 30.4709 713.524) #f(0 0 1))
     (send *irtviewer* :viewer :viewing :look #f(1055.93 -284.864 924.865) #f(203.607 227.263 713.509) #f(0 0 1))

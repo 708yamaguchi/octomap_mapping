@@ -17,6 +17,9 @@
      ((equal type "potential")
       (setq color (list 1 0 0))
       (setq octo-cloud (one-shot-subscribe "/octomap_potential_point_cloud_centers" sensor_msgs::Pointcloud2)))
+     ((equal type "in-hand")
+      (setq color (list 0 1 0))
+      (setq octo-cloud (one-shot-subscribe "/extract_indices_for_octomap/output" sensor_msgs::Pointcloud2)))
      (t
       (fotmat t "key argument type is not correctly set.~%"))
      )

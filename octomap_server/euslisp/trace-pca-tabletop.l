@@ -25,12 +25,8 @@
   (trace :direction nil :count 2)
   (print 333333)
   ;; classify object
-  (let ((region-all (make-cube 70 100 120)))
-    (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-    (send region-all :translate #f(0 0 0) :local)
-    (send region-all :move-coords (send *fetch* :rarm :end-coords :copy-worldcoords) (make-coords))
-    (if (eq (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "occupied") :region region-all) :ball)
-        (print :ball) ;; TODO put apple on the kitchen
-        (print :cuboid)) ;; TODO put banana on the kitchen
-    )
+  (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+  (if (eq (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "in-hand") :region nil) :ball)
+      (print :ball) ;; TODO put apple on the kitchen
+      (print :cuboid)) ;; TODO put banana on the kitchen
   )
