@@ -52,7 +52,7 @@
       <rosparam>
         approximate_sync: true
         queue_size: 100
-        keep_organized: true
+        keep_organized: false
       </rosparam>
     </node>
 
