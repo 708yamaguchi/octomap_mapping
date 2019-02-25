@@ -103,11 +103,11 @@
 
     <!-- for table top -->
     <!-- <param name="occupancy_min_x" value="0.4" /> -->
-    <!-- <param name="occupancy_max_x" value="0.8" /> -->
-    <!-- <param name="occupancy_min_y" value="-0.25" /> -->
-    <!-- <param name="occupancy_max_y" value="0.25" /> -->
-    <!-- <param name="occupancy_min_z" value="0.6" /> -->
-    <!-- <param name="occupancy_max_z" value="1.0" /> -->
+    <!-- <param name="occupancy_max_x" value="0.6" /> -->
+    <!-- <param name="occupancy_min_y" value="-0.2" /> -->
+    <!-- <param name="occupancy_max_y" value="0.2" /> -->
+    <!-- <param name="occupancy_min_z" value="0.677" /> -->
+    <!-- <param name="occupancy_max_z" value="0.877" /> -->
 
     <param name="use_vertex" value="false" /> <!-- to speedup insertContactSensor -->
     <param name="sensor_model/max" value="0.60" /> <!-- default: 0.97 -->
