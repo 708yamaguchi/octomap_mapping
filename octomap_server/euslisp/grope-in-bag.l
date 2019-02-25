@@ -5,6 +5,7 @@
 (load "package://bag_segmentation/euslisp/bag-manipulation-interface.l")
 (load "package://bag_segmentation/euslisp/utils.l")
 (load "package://euslib/euslisp/arrow-utils.l")
+(load "package://euslib/euslisp/pca.l")
 (load "package://octomap_server/euslisp/utils.l")
 
 ;; set working region
@@ -277,30 +278,22 @@ If you want to set fetch's prepose from reset-pose,~%")
     (if (eq point-in-region nil)
       (format t "cannot find target points !!~%")
       (format t "~A points are inside of target region.~%" (length point-in-region)))
+    ;; visualize points
+    ;; (send *irtviewer* :viewer :viewing :look #f(1547.99 103.739 1011.09) #f(149.955 30.4709 713.524) #f(0 0 1))
+    (send *irtviewer* :viewer :viewing :look #f(1055.93 -284.864 924.865) #f(203.607 227.263 713.509) #f(0 0 1))
+    (send *irtviewer* :draw-objects :flush t)
+    (send-all point-in-region :draw-on :flush t :width 5 :size 3)
+
     ;; PCA
-    (let ((x nil) (y nil) (z nil)
-          (eigen-vector nil) (covariance-mat nil)
-          (contribution-rate nil) (temp nil))
-      (dolist (point point-in-region)
-        (setq x (append x (list (aref point 0))))
-        (setq y (append y (list (aref point 1))))
-        (setq z (append z (list (aref point 2)))))
-      (setq temp (eigen-decompose (covariance-matrix (list x y z))))
-      (print temp)
-      (setq eigen-vector (car temp))
-      (setq covariance-mat (cadr temp))
+    (let* ((eigen-decompose-ret (pca point-in-region))
+           (eigen-vector (car eigen-decompose-ret))
+           (contribution-rate nil))
       (setq contribution-rate (/ (aref eigen-vector 0) (apply #'+ (coerce eigen-vector cons))))
-      (format t "first variance direction: ~A, contribution rate: ~A~%"
-              (float-vector (aref covariance-mat 0 0)
-                            (aref covariance-mat 1 0)
-                            (aref covariance-mat 2 0))
-              contribution-rate)
       (if (< contribution-rate 0.7)
-        :ball
-        :cuboid)
-      )
-    )
-  )
+          :ball
+          :cuboid))
+    ))
+
 
 (defun trace (&key (direction t) (count 2))
   (dotimes (i count)
@@ -314,14 +307,31 @@ If you want to set fetch's prepose from reset-pose,~%")
             :use-torso nil)
       ;; sensing object at the tip of side0
       (ros::spin-once)
-      (let ((min-temp) (r-dist-list (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons)))
-        (setq min-temp (apply #'min r-dist-list)) ;; right is reliable
-        (if (or (eq min-temp (elt r-dist-list 6)) (eq min-temp (elt r-dist-list 7)))
-           (send *fetch* :rarm :move-end-pos #f(10 0 0) :local :use-torso nil)
-           (send *fetch* :rarm :move-end-pos #f(-10 0 0) :local :use-torso nil)))
+      ;; (let ((min-temp) (r-dist-list (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons)))
+      ;;   (setq min-temp (apply #'min r-dist-list)) ;; right is reliable
+      ;;   (if (or (eq min-temp (elt r-dist-list 6)) (eq min-temp (elt r-dist-list 7)))
+      ;;      (send *fetch* :rarm :move-end-pos #f(10 0 0) :local :use-torso nil)
+      ;;      (send *fetch* :rarm :move-end-pos #f(-10 0 0) :local :use-torso nil)))
       (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
       (setq gripper-pos (send *ri* :gripper :position))
       (send *ri* :wait-interpolation)
+
+      ;; ajust incline
+      (ros::spin-once)
+      (setq angle (/ (+ (plane-incline-side0 "/left")
+                        (plane-incline-side0 "/right")) 2.0))
+      (if (and angle (< (abs angle) 45))
+        (rotate-wrist-r (/ angle 2.0)))
+      (send *ri* :wait-interpolation)
+
+      (send *fetch* :stop-grasp)
+      ;; move hand up
+      (if direction
+        (send *fetch* :rarm :move-end-pos #f(0 0 20) :local :use-torso nil)
+        (send *fetch* :rarm :move-end-pos #f(0 0 -20) :local :use-torso nil))
+      (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+      (send *ri* :wait-interpolation)
+
       (ros::spin-once)
       (send *ri* :grasp-with-condition
             (+ (- gripper-pos
@@ -331,19 +341,6 @@ If you want to set fetch's prepose from reset-pose,~%")
               (ros::spin-once)
               (and (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons)) 20) ;; condition
                    (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons)) 20))))
-      ;; ajust incline
-      (ros::spin-once)
-      (setq angle (/ (+ (plane-incline-side0 "/left")
-                        (plane-incline-side0 "/right")) 2.0))
-      (if (and angle (< (abs angle) 45))
-        (rotate-wrist-r (/ angle 2.0)))
-      (send *ri* :wait-interpolation)
-      ;; move hand up
-      (if direction
-        (send *fetch* :rarm :move-end-pos #f(0 0 20) :local :use-torso nil)
-        (send *fetch* :rarm :move-end-pos #f(0 0 -20) :local :use-torso nil))
-      (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
-      (send *ri* :wait-interpolation)
       )))
 
 ;; NOTE type is :setting, :main or :all
