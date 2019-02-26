@@ -31,3 +31,23 @@
       (print :ball) ;; TODO put apple on the kitchen
       (print :cuboid)) ;; TODO put banana on the kitchen
   )
+
+
+;; e.g. (extract-pca-feature "apple/1.l" "apple/1.txt")
+(defun extract-pca-feature (in_path out_path)
+  (let ((eigen-value nil))
+    (with-open-file
+        (in in_path :direction :input)
+      (let ((read-in (read in)) (cloud nil))
+        (setq cloud (eval read-in))
+        (setq eigen-value (car (classify-object (send *fetch* :angle-vector)
+                                                cloud :region nil)))))
+    (with-open-file
+        (out out_path
+             :direction :output
+             :if-exists :append
+             :if-does-not-exist :create)
+      (princ (format nil "~A, ~A, ~A"
+                     (aref eigen-value 0) (aref eigen-value 1) (aref eigen-value 2))
+             out))
+    ))
