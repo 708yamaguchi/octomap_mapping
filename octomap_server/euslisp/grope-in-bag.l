@@ -279,9 +279,9 @@ If you want to set fetch's prepose from reset-pose,~%")
 
     ;; visualize points
     ;; (send *irtviewer* :viewer :viewing :look #f(1547.99 103.739 1011.09) #f(149.955 30.4709 713.524) #f(0 0 1))
-    (send *irtviewer* :viewer :viewing :look #f(1055.93 -284.864 924.865) #f(203.607 227.263 713.509) #f(0 0 1))
-    (send *irtviewer* :draw-objects :flush t)
-    (send-all point-in-region :draw-on :flush t :width 5 :size 3)
+    ;; (send *irtviewer* :viewer :viewing :look #f(1055.93 -284.864 924.865) #f(203.607 227.263 713.509) #f(0 0 1))
+    ;; (send *irtviewer* :draw-objects :flush t)
+    ;; (send-all point-in-region :draw-on :flush t :width 5 :size 3)
 
     ;; PCA
     (let* ((eigen-decompose-ret (pca point-in-region))
