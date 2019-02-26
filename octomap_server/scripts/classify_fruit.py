@@ -1,10 +1,15 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 import numpy as np
 import os
+
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import LeaveOneOut
+from sklearn.neighbors import KNeighborsClassifier
 
 
 class ClassifyFruit(object):
@@ -24,6 +29,31 @@ class ClassifyFruit(object):
                 for j in range(3):  # x, y, z
                     ret[i-1][j] = float(data[j])
         return ret
+
+    def classify(self, k=1):
+        # see https://blog.amedama.jp/entry/2017/03/18/140238
+        # prepare for classification (e.g. create train and test data)
+        features = np.concatenate((self.apple, self.banana, self.mango), axis=0)
+        target_apple = np.zeros(len(self.apple), dtype=np.int)
+        target_banana = np.zeros(len(self.apple), dtype=np.int) + 1
+        target_mango = np.zeros(len(self.apple), dtype=np.int) + 2
+        targets = np.append(np.append(target_apple, target_banana), target_mango)
+        predicted_labels = []
+        loo = LeaveOneOut()
+        # split train and test data
+        for train, test in loo.split(features):
+            # print("leave one: {}".format(test[0]))
+            train_data = features[train]
+            target_data = targets[train]
+            # load model of k nearest neighbor
+            model = KNeighborsClassifier(n_neighbors=k)
+            model.fit(train_data, target_data)
+            # predict
+            predicted_label = model.predict(features[test])
+            predicted_labels.append(predicted_label)
+        # calc score
+        score = accuracy_score(targets, predicted_labels)
+        return score
 
     def visualize(self):
         # plot
@@ -47,3 +77,5 @@ class ClassifyFruit(object):
 if __name__ == '__main__':
     cf = ClassifyFruit()
     cf.visualize()
+    # for i in range(20):
+    #     print("k-nearest-neighbor: {}, score: {}".format(i+1, cf.classify(k=(i+1))))
