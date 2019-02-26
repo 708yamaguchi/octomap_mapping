@@ -207,6 +207,8 @@ If you want to set fetch's prepose from reset-pose,~%")
   ;; (trace :direction t :count 2)
 
   (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+
+  ;; TODO return value of classify-object is eigen-decompose-ret, so fix this line
   (if (eq (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "in-hand") :region nil) :ball)
       (print :ball) ;; TODO put apple on the kitchen
       (print :cuboid)) ;; TODO put banana on the kitchen
@@ -289,8 +291,10 @@ If you want to set fetch's prepose from reset-pose,~%")
            (contribution-rate nil))
       (setq contribution-rate (/ (aref eigen-vector 0) (apply #'+ (coerce eigen-vector cons))))
       (if (< contribution-rate 0.7)
-          :ball
-          :cuboid))
+          (print :ball)
+          (print :cuboid))
+
+      eigen-decompose-ret)
     ))
 
 
