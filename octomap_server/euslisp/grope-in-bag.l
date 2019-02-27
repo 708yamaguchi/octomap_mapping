@@ -8,6 +8,8 @@
 (load "package://euslib/euslisp/pca.l")
 (load "package://octomap_server/euslisp/utils.l")
 
+(ros::load-ros-manifest "opencv_apps")
+
 ;; set working region
 (setq *region* (list (* 0.5 1000) (* 0.8 1000) (* -0.15 1000) (* 0.15 1000) (* 0.3 1000) (* 0.6 1000)))
 (setq *resolution* 10)
@@ -33,6 +35,11 @@
 (setq *torso* 350)
 ;; direction accumulation
 (setq *direction-accum* 0)
+
+;; set in face-cb
+(setq *find-face* nil)
+;; set in speech-cb
+(setq *speech-message* nil)
 
 ;; collision objects for moveit
 (unless (boundp '*co*)
@@ -62,6 +69,24 @@ If you want to set fetch's prepose from reset-pose,~%")
 
 (defun main-former ()
   ;; TODO detect face of person to start this demo.
+  ;; detect human and listen to order
+  (ros::subscribe "/face_detection/faces" opencv_apps::FaceArrayStamped #'face-cb)
+  (ros::subscribe "/speech_to_text_string" std_msgs::String #'speech-cb)
+  (unix:usleep (* 10 1000))
+  (ros::rate 100)
+  (while t
+    (ros::spin-once)
+    (print *find-face*)
+    (if *find-face*
+      (progn
+        (send *ri* :speak-jp "なんでしょう？" :wait t)
+        (unix:sleep 5)
+        (ros::spin-once)
+        (if t ;; TODO ばなな is included in *speech-message*
+          (progn
+            (send *ri* :speak-jp "バナナをキッチンに置きます。")
+            (return)))))
+    (ros::sleep))
 
   ;; 1. receive bag from human
   (reveive-bag)
@@ -1279,6 +1304,14 @@ If you want to set fetch's prepose from reset-pose,~%")
       )
     ))
 
+
+(defun face-cb (msg)
+  (if (< 0 (length (send msg :faces)))
+    (progn (format t "find face!!~%") (setq *find-face* t))
+    (setq *find-face* nil)))
+
+(defun speech-cb (msg)
+  (setq *speech-message* (send msg :data)))
 
 (defun receive-bag ()
   (send *ri* :stop-grasp :wait t)
