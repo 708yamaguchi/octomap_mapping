@@ -44,17 +44,23 @@
     </rosparam>
   </node>
 
-    <node name="extract_indices_for_octomap"
-          pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/ExtractIndices $(arg manager)" >
-      <remap from="~input" to="$(arg input_occupied_grid)" />  <!-- depth timestamp -->
-      <remap from="~indices" to="attention_clipper_for_octomap/output/point_indices" />  <!-- rgb timestamp -->
-      <rosparam>
-        approximate_sync: true
-        queue_size: 100
-        keep_organized: false
-      </rosparam>
-    </node>
+  <node name="extract_indices_for_octomap"
+        pkg="nodelet" type="nodelet"
+        args="load jsk_pcl/ExtractIndices $(arg manager)" >
+    <remap from="~input" to="$(arg input_occupied_grid)" />  <!-- depth timestamp -->
+    <remap from="~indices" to="attention_clipper_for_octomap/output/point_indices" />  <!-- rgb timestamp -->
+    <rosparam>
+      approximate_sync: true
+      queue_size: 100
+      keep_organized: false
+    </rosparam>
+  </node>
+
+  <!-- face detection -->
+  <include file="$(find octomap_server)/launch/face_detection.launch" />
+
+  <!-- convert speech_to_text -->
+  <node pkg="euslib" name="speech_to_text_converter" type="speech_to_text_converter.py" />
 
   <!-- rviz -->
   <group if="$(arg rviz)">

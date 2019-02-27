@@ -1,0 +1,7 @@
+<launch>
+  <include file="$(find opencv_apps)/launch/face_detection.launch">
+    <arg name="image" value="/camera_remote/rgb/image_rect_color" />
+    <!-- <arg name="launch_trainer" value="false" /> --> <!-- for face_recognition -->
+    <arg name="debug_view" value="false" />
+  </include>
+</launch>
