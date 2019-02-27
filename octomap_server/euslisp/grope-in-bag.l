@@ -61,11 +61,17 @@ If you want to set fetch's prepose from reset-pose,~%")
 
 
 (defun main-former ()
-  ;; TODO 1. receive bag from human
+  ;; TODO detect face of person to start this demo.
 
-  ;; TODO 2. go to kitchen
+  ;; 1. receive bag from human
+  (reveive-bag)
 
-  ;; TODO 3. open the bag by using bag handle
+  ;; 2. go to kitchen
+  (send *ri* :go-pos-unsafe 0 -1.8 0)
+  (unix:sleep 1)
+
+  ;; 3. open the bag by using bag handle
+  (open-bag-handle)
   )
 
 
@@ -1272,5 +1278,132 @@ If you want to set fetch's prepose from reset-pose,~%")
       (unix:sleep 15)
       )
     ))
+
+
+(defun receive-bag ()
+  (send *ri* :stop-grasp :wait t)
+  (ros::spin-once)
+  (send *ri* :set-init-proximities)
+  ;; init pose for receiving bag
+  (send *ri* :angle-vector (send *fetch* :angle-vector (float-vector *torso* 53.3835 37.4017 -50.2776 121.598 -127.423 85.3903 173.424 0.0 0.0)) 10000) ;; do not use :end-coords-interpolation
+  (send *ri* :wait-interpolation)
+
+  (ros::spin-once)
+  (while (> (min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons))
+                 (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons)))
+            20)
+    (unix:sleep 1)
+    (ros::spin-once))
+  (format t "I get bag handle.~%")
+
+  (send *fetch* :torso :waist-z :joint-angle *torso*)
+  (send *ri* :angle-vector-sequence-raw
+        (list
+         (send *fetch* :inverse-kinematics (make-coords :pos #f(400 -710 1110) :rpy (float-vector -pi/2 0 0)) :use-torso nil)
+         (send *fetch* :inverse-kinematics (make-coords :pos #f(-50 -510 1210) :rpy (float-vector -pi 0 0)) :use-torso nil)
+          (send *fetch* :inverse-kinematics (make-coords :pos #f(-50 -310 1210) :rpy (float-vector pi/2 0 0)) :use-torso nil))
+        (list 4000 4000 4000)
+        :arm-controller)
+  (send *ri* :wait-interpolation)
+  (send *ri* :stop-grasp :wait t)
+  (send *fetch* :inverse-kinematics (make-coords :pos #f(-50 -300 1200) :rpy (float-vector pi/2 1 0)) :use-torso nil)
+  (send *ri* :angle-vector-raw (send *fetch* :angle-vector) 3000)
+  (send *ri* :wait-interpolation)
+
+  (send *ri* :angle-vector-sequence
+        (list
+          (send *fetch* :inverse-kinematics (make-coords :pos #f(-50 -500 1000) :rpy (float-vector -pi 0 0)) :use-torso nil)
+         ;; (send *fetch* :inverse-kinematics (make-coords :pos #f(-100 -500 1200) :rpy (float-vector -pi 0 0)) :use-torso nil)
+         (progn (send *fetch* :reset-pose) (send *fetch* :torso :waist-z :joint-angle *torso*) (send *fetch* :angle-vector)))
+        (list 3000 7000))
+  ;; (send *ri* :wait-interpolation)
+  (unix:sleep 10) ;; TODO : angle-vector-sequence do not return in a short time.
+  ;; (purupuru)
+  )
+
+(defun open-bag-handle ()
+  (ros::spin-once)
+  (let ((successp nil) (interpolatingp (send *ri* :interpolatingp)) av1 av2)
+    (while (null successp)
+      (send *ri* :stop-grasp :wait t)
+      (send *fetch* :reset-pose)
+      (send *fetch* :torso :waist-z :joint-angle *torso*)
+      (setq av1 (send *fetch* :rarm :move-end-pos #f(200 -200 0) :world :use-torso nil))
+      (send *fetch* :reset-pose)
+      (send *fetch* :torso :waist-z :joint-angle *torso*)
+      (setq av2 (send *fetch* :inverse-kinematics (make-coords :pos #f(-30 -390 1040) :rpy (float-vector -pi 0 0)) :use-torso nil))
+      (send *ri* :angle-vector-sequence-raw (list av1 av2) (list 4000 4000))
+      (send *ri* :wait-interpolation)
+
+      ;; move finger between two handles of the bag
+      (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords)
+                    :translate #f(0 50 0) :world)
+              :close-frame-list (list (list "/left" "/side2"))
+              :close-thre 45 :tm 4000)
+      ;; withdraw hand, move hand sideway and thrust hand between bag handles
+      (let ((av-1 (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso nil))
+            (av-2 (send *fetch* :rarm :move-end-pos #f(0 -50 0) :local :use-torso nil))
+            (av-3 (send *fetch* :rarm :move-end-pos #f(70 0 0) :local :use-torso nil)))
+        (send *ri* :angle-vector-sequence (list av-1 av-2 av-3) (list 3000 3000 3000))
+        (unix:sleep 9))
+
+      ;; TODO : check successp by using proximity sensor
+      (send *ri* :go-grasp :pos 0.04 :wait t)
+      (ros::spin-once)
+      (setq successp
+            (or (< (print (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons))) 50)
+                (< (print (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons))) 50)))
+
+      ;; search for bag handle again
+      (unless successp
+        (format t "I failed to approach to bag handle, so search it one more time~%"))))
+
+  (ros::spin-once)
+  ;; trace-string
+  (trace :direction t :count 3)
+  ;; (trace-string :cycle 7 :distance 20)
+
+  ;; TODO : Check if the gripper catch one string. If it grasp two strings, this code returns nil
+  ;;  Check after (trace-string)
+
+  ;; (send *ri* :get-touch-state :frame-list (list "/side0"))
+  ;; (funcall #'(lambda (x y) (or (and (not x) y) (and x (not y)))) ;; exclusive-or (xor)
+  ;;          (send *ri* :get-touch-state :finger-list "/left" :frame-list "/side2")
+  ;;          (send *ri* :get-touch-state :finger-list "/right" :frame-list "/side2"))
+
+  ;; TODO : use :angle-vector-sequence
+  ;; open bag handle
+  ;; prescribed motion
+  (print (send *ri* :state :potentio-vector :wait-until-update t))
+  (format t "lift bag handle~%")
+  (send *ri* :start-grasp :wait t)
+  (send *ri* :wait-interpolation)
+
+  ;; set pre-pose for IK
+  (send *fetch* :angle-vector #f(346.156 -24.4056 57.5172 -131.932 128.973 57.9143 82.2563 36.5244 0.385195 1.19939))
+  (let ((av1 (send *fetch* :rarm :move-end-pos #f(30 -30 120) :world :use-torso nil))
+        (av2 (send *fetch* :rarm :move-end-pos #f(0 -300 -300) :world :use-torso nil))
+        (av3 (progn (send *fetch* :inverse-kinematics (make-coords :pos (send (send *fetch* :rarm :end-coords) :worldpos) :rpy (float-vector pi (* pi 0.2) 0)) :use-torso nil)) (send *fetch* :rarm :move-end-pos #f(0 -200 0) :world :use-torso nil)))
+    (print (list av1 av2 av3))
+    (send *ri* :angle-vector-sequence-raw (list av1 av2 av3) (list 2000 3000 3000)) ;; use raw for smooth move
+    (send *ri* :wait-interpolation))
+  ;; sometimes error : attempted to call service /plan_kinematic_path, but failed
+  (send *ri* :wait-interpolation)
+  (send *ri* :stop-grasp :wait t)
+
+  (format t "fetch's pose at the end of this function:~%~A~%" #f(346.156 -47.6788 19.7434 -116.842 66.0484 68.3346 86.7884 69.4012 0.385195 1.19939))
+
+  ;; (send *ri* :start-grasp :wait t)
+  ;; (send *fetch* :rarm :move-end-pos #f(0 -100 100) :world :use-torso nil)
+  ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 3000 :arm-controller 0 :end-coords-interpolation t)
+  ;; (send *ri* :wait-interpolation)
+  ;; (send *ri* :stop-grasp :wait t)
+  ;; (send *fetch* :rarm :move-end-pos #f(0 -250 0) :world :use-torso nil)
+  ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 2000 :arm-controller 0 :end-coords-interpolation t)
+  ;; (send *ri* :wait-interpolation)
+  ;; (send *fetch* :inverse-kinematics (make-coords :pos (send (send *fetch* :rarm :end-coords) :worldpos) :rpy (float-vector 0 (* pi 0.2) pi)))
+  ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 3000 :arm-controller 0 :end-coords-interpolation t)
+  ;; (send *ri* :wait-interpolation)
+  )
 
 nil
