@@ -62,6 +62,9 @@
   <!-- convert speech_to_text -->
   <node pkg="euslib" name="speech_to_text_converter" type="speech_to_text_converter.py" />
 
+  <!-- classify fruit by using occupied octomap grid-->
+  <node pkg="octomap_server" name="classify_fruit_ros" type="classify_fruit_ros.py" />
+
   <!-- rviz -->
   <group if="$(arg rviz)">
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/octomap_for_bag.rviz"/>

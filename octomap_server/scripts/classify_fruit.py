@@ -7,6 +7,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import os
 
+import rospkg
+
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import LeaveOneOut
 from sklearn.neighbors import KNeighborsClassifier
@@ -21,9 +23,10 @@ class ClassifyFruit(object):
 
     def load_data(self, fruit, data_length=5):
         ret = np.zeros((data_length, 3), dtype=np.float32)
+        rospack = rospkg.RosPack()
+        package_path = rospack.get_path('octomap_server')
         for i in range(1, 1+data_length):
-            for l in open('/'.join(os.getcwd().split('/')[0:-1])
-                          + '/euslisp/' + fruit + '/'
+            for l in open(package_path + '/euslisp/' + fruit + '/'
                           + str(i) + '.txt').readlines():
                 data = l[:-1].split(',')
                 for j in range(3):  # x, y, z
