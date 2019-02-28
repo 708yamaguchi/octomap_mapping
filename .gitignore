@@ -18,3 +18,4 @@ octomap_server/src/octomap_server
 
 *~
 *.bag
+*.pyc
