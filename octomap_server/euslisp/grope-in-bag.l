@@ -70,10 +70,8 @@ If you want to set fetch's prepose from reset-pose,~%")
 (defun main-former ()
   ;; TODO detect face of person to start this demo.
   ;; detect human and listen to order
-  (ros::subscribe "/face_detection/faces" opencv_apps::FaceArrayStamped #'face-cb)
-  (ros::subscribe "/speech_to_text_string" std_msgs::String #'speech-cb)
   (unix:usleep (* 10 1000))
-  (ros::rate 100)
+  (ros::rate 10)
   (while t
     (ros::spin-once)
     (print *find-face*)
@@ -82,9 +80,11 @@ If you want to set fetch's prepose from reset-pose,~%")
         (send *ri* :speak-jp "なんでしょう？" :wait t)
         (unix:sleep 5)
         (ros::spin-once)
-        (if t ;; TODO ばなな is included in *speech-message*
+        (if (or (substringp "ばなな" *speech-message*)
+                (substringp "バナナ" *speech-message*))
           (progn
             (send *ri* :speak-jp "バナナをキッチンに置きます。")
+            (format t "バナナをキッチンに置きます。~%")
             (return)))))
     (ros::sleep))
 
@@ -1438,5 +1438,8 @@ If you want to set fetch's prepose from reset-pose,~%")
   ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 3000 :arm-controller 0 :end-coords-interpolation t)
   ;; (send *ri* :wait-interpolation)
   )
+
+(ros::subscribe "/face_detection/faces" opencv_apps::FaceArrayStamped #'face-cb)
+(ros::subscribe "/speech_to_text_string" std_msgs::String #'speech-cb)
 
 nil
