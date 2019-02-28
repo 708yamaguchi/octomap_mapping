@@ -66,6 +66,9 @@ If you want to set fetch's prepose from reset-pose,~%")
 (format t "Look at inside of the bag~%")
 (warning-message 3 "(progn (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t)) (send *fetch* :head :neck-p :joint-angle 80) (send *fetch* :head :neck-y :joint-angle -90))~%")
 
+(defun main ()
+  (main-former)
+  (main-latter))
 
 (defun main-former ()
   ;; TODO detect face of person to start this demo.
@@ -77,6 +80,7 @@ If you want to set fetch's prepose from reset-pose,~%")
     (print *find-face*)
     (if *find-face*
       (progn
+        (format t "find face~%")
         (send *ri* :speak-jp "なんでしょう？" :wait t)
         (unix:sleep 5)
         (ros::spin-once)
@@ -89,7 +93,7 @@ If you want to set fetch's prepose from reset-pose,~%")
     (ros::sleep))
 
   ;; 1. receive bag from human
-  (reveive-bag)
+  (receive-bag)
 
   ;; 2. go to kitchen
   (send *ri* :go-pos-unsafe 0 -1.8 0)
@@ -105,56 +109,6 @@ If you want to set fetch's prepose from reset-pose,~%")
 ;; :main does main part of this function and :all does both of them.
 ;; NOTE do main-former beforehand (namely, open bag and move hand above the bag)
 (defun main-latter (&key (type :all))
-  ;; (if (not (or (equal type :setting) (equal type :main) (equal type :all)))
-  ;;   (progn (format t "argument :type is not correctly set~%") (return-from main nil)))
-  ;; (unless (boundp '*co*)
-  ;;   (setq *co* (instance collision-object-publisher :init)))
-  ;; (send *co* :wipe-all)
-  ;; (setq *direction-accum* 0)
-  ;; (let ((boxes nil) (target-region nil) x-min x-max y-min y-max z-min z-max)
-  ;;   (when (or (equal type :all) (equal type :setting))
-  ;;     ;; settings for experiment
-  ;;     ;; NOTE make sure that fetch is the pose for manipulating the bag. (use prepose-for-main)
-  ;;     ;; look at bag
-  ;;     ;; (prepose-for-main :type :all) or (prepose-for-main :type :part) at first
-  ;;     (send *fetch* :rarm :move-end-pos #f(300 0 0) :world :use-torso nil)
-  ;;     (send *fetch* :head :neck-p :joint-angle 80)
-  ;;     (send *fetch* :head :neck-y :joint-angle -90)
-  ;;     (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
-  ;;     (send *ri* :wait-interpolation)
-  ;;     ;; set octomap
-  ;;     (camera-stop)
-  ;;     (octomap-reset)
-  ;;     (send *ri* :wait-interpolation)
-  ;;     (camera-request)
-  ;;     (unix:usleep (* 500 1000))
-  ;;     ;; use camera and decide target region
-  ;;     (while t ;; wait for /HSI_color_filter/boxes comes once
-  ;;       (setq boxes (one-shot-subscribe "/attention_clipper/output/box_array" jsk_recognition_msgs::BoundingBoxArray))
-  ;;       (when (send boxes :boxes)
-  ;;         (return))
-  ;;       (unix:usleep (* 100 1000)))
-  ;;     (setq target-region (box-recog boxes :offset 0)) ;; offset is to ignore box edge
-  ;;     (send target-region :translate #f(0 0 0) :world) ;; offset is to ignore green tape width on microwave
-  ;;     (setq *target-region* (copy-object target-region))
-  ;;     (camera-stop)
-
-  ;;     ;; set hand to initial experiment pose ;; TODO check
-  ;;     (prepose-for-main :type :part)
-  ;;     (send *ri* :go-grasp :pos 0.03 :wait t)
-  ;;     (unix:usleep (* 500 1000))
-  ;;     (send *ri* :set-init-proximities)
-
-  ;;     ;; set environment as collision object for moveit
-  ;;     ;; (setq *collision-objects* (collision-object-for-microwave target-region))
-  ;;     ;; (send *co* :wipe-all)
-  ;;     ;; visualization of target region and collision objects
-  ;;     ;; (objects (append (list *fetch*) *collision-objects* (send *target-region* :edges)))
-  ;;     )
-
-  ;;   (if (equal type :setting)
-  ;;     (return-from main-in-bag t))
-
   ;; NOTE START
   (prepose-for-main :type :part)
   (sensor-calib)
@@ -175,7 +129,6 @@ If you want to set fetch's prepose from reset-pose,~%")
     (if (< i 2)
       (progn (rotate-wrist-r 90 10000) (send *ri* :wait-interpolation))
       (progn (rotate-wrist-r -90 10000) (send *ri* :wait-interpolation))))
-
   ;; (dotimes (i 3)
   ;;   (send *ri* :go-grasp :pos (* i 0.05) :wait t)
   ;;   (rotate-wrist-r (* 90 (* (- (mod i 2) 0.5) 2)) 10000)
@@ -189,39 +142,9 @@ If you want to set fetch's prepose from reset-pose,~%")
     (send roi :worldcoords)
     (decide-grope-point (get-octo-pointcloud :type "occupied") roi :x-offset 0 :y-offset 0 :z-offset 0 :visualize-searching nil) ;; TODO pose is not suitable for manipulating bag. extract pos of grasp pose
     ;; (setq post-av (send *fetch* :angle-vector))
-
-    ;; TODO grasp with pre-grasp
-    ;; (send *ri* :start-grasp :wait t)
-    ;; (setq diff-av
-    ;;       (v- (progn
-    ;;             (send *fetch* :angle-vector post-av)
-    ;;             (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
-    ;;           (progn
-    ;;             (send *fetch* :angle-vector prev-av)
-    ;;             (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))))
-    ;; (send *fetch* :rarm :move-end-pos diff-av :world :use-torso nil)
-    ;; (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso nil)
-    ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
-    ;; (send *ri* :wait-interpolation)
-    ;; (pre-grasp) ;; TODO do not grasp in pre-grasp
     )
 
-  ;; TODO classify shapes of objects. before classification, reset octomap, and create octomap by trace motion. then, make bounding box and classify the shape of the bouding box (use euclidean clustering?)
-  ;; Is this really needed?
-  ;; (send *fetch* :rarm :move-end-pos #f(0 0 20) :local :use-torso nil)
-  ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
-  ;; (send *ri* :wait-interpolation)
-  ;; (send *fetch* :rarm :move-end-pos #f(0 0 -40) :local :use-torso nil)
-  ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
-  ;; (send *ri* :wait-interpolation)
-  ;; (send *fetch* :rarm :move-end-pos #f(0 0 20) :local :use-torso nil)
-  ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
-  ;; (send *ri* :wait-interpolation)
-
-  ;; now, fetch's angle vector is output of search of grasp point
-  ;; classify shapes of object by using occupied cloud in the gripper
-  ;; then, grasp object and put it on the kitchen
-
+  ;; classify shapes of objects. before classification, reset octomap, and create octomap by trace motion. then, make bounding box and classify the shape of the bouding box
   (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso nil)
   (send *ri* :angle-vector (send *fetch* :angle-vector) 6000)
   (send *ri* :wait-interpolation)
@@ -1307,7 +1230,8 @@ If you want to set fetch's prepose from reset-pose,~%")
 
 (defun face-cb (msg)
   (if (< 0 (length (send msg :faces)))
-    (progn (format t "find face!!~%") (setq *find-face* t))
+    (progn ;; (format t "find face!!~%")
+           (setq *find-face* t))
     (setq *find-face* nil)))
 
 (defun speech-cb (msg)
@@ -1318,7 +1242,9 @@ If you want to set fetch's prepose from reset-pose,~%")
   (ros::spin-once)
   (send *ri* :set-init-proximities)
   ;; init pose for receiving bag
-  (send *ri* :angle-vector (send *fetch* :angle-vector (float-vector *torso* 53.3835 37.4017 -50.2776 121.598 -127.423 85.3903 173.424 0.0 0.0)) 10000) ;; do not use :end-coords-interpolation
+  (send *ri* :angle-vector (send *fetch* :angle-vector (float-vector *torso* 53.3835 37.4017 -50.2776 121.598 -127.423 85.3903 173.424 0.0 0.0)) 8000) ;; do not use :end-coords-interpolation
+  (unix:sleep 4)
+  (sensor-calib)
   (send *ri* :wait-interpolation)
 
   (ros::spin-once)
@@ -1337,9 +1263,10 @@ If you want to set fetch's prepose from reset-pose,~%")
           (send *fetch* :inverse-kinematics (make-coords :pos #f(-50 -310 1210) :rpy (float-vector pi/2 0 0)) :use-torso nil))
         (list 4000 4000 4000)
         :arm-controller)
+  ;; at last, angle-vector is #f(350.0 -74.5328 16.6462 -129.503 78.846 2.9888 123.507 49.3667 0.0 0.0)
   (send *ri* :wait-interpolation)
   (send *ri* :stop-grasp :wait t)
-  (send *fetch* :inverse-kinematics (make-coords :pos #f(-50 -300 1200) :rpy (float-vector pi/2 1 0)) :use-torso nil)
+  (send *fetch* :inverse-kinematics (make-coords :pos #f(-50 -270 1230) :rpy (float-vector pi/2 1 0)) :use-torso nil)
   (send *ri* :angle-vector-raw (send *fetch* :angle-vector) 3000)
   (send *ri* :wait-interpolation)
 
@@ -1364,13 +1291,19 @@ If you want to set fetch's prepose from reset-pose,~%")
       (setq av1 (send *fetch* :rarm :move-end-pos #f(200 -200 0) :world :use-torso nil))
       (send *fetch* :reset-pose)
       (send *fetch* :torso :waist-z :joint-angle *torso*)
-      (setq av2 (send *fetch* :inverse-kinematics (make-coords :pos #f(-30 -390 1040) :rpy (float-vector -pi 0 0)) :use-torso nil))
+      (setq av2 (send *fetch* :inverse-kinematics
+                      (make-coords :pos #f(-30 -390 1040) :rpy (float-vector -pi 0 0))
+                      :use-torso nil
+                      :additional-nspace-list (mapcar #'(lambda (link refangle)
+                                                          (eval `(list link #'(lambda () (* 0.2 (- ,refangle (send ,link :joint :joint-angle)))))))
+                                                      (send-all (list (nth 5 (send *fetch* :rarm :joint-list))) :child-link) ;; 5th joint equals to (send *fetch* :rarm :wrist-p)
+                                                      (list 50))))
       (send *ri* :angle-vector-sequence-raw (list av1 av2) (list 4000 4000))
       (send *ri* :wait-interpolation)
 
       ;; move finger between two handles of the bag
       (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords)
-                    :translate #f(0 50 0) :world)
+                    :translate #f(0 100 0) :world)
               :close-frame-list (list (list "/left" "/side2"))
               :close-thre 45 :tm 4000)
       ;; withdraw hand, move hand sideway and thrust hand between bag handles
