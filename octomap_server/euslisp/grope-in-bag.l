@@ -110,7 +110,10 @@ If you want to set fetch's prepose from reset-pose,~%")
 ;; NOTE type is :setting, :main or :all
 ;; :setting does setting of this function, do (prepose-for-main :all) before doing this
 ;; :main does main part of this function and :all does both of them.
-;; NOTE do main-former beforehand (namely, open bag and move hand above the bag)
+;; NOTE before (main-latter), set fetch the pose below
+;; (send *fetch* :angle-vector #f(346.156 -47.6788 19.7434 -116.842 66.0484 68.3346 86.7884 69.4012 0.385195 1.19939))
+;; (send *ri* :angle-vector (send *fetch* :angle-vector) 150000)
+
 (defun main-latter (&key (type :all))
   ;; NOTE START
   (prepose-for-main :type :part)
@@ -165,6 +168,8 @@ If you want to set fetch's prepose from reset-pose,~%")
   (let ((fruit-class (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "in-hand") :region nil)))
     (unless (equal fruit-class "banana")
       (return-from main-latter)))
+
+  ;; TODO grasp banana and put banana on the kitchen
   )
 
 ;; example
