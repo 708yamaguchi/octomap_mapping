@@ -115,9 +115,28 @@ If you want to set fetch's prepose from reset-pose,~%")
 ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 150000)
 
 (defun main-latter (&key (type :all))
-  ;; NOTE START
+  ;; setup
   (prepose-for-main :type :part)
   (sensor-calib)
+
+  ;; see in the bag, and find yellow banana
+  (camera-request)
+  (let ((boxes nil) (banana-pos nil) (target-coords nil))
+    (while t ;; wait for /HSI_color_filter/boxes comes once
+      (setq boxes (one-shot-subscribe "/HSI_color_filter/boxes" jsk_recognition_msgs::BoundingBoxArray))
+      (when (send boxes :boxes)
+        (return))
+      (unix:usleep (* 100 1000)))
+    (camera-stop)
+    (setq banana-pos (send (send (car (send boxes :boxes)) :pose) :position))
+    (send *fetch* :rarm :move-end-pos
+          (v+ (v- banana-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
+              #f(-20 -50 100))
+          :world :use-torso nil)
+    (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
+    (send *ri* :wait-interpolation))
+
+  ;; start groping
   (send *ri* :start-grasp :wait t)
   (send *ri* :angle-vector
         (send *fetch* :rarm :move-end-pos #f(20 50 -100) :world :use-torso nil) 5000)
