@@ -27,9 +27,7 @@
   (print 333333)
   ;; classify object
   (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-  (if (eq (classify-object (send *fetch* :angle-vector) (setq in-hand-cloud (get-octo-pointcloud :type "in-hand")) :region nil) :ball)
-      (print :ball) ;; TODO put apple on the kitchen
-      (print :cuboid)) ;; TODO put banana on the kitchen
+  (classify-object (send *fetch* :angle-vector) (setq in-hand-cloud (get-octo-pointcloud :type "in-hand")) :region nil)
   )
 
 

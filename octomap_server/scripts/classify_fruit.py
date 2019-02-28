@@ -30,7 +30,7 @@ class ClassifyFruit(object):
                     ret[i-1][j] = float(data[j])
         return ret
 
-    def classify(self, k=1):
+    def classify_test(self, k=1):
         # see https://blog.amedama.jp/entry/2017/03/18/140238
         # prepare for classification (e.g. create train and test data)
         features = np.concatenate((self.apple, self.banana, self.mango), axis=0)
@@ -55,6 +55,28 @@ class ClassifyFruit(object):
         score = accuracy_score(targets, predicted_labels)
         return score
 
+    def classify(self, data, k=7):  # 7 is desirable for this dataset
+        # see https://blog.amedama.jp/entry/2017/03/18/140238
+        # prepare for classification (e.g. create train and test data)
+        features = np.concatenate((self.apple, self.banana, self.mango), axis=0)
+        target_apple = np.zeros(len(self.apple), dtype=np.int)
+        target_banana = np.zeros(len(self.apple), dtype=np.int) + 1
+        target_mango = np.zeros(len(self.apple), dtype=np.int) + 2
+        targets = np.append(np.append(target_apple, target_banana), target_mango)
+        # train k nearest neighbor
+        train = np.zeros(features.shape[0], dtype=np.int)
+        for (i, element) in enumerate(train):
+            train[i] = i
+        train_data = features[train]
+        target_data = targets[train]
+        model = KNeighborsClassifier(n_neighbors=k)
+        model.fit(train_data, target_data)
+        # predict
+        input_data = np.array(data, dtype=np.float32)
+        predicted_label = model.predict(input_data[None])
+        # label: 0->apple, 1->banana, 2->mango
+        return predicted_label
+
     def visualize(self):
         # plot
         fig = plt.figure()
@@ -76,6 +98,9 @@ class ClassifyFruit(object):
 
 if __name__ == '__main__':
     cf = ClassifyFruit()
+    # cf.classify([411.728, 163.605, 40.9302], k=1) # banana/1.txt
+    # cf.classify([716.922, 476.102, 80.1956], k=1) # apple/1.txt
     cf.visualize()
-    # for i in range(20):
-    #     print("k-nearest-neighbor: {}, score: {}".format(i+1, cf.classify(k=(i+1))))
+    for i in range(20):
+        print("k-nearest-neighbor: {}, score: {}".format(
+            i+1, cf.classify_test(k=(i+1))))

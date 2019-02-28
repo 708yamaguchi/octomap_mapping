@@ -40,6 +40,9 @@
 (setq *find-face* nil)
 ;; set in speech-cb
 (setq *speech-message* nil)
+;; set in fruit-cb
+(setq *fruit-class* nil)
+
 
 ;; collision objects for moveit
 (unless (boundp '*co*)
@@ -155,17 +158,13 @@ If you want to set fetch's prepose from reset-pose,~%")
   (pre-grasp)
   (octomap-reset)
   (trace :direction nil :count 2)
-  (trace :direction t :count 2)
-  ;; (trace :direction t :count 2)
-  ;; (trace :direction nil :count 4)
-  ;; (trace :direction t :count 2)
+  (trace :direction t :count 4)
+  (trace :direction nil :count 2)
 
   (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-
-  ;; TODO return value of classify-object is eigen-decompose-ret, so fix this line
-  (if (eq (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "in-hand") :region nil) :ball)
-      (print :ball) ;; TODO put apple on the kitchen
-      (print :cuboid)) ;; TODO put banana on the kitchen
+  (let ((fruit-class (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "in-hand") :region nil)))
+    (unless (equal fruit-class "banana")
+      (return-from main-latter)))
   )
 
 ;; example
@@ -240,15 +239,16 @@ If you want to set fetch's prepose from reset-pose,~%")
     ;; (send-all point-in-region :draw-on :flush t :width 5 :size 3)
 
     ;; PCA
-    (let* ((eigen-decompose-ret (pca point-in-region))
-           (eigen-vector (car eigen-decompose-ret))
-           (contribution-rate nil))
-      (setq contribution-rate (/ (aref eigen-vector 0) (apply #'+ (coerce eigen-vector cons))))
-      (if (< contribution-rate 0.7)
-          (print :ball)
-          (print :cuboid))
-
-      eigen-decompose-ret)
+    (let* ((eigen-decompose (pca point-in-region))
+           (eigen-vector (car eigen-decompose))
+           (pca-fruit (instance std_msgs::Float32MultiArray :init))
+           (ret nil))
+      (print eigen-decompose)
+      (send pca-fruit :data eigen-vector)
+      (ros::publish "pca_fruit" pca-fruit)
+      (unix:usleep (* 10 1000))
+      (ros::spin-once)
+      *fruit-class*)
     ))
 
 
@@ -1237,6 +1237,9 @@ If you want to set fetch's prepose from reset-pose,~%")
 (defun speech-cb (msg)
   (setq *speech-message* (send msg :data)))
 
+(defun fruit-cb (msg)
+  (setq *fruit-class* (send msg :data)))
+
 (defun receive-bag ()
   (send *ri* :stop-grasp :wait t)
   (ros::spin-once)
@@ -1374,5 +1377,7 @@ If you want to set fetch's prepose from reset-pose,~%")
 
 (ros::subscribe "/face_detection/faces" opencv_apps::FaceArrayStamped #'face-cb)
 (ros::subscribe "/speech_to_text_string" std_msgs::String #'speech-cb)
+(ros::subscribe "/fruit_class" std_msgs::String #'fruit-cb)
+(ros::advertise "/pca_fruit" std_msgs::Float32MultiArray 1)
 
 nil
