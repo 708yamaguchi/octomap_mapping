@@ -5,7 +5,7 @@
   <arg name="manager" default="manager_for_bag"/>
   <arg name="input_occupied_grid" default="/octomap_point_cloud_centers"/>
 
-  <!-- create octomap but do not color recognition -->
+  <!-- create octomap but do not box recognition -->
   <include file="$(find octomap_server)/launch/octomap_mapping_multicloud_contact.launch">
     <arg name="rviz" value="false"/>
     <arg name="box_recog" value="$(arg box_recog)"/>
@@ -34,7 +34,7 @@
         args="load jsk_pcl/AttentionClipper $(arg manager)" output="screen">
     <remap from="~input/points" to="$(arg input_occupied_grid)" />
     <rosparam>
-      <!-- inside of bag -->
+      <!-- the target region near the gripper -->
       initial_pos: [0.01, 0, 0]
       initial_rot: [0, 0, 0]
       dimension_x: 0.06
@@ -64,6 +64,18 @@
 
   <!-- classify fruit by using occupied octomap grid-->
   <node pkg="octomap_server" name="classify_fruit_ros" type="classify_fruit_ros.py" />
+
+  <!-- recognize banana -->
+    <include file="$(find octomap_server)/launch/banana_recog.launch">
+      <arg name="INPUT" value="/camera_in"/>
+      <!-- for yellow banana -->
+      <arg name="h_max" value="47"/>
+      <arg name="h_min" value="-7"/>
+      <arg name="s_max" value="255"/>
+      <arg name="s_min" value="140"/>
+      <arg name="i_max" value="255"/>
+      <arg name="i_min" value="155"/>
+    </include>
 
   <!-- rviz -->
   <group if="$(arg rviz)">
