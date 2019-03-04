@@ -102,7 +102,7 @@
         (if (> (reduce #'min l-dist)
                (reduce #'min r-dist))
             (progn
-              (send *fetch* :rarm :move-end-pos (float-vector 20 10 0) :local :use-torso nil) ;; 20 is right parameter?
+              (send *fetch* :rarm :move-end-pos (float-vector 10 10 0) :local :use-torso nil) ;; 20 is right parameter?
               ;; TODO check this function
               (let ((odd-list nil) (even-list nil) (j 0))
                 (dolist (dist r-dist)
@@ -114,7 +114,7 @@
                     (send *fetch* :rarm :move-end-pos #f(0 0 10) :local :use-torso nil)
                     (send *fetch* :rarm :move-end-pos #f(0 0 -10) :local :use-torso nil))))
             (progn
-              (send *fetch* :rarm :move-end-pos (float-vector 20 -10 0) :local :use-torso nil) ;; 20 is right parameter?
+              (send *fetch* :rarm :move-end-pos (float-vector 10 -10 0) :local :use-torso nil) ;; 20 is right parameter?
               ;; TODO check this function
               (let ((odd-list nil) (even-list nil) (j 0))
                 (dolist (dist l-dist)

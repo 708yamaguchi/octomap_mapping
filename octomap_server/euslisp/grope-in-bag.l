@@ -185,6 +185,7 @@ If you want to set fetch's prepose from reset-pose,~%")
     ;;         :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre 20)
 
   ;; pre-grasp and trace object to create object model by proximity sensor reaction
+  (send *ri* :stop-grasp :wait t)
   (pre-grasp) ;; pre-grasp is the motion in which move hand down with adjusting left/right pos
   (octomap-reset)
   (trace :direction nil :count 2)
