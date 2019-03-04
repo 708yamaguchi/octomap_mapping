@@ -110,37 +110,45 @@ If you want to set fetch's prepose from reset-pose,~%")
 ;; NOTE type is :setting, :main or :all
 ;; :setting does setting of this function, do (prepose-for-main :all) before doing this
 ;; :main does main part of this function and :all does both of them.
-;; NOTE before (main-latter), set fetch the pose below
-;; (send *fetch* :angle-vector #f(346.156 -47.6788 19.7434 -116.842 66.0484 68.3346 86.7884 69.4012 0.385195 1.19939))
 ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 150000)
 
+;; NOTE before (main-latter), set fetch the pose below
+;; (send *fetch* :angle-vector #f(346.156 -47.6788 19.7434 -116.842 66.0484 68.3346 86.7884 69.4012 0.385195 1.19939))
 (defun main-latter (&key (type :all))
   ;; setup
-  (prepose-for-main :type :part)
+  (camera-request)
+  (send *ri* :stop-grasp :wait t)
+  (send *fetch* :head :neck-p :joint-angle 80)
+  (send *fetch* :head :neck-y :joint-angle -89.9544)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
   (sensor-calib)
+  (send *ri* :wait-interpolation)
 
   ;; see in the bag, and find yellow banana
-  (camera-request)
-  (let ((boxes nil) (banana-pos nil) (target-coords nil))
+  (let ((boxes nil) (banana-pos nil) (target-coords nil) (banana-cube nil))
     (while t ;; wait for /HSI_color_filter/boxes comes once
       (setq boxes (one-shot-subscribe "/HSI_color_filter/boxes" jsk_recognition_msgs::BoundingBoxArray))
       (when (send boxes :boxes)
         (return))
       (unix:usleep (* 100 1000)))
     (camera-stop)
-    (setq banana-pos (send (send (car (send boxes :boxes)) :pose) :position))
+    ;; move hand above the target object (banana)
+    (setq banana-cube (bounding-box->cube (car (send boxes :boxes))))
+    (setq banana-pos (v+ (send banana-cube :pos)
+                         (float-vector 0 0 (* 0.5 (z-of-cube banana-cube)))))
+    ;; move hand prepose for groping
+    (prepose-for-main :type :part)
+    (send *ri* :start-grasp :wait t)
     (send *fetch* :rarm :move-end-pos
           (v+ (v- banana-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
-              #f(-20 -50 100))
+              #f(0 -10 80))
           :world :use-torso nil)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
     (send *ri* :wait-interpolation))
 
+  (break)
+
   ;; start groping
-  (send *ri* :start-grasp :wait t)
-  (send *ri* :angle-vector
-        (send *fetch* :rarm :move-end-pos #f(20 50 -100) :world :use-torso nil) 5000)
-  (send *ri* :wait-interpolation)
   (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
           :close-frame-list (list (list "/left" "/top") (list "/right" "/top"))
           :close-thre 35 :use-torso nil)
@@ -177,7 +185,7 @@ If you want to set fetch's prepose from reset-pose,~%")
     ;;         :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre 20)
 
   ;; pre-grasp and trace object to create object model by proximity sensor reaction
-  (pre-grasp)
+  (pre-grasp) ;; pre-grasp is the motion in which move hand down with adjusting left/right pos
   (octomap-reset)
   (trace :direction nil :count 2)
   (trace :direction t :count 4)

@@ -281,6 +281,11 @@
     (list wrist-angle-1 wrist-angle-2)
     ))
 
+(defun bounding-box->cube (b)
+   (let* ((dims (ros::tf-point->pos (send b :dimensions)))
+          (cube (make-cube (elt dims 0) (elt dims 1) (elt dims 2))))
+     (send cube :newcoords (ros::tf-pose->coords (send b :pose)))
+     cube))
 
 ;; Method for writing words on IRTviewer
 ;; See https://github.com/euslisp/jskeus/pull/530
