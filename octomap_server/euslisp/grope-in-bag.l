@@ -113,7 +113,7 @@ If you want to set fetch's prepose from reset-pose,~%")
 ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 150000)
 
 ;; NOTE before (main-latter), set fetch the pose below
-;; (send *fetch* :angle-vector #f(346.156 -47.6788 19.7434 -116.842 66.0484 68.3346 86.7884 69.4012 0.385195 1.19939))
+;; (send *ri* :angle-vector (send *fetch* :angle-vector #f(346.156 -47.6788 19.7434 -116.842 66.0484 68.3346 86.7884 69.4012 0.385195 1.19939)) 6000)
 (defun main-latter (&key (type :all))
   ;; setup
   (camera-request)
@@ -141,31 +141,32 @@ If you want to set fetch's prepose from reset-pose,~%")
     (send *ri* :start-grasp :wait t)
     (send *fetch* :rarm :move-end-pos
           (v+ (v- banana-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
-              #f(0 -10 80))
+              #f(0 -10 70))
           :world :use-torso nil)
     (send *ri* :angle-vector (send *fetch* :angle-vector) 4000)
     (send *ri* :wait-interpolation))
 
-  (break)
-
   ;; start groping
   (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
           :close-frame-list (list (list "/left" "/top") (list "/right" "/top"))
-          :close-thre 35 :use-torso nil)
+          :close-thre 20 :use-torso nil)
 
   ;; TODO maybed following steps need to be repeated, because grasp point is not always found at the first trial.
 
   ;; TODO search for objects to grasp by creating map
   (octomap-reset)
   (dotimes (i 4)
-    (send *ri* :go-grasp :pos (* i 0.03) :wait t)
+    (send *ri* :go-grasp :pos (+ (* i 0.02) 0.02) :wait t)
+    (unix:usleep (* 100 1000))
     (if (< i 2)
-      (progn (rotate-wrist-r 90 10000) (send *ri* :wait-interpolation))
-      (progn (rotate-wrist-r -90 10000) (send *ri* :wait-interpolation))))
+      (progn (rotate-wrist-r 90 10000) (send *ri* :wait-interpolation) (unix:usleep (* 100 1000)))
+      (progn (rotate-wrist-r -90 10000) (send *ri* :wait-interpolation) (unix:usleep (* 100 1000)))))
   ;; (dotimes (i 3)
   ;;   (send *ri* :go-grasp :pos (* i 0.05) :wait t)
   ;;   (rotate-wrist-r (* 90 (* (- (mod i 2) 0.5) 2)) 10000)
   ;;   (send *ri* :wait-interpolation))
+
+  (break)
 
   ;; TODO search grasp pose
   (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
@@ -178,19 +179,25 @@ If you want to set fetch's prepose from reset-pose,~%")
     )
 
   ;; classify shapes of objects. before classification, reset octomap, and create octomap by trace motion. then, make bounding box and classify the shape of the bouding box
-  (send *fetch* :rarm :move-end-pos #f(-50 0 0) :local :use-torso nil)
+  (send *fetch* :rarm :move-end-pos #f(-40 0 0) :local :use-torso nil)
   (send *ri* :angle-vector (send *fetch* :angle-vector) 6000)
   (send *ri* :wait-interpolation)
-    ;; (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
-    ;;         :close-frame-list (list (list "/left" "/top") (list "/right" "/top")) :close-thre 20)
+
+  (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
+          :close-frame-list (list (list "/left" "/side0") (list "/right" "/side0")) :close-thre 40)
+  (send *fetch* :rarm :move-end-pos #f(20 0 0) :local :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+  (send *ri* :wait-interpolation)
 
   ;; pre-grasp and trace object to create object model by proximity sensor reaction
   (send *ri* :stop-grasp :wait t)
-  (pre-grasp) ;; pre-grasp is the motion in which move hand down with adjusting left/right pos
+  ;; (pre-grasp) ;; pre-grasp is the motion in which move hand down with adjusting left/right pos
   (octomap-reset)
+  (trace :direction t :count 2)
   (trace :direction nil :count 2)
-  (trace :direction t :count 4)
-  (trace :direction nil :count 2)
+  ;; (trace :direction t :count 2)
+  ;; (trace :direction nil :count 4)
+  ;; (trace :direction t :count 2)
 
   (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
   (let ((fruit-class (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "in-hand") :region nil)))
@@ -329,7 +336,7 @@ If you want to set fetch's prepose from reset-pose,~%")
                0.03) ;; goal pos of gripper
           #'(lambda ()
               (ros::spin-once)
-              (and (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons)) 20) ;; condition
+              (or (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons)) 20) ;; condition
                    (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons)) 20))))
       )))
 

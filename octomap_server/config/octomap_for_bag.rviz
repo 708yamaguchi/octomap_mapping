@@ -63,13 +63,13 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /occupied_cells_vis_array
       Name: OccupiedCells
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -109,13 +109,13 @@ Visualization Manager:
       Queue Size: 100
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /unknown_cells_vis_array
       Name: UnknownCells
       Namespaces:
-        {}
+        base_link: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /frontier_cells_vis_array
@@ -313,11 +313,11 @@ Visualization Manager:
       Use rainbow: true
       Value: true
     - Class: jsk_rviz_plugin/BoundingBoxArray
-      Enabled: true
+      Enabled: false
       Name: RegionForBag
       Topic: /attention_clipper/output/box_array
       Unreliable: false
-      Value: true
+      Value: false
       alpha: 0.8
       color: 25; 0; 255
       coloring: Flat color
@@ -668,22 +668,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.51524
+      Distance: 1.62861
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.1041
-        Y: -0.275797
-        Z: 0.843331
+        X: 0.0832952
+        Y: -0.354867
+        Z: 0.761796
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.554795
+      Pitch: 0.504794
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.78264
+      Yaw: 3.71761
     Saved: ~
 Window Geometry:
   Displays:
@@ -705,5 +705,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1855
-  X: 55
-  Y: -14
+  X: 65
+  Y: 24
