@@ -94,12 +94,12 @@
     <!-- <param name="occupancy_min_z" value="0.3" /> -->
     <!-- <param name="occupancy_max_z" value="0.8" /> -->
     <!-- for bag inside -->
-    <param name="occupancy_min_x" value="-0.2" />
-    <param name="occupancy_max_x" value="0.0" />
-    <param name="occupancy_min_y" value="-0.4" />
-    <param name="occupancy_max_y" value="-0.2" />
-    <param name="occupancy_min_z" value="0.65" />
-    <param name="occupancy_max_z" value="0.85" />
+    <param name="occupancy_min_x" value="-0.1" />
+    <param name="occupancy_max_x" value="0.1" />
+    <param name="occupancy_min_y" value="-0.5" />
+    <param name="occupancy_max_y" value="-0.3" />
+    <param name="occupancy_min_z" value="0.55" />
+    <param name="occupancy_max_z" value="0.75" />
 
     <!-- for table top in front of TV in 73B2 -->
     <!-- <param name="occupancy_min_x" value="0.4" /> -->
