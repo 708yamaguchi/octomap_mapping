@@ -166,7 +166,7 @@ If you want to set fetch's prepose from reset-pose,~%")
   ;;   (rotate-wrist-r (* 90 (* (- (mod i 2) 0.5) 2)) 10000)
   ;;   (send *ri* :wait-interpolation))
 
-  (break)
+  (format t "end rotating arm.~%fetch's angle-vector: ~A" (send *fetch* :angle-vector))
 
   ;; TODO search grasp pose
   (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
@@ -178,19 +178,24 @@ If you want to set fetch's prepose from reset-pose,~%")
     ;; (setq post-av (send *fetch* :angle-vector))
     )
 
+  (format t "end decide-grope-point.~%next fetch's angle-vector: ~A" (send *fetch* :angle-vector))
+
   ;; classify shapes of objects. before classification, reset octomap, and create octomap by trace motion. then, make bounding box and classify the shape of the bouding box
-  (send *fetch* :rarm :move-end-pos #f(-40 0 0) :local :use-torso nil)
+  (send *ri* :go-grasp :pos 0.02 :wait t :effort 55)
+  (send *fetch* :rarm :move-end-pos #f(-70 0 0) :local :use-torso nil)
   (send *ri* :angle-vector (send *fetch* :angle-vector) 6000)
   (send *ri* :wait-interpolation)
-
   (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
-          :close-frame-list (list (list "/left" "/side0") (list "/right" "/side0")) :close-thre 40)
-  (send *fetch* :rarm :move-end-pos #f(20 0 0) :local :use-torso nil)
+          :close-frame-list (list (list "/left" "/top") (list "/right" "/top"))
+          :close-thre 20
+          :use-torso nil)
+  (send *ri* :stop-grasp :wait t)
+  (send *fetch* :rarm :move-end-pos #f(30 0 0) :local :use-torso nil)
   (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
   (send *ri* :wait-interpolation)
 
   ;; pre-grasp and trace object to create object model by proximity sensor reaction
-  (send *ri* :stop-grasp :wait t)
+
   ;; (pre-grasp) ;; pre-grasp is the motion in which move hand down with adjusting left/right pos
   (octomap-reset)
   (trace :direction t :count 2)
@@ -205,6 +210,19 @@ If you want to set fetch's prepose from reset-pose,~%")
       (return-from main-latter)))
 
   ;; TODO grasp banana and put banana on the kitchen
+  (send *ri* :start-grasp :wait t)
+  (prepose-for-main :type :part)
+  (let ((av0 nil) (av1 nil) (av2 nil) (av3 nil))
+    (setq av0 (send *fetch* :angle-vector #f(350.0 -69.9524 -47.1977 -66.0171 104.822 32.2963 69.0654 122.165 0.0 0.0)))
+    (setq av1 (send *fetch* :inverse-kinematics (make-coords :pos #f(100 -400 1050) :rpy (float-vector 0 pi/2 0)) :use-torso nil))
+    (setq av2 (send *fetch* :inverse-kinematics (make-coords :pos #f(500 -200 1150) :rpy (float-vector 0 pi/2 0)) :use-torso nil))
+    (setq av3 (send *fetch* :inverse-kinematics (make-coords :pos #f(800 0 950) :rpy (float-vector 0 pi/2 0)) :use-torso nil))
+    (print (list av1 av2 av3))
+    (send *ri* :angle-vector-sequence
+          (list av1 av2 av3) (list 4000 6000 3000))
+    (unix:sleep 13)
+    )
+  (send *ri* :stop-grasp :wait t :effort 60)
   )
 
 ;; example
@@ -309,6 +327,7 @@ If you want to set fetch's prepose from reset-pose,~%")
       ;;   (if (or (eq min-temp (elt r-dist-list 6)) (eq min-temp (elt r-dist-list 7)))
       ;;      (send *fetch* :rarm :move-end-pos #f(10 0 0) :local :use-torso nil)
       ;;      (send *fetch* :rarm :move-end-pos #f(-10 0 0) :local :use-torso nil)))
+      (unix:usleep (* 100 1000))
       (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
       (setq gripper-pos (send *ri* :gripper :position))
       (send *ri* :wait-interpolation)
@@ -321,23 +340,27 @@ If you want to set fetch's prepose from reset-pose,~%")
         (rotate-wrist-r (/ angle 2.0)))
       (send *ri* :wait-interpolation)
 
-      (send *fetch* :stop-grasp)
+      ;; (send *fetch* :stop-grasp)
       ;; move hand up
       (if direction
         (send *fetch* :rarm :move-end-pos #f(0 0 20) :local :use-torso nil)
         (send *fetch* :rarm :move-end-pos #f(0 0 -20) :local :use-torso nil))
       (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
       (send *ri* :wait-interpolation)
+      (unix:usleep (* 100 1000))
 
       (ros::spin-once)
       (send *ri* :grasp-with-condition
-            (+ (- gripper-pos
+            (max
+             (+ (- gripper-pos
                   (* 0.001 (+ (apply #'min l-dist) (apply #'min r-dist))))
-               0.03) ;; goal pos of gripper
+                0.03)
+             0.045) ;; goal pos of gripper
           #'(lambda ()
               (ros::spin-once)
               (or (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons)) 20) ;; condition
-                   (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons)) 20))))
+                  (> (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons)) 20))))
+      (unix:usleep (* 100 1000))
       )))
 
 ;; NOTE type is :setting, :main or :all
