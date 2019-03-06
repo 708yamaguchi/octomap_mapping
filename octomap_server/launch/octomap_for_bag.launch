@@ -39,7 +39,7 @@
       initial_rot: [0, 0, 0]
       dimension_x: 0.06
       dimension_y: 0.09
-      dimension_z: 0.12
+      dimension_z: 0.09
       frame_id: gripper_link
     </rosparam>
   </node>
