@@ -124,8 +124,10 @@ if __name__ == '__main__':
     cf = ClassifyFruit()
     # cf.classify([411.728, 163.605, 40.9302], k=1) # banana/1.txt
     # cf.classify([716.922, 476.102, 80.1956], k=1) # apple/1.txt
-    # cf.visualize_target(291.401, 113.970, 51.8338) # classify target pca
     cf.visualize()
     # for i in range(20):
     #     print("k-nearest-neighbor: {}, score: {}".format(
     #         i+1, cf.classify_test(k=(i+1))))
+
+    # visualize target pca. this is sample of groping-in-bag experiment
+    # cf.visualize_target(291.401, 113.970, 51.8338)
