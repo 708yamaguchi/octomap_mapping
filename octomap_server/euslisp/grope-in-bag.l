@@ -116,7 +116,7 @@ If you want to set fetch's prepose from reset-pose,~%")
 ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 150000)
 
 ;; NOTE before (main-latter), set fetch the pose below
-;; (send *ri* :angle-vector (send *fetch* :angle-vector #f(346.156 -44.8685 32.5078 -112.987 70.6311 76.6623 81.7224 74.2675 0.385195 1.19939)) 6000)
+;; (send *ri* :angle-vector (send *fetch* :angle-vector #f(344.469 -28.6023 -7.2802 -70.8698 79.1903 13.6614 64.5903 100.597 0.079298 1.26531)) 6000)
 (defun main-latter (&key (type :all))
   ;; setup
   (camera-request)
@@ -1044,7 +1044,7 @@ If you want to set fetch's prepose from reset-pose,~%")
         (max-y (- (reduce #'max (mapcar #'(lambda (x) (aref x 1)) (send target-region :vertices))) y-offset))
         (min-z (+ (reduce #'min (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))) z-offset))
         (max-z (- (reduce #'max (mapcar #'(lambda (x) (aref x 2)) (send target-region :vertices))) z-offset)))
-    (setq points (search-graspable-point pc :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z :iter-count 500 :visualize-searching visualize-searching))
+    (setq points (search-graspable-point pc :min-x min-x :max-x max-x :min-y min-y :max-y max-y :min-z min-z :max-z max-z :iter-count 1000 :visualize-searching visualize-searching))
     (setq max-points points)
     (setq fetch-copy (copy-object *fetch*))
     (setq hand-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
@@ -1420,15 +1420,16 @@ If you want to set fetch's prepose from reset-pose,~%")
   (send *fetch* :angle-vector #f(344.202 -10.9583 6.58454 -77.4616 124.718 6.03687 43.1889 99.1026 0.033987 0.276535))
   (let ((av1 (send *fetch* :inverse-kinematics (make-coords :pos #f(-10 -290 1180) :rpy (float-vector 0 pi pi)) :use-torso nil))
         (av2 (send *fetch* :inverse-kinematics (make-coords :pos #f(-10 -600 800) :rpy (float-vector 0 pi pi)) :use-torso nil))
-        (av3 (progn (send *fetch* :inverse-kinematics (make-coords :pos (send (send *fetch* :rarm :end-coords) :worldpos) :rpy (float-vector pi (* pi 0.2) 0)) :use-torso nil))))
-    (print (list av1 av2 av3))
-    (send *ri* :angle-vector-sequence-raw (list av1 av2 av3) (list 2000 4000 3000)) ;; use raw for smooth move
-    (unix:sleep 9))
+        (av3 (progn (send *fetch* :inverse-kinematics (make-coords :pos (send (send *fetch* :rarm :end-coords) :worldpos) :rpy (float-vector pi (* pi 0.2) 0)) :use-torso nil)))
+        (av4 #f(344.469 -28.6023 -7.2802 -70.8698 79.1903 13.6614 64.5903 100.597 0.079298 1.26531)))
+    (print (list av1 av2 av3 av4))
+    (send *ri* :angle-vector-sequence-raw (list av1 av2 av3 av4) (list 2000 4000 3000 3000)) ;; use raw for smooth move
+    (unix:sleep 12))
   ;; sometimes error : attempted to call service /plan_kinematic_path, but failed
   ;; (send *ri* :wait-interpolation)
   (send *ri* :stop-grasp :wait t)
 
-  (format t "fetch's pose at the end of this function:~%~A~%" #f(346.156 -44.8685 32.5078 -112.987 70.6311 76.6623 81.7224 74.2675 0.385195 1.19939))
+  (format t "fetch's pose at the end of this function:~%~A~%" #f(344.469 -28.6023 -7.2802 -70.8698 79.1903 13.6614 64.5903 100.597 0.079298 1.26531))
 
   ;; (send *ri* :start-grasp :wait t)
   ;; (send *fetch* :rarm :move-end-pos #f(0 -100 100) :world :use-torso nil)
