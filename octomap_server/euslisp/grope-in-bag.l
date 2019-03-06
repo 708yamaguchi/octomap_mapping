@@ -120,7 +120,8 @@ If you want to set fetch's prepose from reset-pose,~%")
 (defun main-latter (&key (type :all))
   ;; setup
   (camera-request)
-  (send *ri* :stop-grasp :wait t)
+  (send *ri* :stop-grasp :wait t :effort 60)
+  (unix:sleep 3)
   (send *fetch* :head :neck-p :joint-angle 80)
   (send *fetch* :head :neck-y :joint-angle -89.9544)
   (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
@@ -141,7 +142,8 @@ If you want to set fetch's prepose from reset-pose,~%")
                          (float-vector 0 0 (* 0.5 (z-of-cube banana-cube)))))
     ;; move hand prepose for groping
     (prepose-for-main :type :part)
-    (send *ri* :start-grasp :wait t)
+    (send *ri* :go-grasp :pos 0.02 :wait t :effort 60)
+    (unix:sleep 1)
     (send *fetch* :rarm :move-end-pos
           (v+ (v- banana-pos (send (send *fetch* :rarm :end-coords :copy-worldcoords) :pos))
               #f(0 -10 70))
@@ -152,7 +154,7 @@ If you want to set fetch's prepose from reset-pose,~%")
   ;; start groping
   (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords) :translate #f(100 0 0))
           :close-frame-list (list (list "/left" "/top") (list "/right" "/top"))
-          :close-thre 20 :use-torso nil)
+          :close-thre 30 :use-torso nil)
 
   ;; TODO maybed following steps need to be repeated, because grasp point is not always found at the first trial.
 
@@ -192,8 +194,8 @@ If you want to set fetch's prepose from reset-pose,~%")
           :close-frame-list (list (list "/left" "/top") (list "/right" "/top"))
           :close-thre 20
           :use-torso nil)
-  (send *ri* :stop-grasp :wait t)
-  (send *fetch* :rarm :move-end-pos #f(30 0 0) :local :use-torso nil)
+  (send *ri* :go-grasp :pos 0.08 :wait t :effort 60)
+  (send *fetch* :rarm :move-end-pos #f(40 0 0) :local :use-torso nil)
   (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
   (send *ri* :wait-interpolation)
 
@@ -209,17 +211,21 @@ If you want to set fetch's prepose from reset-pose,~%")
 
   (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
   (let ((fruit-class (classify-object (send *fetch* :angle-vector) (get-octo-pointcloud :type "in-hand") :region nil)))
+    (format t "fruit: ~A~%" fruit-class)
     (unless (equal fruit-class "banana")
       (return-from main-latter)))
 
   ;; TODO grasp banana and put banana on the kitchen
-  (send *ri* :start-grasp :wait t)
+  (send *fetch* :rarm :move-end-pos #f(25 0 0) :local :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
+  (send *ri* :wait-interpolation)
+  (send *ri* :start-grasp :wait t :effort 60)
   (prepose-for-main :type :part)
   (let ((av0 nil) (av1 nil) (av2 nil) (av3 nil))
     (setq av0 (send *fetch* :angle-vector #f(350.0 -69.9524 -47.1977 -66.0171 104.822 32.2963 69.0654 122.165 0.0 0.0)))
     (setq av1 (send *fetch* :inverse-kinematics (make-coords :pos #f(100 -400 1050) :rpy (float-vector 0 pi/2 0)) :use-torso nil))
     (setq av2 (send *fetch* :inverse-kinematics (make-coords :pos #f(500 -200 1150) :rpy (float-vector 0 pi/2 0)) :use-torso nil))
-    (setq av3 (send *fetch* :inverse-kinematics (make-coords :pos #f(800 0 950) :rpy (float-vector 0 pi/2 0)) :use-torso nil))
+    (setq av3 (send *fetch* :inverse-kinematics (make-coords :pos #f(800 0 1000) :rpy (float-vector 0 pi/2 0)) :use-torso nil))
     (print (list av1 av2 av3))
     (send *ri* :angle-vector-sequence
           (list av1 av2 av3) (list 4000 6000 3000))
@@ -889,7 +895,9 @@ If you want to set fetch's prepose from reset-pose,~%")
         ;; set random point to grope
         (setq random-x (+ (random (- max-x min-x)) min-x))
         (setq random-y (+ (random (- max-y min-y)) min-y))
-        (setq random-rot (- (random pi) pi/2))
+        ;; (setq random-rot (funcall #'(lambda (range) (- (random range) (/ range 2.0))) (/ pi 2.0))
+        (setq random-rot (funcall #'(lambda (range) (+ pi/2 (- (random range) (/ range 2.0))))
+                                            (/ pi 3.0)))
         (send gripper-inside :locate (float-vector random-x random-y 0) :world) ;; change position absolutely
         (send gripper-inside :orient random-rot :z :world) ;; change rotation absolutely
         ;; calc point at which the gripper and the hand collides with pointcloud
