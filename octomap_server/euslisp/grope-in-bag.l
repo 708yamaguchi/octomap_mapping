@@ -76,6 +76,9 @@ If you want to set fetch's prepose from reset-pose,~%")
 (defun main-former ()
   ;; TODO detect face of person to start this demo.
   ;; detect human and listen to order
+  (send *fetch* :reset-pose)
+  (send *fetch* :head :neck-p :joint-angle -20)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
   (unix:usleep (* 10 1000))
   (ros::rate 10)
   (while t
@@ -99,8 +102,8 @@ If you want to set fetch's prepose from reset-pose,~%")
   (receive-bag)
 
   ;; 2. go to kitchen
-  (send *ri* :go-pos-unsafe 0 -1.8 0)
-  (unix:sleep 1)
+  ;; (send *ri* :go-pos-unsafe 0 -1.8 0)
+  ;; (unix:sleep 1)
 
   ;; 3. open the bag by using bag handle
   (open-bag-handle)
@@ -113,7 +116,7 @@ If you want to set fetch's prepose from reset-pose,~%")
 ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 150000)
 
 ;; NOTE before (main-latter), set fetch the pose below
-;; (send *ri* :angle-vector (send *fetch* :angle-vector #f(346.156 -47.6788 19.7434 -116.842 66.0484 68.3346 86.7884 69.4012 0.385195 1.19939)) 6000)
+;; (send *ri* :angle-vector (send *fetch* :angle-vector #f(346.156 -44.8685 32.5078 -112.987 70.6311 76.6623 81.7224 74.2675 0.385195 1.19939)) 6000)
 (defun main-latter (&key (type :all))
   ;; setup
   (camera-request)
@@ -1358,7 +1361,7 @@ If you want to set fetch's prepose from reset-pose,~%")
       (send *fetch* :reset-pose)
       (send *fetch* :torso :waist-z :joint-angle *torso*)
       (setq av2 (send *fetch* :inverse-kinematics
-                      (make-coords :pos #f(-30 -390 1040) :rpy (float-vector -pi 0 0))
+                      (make-coords :pos #f(-30 -390 1020) :rpy (float-vector -pi 0 0))
                       :use-torso nil
                       :additional-nspace-list (mapcar #'(lambda (link refangle)
                                                           (eval `(list link #'(lambda () (* 0.2 (- ,refangle (send ,link :joint :joint-angle)))))))
@@ -1385,6 +1388,7 @@ If you want to set fetch's prepose from reset-pose,~%")
       (setq successp
             (or (< (print (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons))) 50)
                 (< (print (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons))) 50)))
+      (setq successp t)
 
       ;; search for bag handle again
       (unless successp
@@ -1392,7 +1396,7 @@ If you want to set fetch's prepose from reset-pose,~%")
 
   (ros::spin-once)
   ;; trace-string
-  (trace :direction t :count 3)
+  (trace :direction t :count 2)
   ;; (trace-string :cycle 7 :distance 20)
 
   ;; TODO : Check if the gripper catch one string. If it grasp two strings, this code returns nil
@@ -1412,18 +1416,18 @@ If you want to set fetch's prepose from reset-pose,~%")
   (send *ri* :wait-interpolation)
 
   ;; set pre-pose for IK
-  (send *fetch* :angle-vector #f(346.156 -24.4056 57.5172 -131.932 128.973 57.9143 82.2563 36.5244 0.385195 1.19939))
-  (let ((av1 (send *fetch* :rarm :move-end-pos #f(30 -30 120) :world :use-torso nil))
-        (av2 (send *fetch* :rarm :move-end-pos #f(0 -300 -300) :world :use-torso nil))
-        (av3 (progn (send *fetch* :inverse-kinematics (make-coords :pos (send (send *fetch* :rarm :end-coords) :worldpos) :rpy (float-vector pi (* pi 0.2) 0)) :use-torso nil)) (send *fetch* :rarm :move-end-pos #f(0 -200 0) :world :use-torso nil)))
+  (send *fetch* :angle-vector #f(344.202 -10.9583 6.58454 -77.4616 124.718 6.03687 43.1889 99.1026 0.033987 0.276535))
+  (let ((av1 (send *fetch* :inverse-kinematics (make-coords :pos #f(-10 -290 1180) :rpy (float-vector 0 pi pi)) :use-torso nil))
+        (av2 (send *fetch* :inverse-kinematics (make-coords :pos #f(-10 -600 780) :rpy (float-vector 0 pi pi)) :use-torso nil))
+        (av3 (progn (send *fetch* :inverse-kinematics (make-coords :pos (send (send *fetch* :rarm :end-coords) :worldpos) :rpy (float-vector pi (* pi 0.2) 0)) :use-torso nil))))
     (print (list av1 av2 av3))
-    (send *ri* :angle-vector-sequence-raw (list av1 av2 av3) (list 2000 3000 3000)) ;; use raw for smooth move
-    (send *ri* :wait-interpolation))
+    (send *ri* :angle-vector-sequence-raw (list av1 av2 av3) (list 2000 4000 3000)) ;; use raw for smooth move
+    (unix:sleep 9))
   ;; sometimes error : attempted to call service /plan_kinematic_path, but failed
-  (send *ri* :wait-interpolation)
+  ;; (send *ri* :wait-interpolation)
   (send *ri* :stop-grasp :wait t)
 
-  (format t "fetch's pose at the end of this function:~%~A~%" #f(346.156 -47.6788 19.7434 -116.842 66.0484 68.3346 86.7884 69.4012 0.385195 1.19939))
+  (format t "fetch's pose at the end of this function:~%~A~%" #f(346.156 -44.8685 32.5078 -112.987 70.6311 76.6623 81.7224 74.2675 0.385195 1.19939))
 
   ;; (send *ri* :start-grasp :wait t)
   ;; (send *fetch* :rarm :move-end-pos #f(0 -100 100) :world :use-torso nil)
