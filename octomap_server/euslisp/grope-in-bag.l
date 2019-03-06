@@ -1369,6 +1369,7 @@ If you want to set fetch's prepose from reset-pose,~%")
                                                       (list 50))))
       (send *ri* :angle-vector-sequence-raw (list av1 av2) (list 4000 4000))
       (send *ri* :wait-interpolation)
+      (sensor-calib)
 
       ;; move finger between two handles of the bag
       (detect (send (send *fetch* :rarm :end-coords :copy-worldcoords)
@@ -1418,7 +1419,7 @@ If you want to set fetch's prepose from reset-pose,~%")
   ;; set pre-pose for IK
   (send *fetch* :angle-vector #f(344.202 -10.9583 6.58454 -77.4616 124.718 6.03687 43.1889 99.1026 0.033987 0.276535))
   (let ((av1 (send *fetch* :inverse-kinematics (make-coords :pos #f(-10 -290 1180) :rpy (float-vector 0 pi pi)) :use-torso nil))
-        (av2 (send *fetch* :inverse-kinematics (make-coords :pos #f(-10 -600 780) :rpy (float-vector 0 pi pi)) :use-torso nil))
+        (av2 (send *fetch* :inverse-kinematics (make-coords :pos #f(-10 -600 800) :rpy (float-vector 0 pi pi)) :use-torso nil))
         (av3 (progn (send *fetch* :inverse-kinematics (make-coords :pos (send (send *fetch* :rarm :end-coords) :worldpos) :rpy (float-vector pi (* pi 0.2) 0)) :use-torso nil))))
     (print (list av1 av2 av3))
     (send *ri* :angle-vector-sequence-raw (list av1 av2 av3) (list 2000 4000 3000)) ;; use raw for smooth move
