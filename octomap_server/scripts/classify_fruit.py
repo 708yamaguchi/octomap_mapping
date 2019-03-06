@@ -93,6 +93,27 @@ class ClassifyFruit(object):
                 "o", color="#0000ff", ms=4, mew=0.5, label='banana')
         ax.plot(self.mango[:, 0], self.mango[:, 1], self.mango[:, 2],
                 "o", color="#ff0000", ms=4, mew=0.5, label='mango')
+        print(self.mango[:, 0])
+        lg = plt.legend(loc='upper right', fontsize=10)
+        lg.get_title().set_fontsize(10)
+        plt.title("Classification by Groping", fontsize=20)
+        plt.show()
+
+    def visualize_target(self, eigen1, eigen2, eigen3):
+        # plot
+        fig = plt.figure()
+        ax = Axes3D(fig)
+        ax.set_xlabel("Eigen Vector 1")
+        ax.set_ylabel("Eigen Vector 2")
+        ax.set_zlabel("Eigen Vector 3")
+        ax.plot(self.apple[:, 0], self.apple[:, 1], self.apple[:, 2],
+                "o", color="#00ff00", ms=4, mew=0.5, label='apple')
+        ax.plot(self.banana[:, 0], self.banana[:, 1], self.banana[:, 2],
+                "o", color="#0000ff", ms=4, mew=0.5, label='banana')
+        ax.plot(self.mango[:, 0], self.mango[:, 1], self.mango[:, 2],
+                "o", color="#ff0000", ms=4, mew=0.5, label='mango')
+        ax.plot([eigen1], [eigen2], [eigen3],
+                "o", color="#000000", ms=4, mew=0.5, label='target')
         lg = plt.legend(loc='upper right', fontsize=10)
         lg.get_title().set_fontsize(10)
         plt.title("Classification by Groping", fontsize=20)
@@ -103,7 +124,8 @@ if __name__ == '__main__':
     cf = ClassifyFruit()
     # cf.classify([411.728, 163.605, 40.9302], k=1) # banana/1.txt
     # cf.classify([716.922, 476.102, 80.1956], k=1) # apple/1.txt
+    # cf.visualize_target(291.401, 113.970, 51.8338) # classify target pca
     cf.visualize()
-    for i in range(20):
-        print("k-nearest-neighbor: {}, score: {}".format(
-            i+1, cf.classify_test(k=(i+1))))
+    # for i in range(20):
+    #     print("k-nearest-neighbor: {}, score: {}".format(
+    #         i+1, cf.classify_test(k=(i+1))))
