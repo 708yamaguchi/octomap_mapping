@@ -102,8 +102,8 @@ If you want to set fetch's prepose from reset-pose,~%")
   (receive-bag)
 
   ;; 2. go to kitchen
-  ;; (send *ri* :go-pos-unsafe 0 -1.8 0)
-  ;; (unix:sleep 1)
+  (send *ri* :go-pos-unsafe 0 -1.8 0)
+  (unix:sleep 1)
 
   ;; 3. open the bag by using bag handle
   (open-bag-handle)
@@ -1319,7 +1319,7 @@ If you want to set fetch's prepose from reset-pose,~%")
   (ros::spin-once)
   (while (> (min (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/left" "/side0")) :data) cons))
                  (reduce #'min (coerce (send (car (send *ri* :get-proximity-distance "/right" "/side0")) :data) cons)))
-            20)
+            40)
     (unix:sleep 1)
     (ros::spin-once))
   (format t "I get bag handle.~%")
