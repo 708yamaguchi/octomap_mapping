@@ -6,7 +6,7 @@
 
   <!-- for fetch robot -->
 
-  <arg name="filename" default="$(find octomap_server)/rosbag/2019-03-06-bag-latter.bag"/>
+  <arg name="filename" default="$(find octomap_server)/rosbag/2019-03-06-bag-former.bag"/>
   <arg name="create_manager" default="true"/>
   <arg name="manager" default="manager_for_bag"/>
   <arg name="input_occupied_grid" default="/octomap_point_cloud_centers"/>
@@ -152,7 +152,7 @@
       <arg name="i_min" value="155"/>
     </include>
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/bag_success.rviz"/>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/bag_former_success.rviz"/>
 
   <node name="service_call_for_rosbag" pkg="octomap_server" type="service-call-for-rosbag.l" />
 
