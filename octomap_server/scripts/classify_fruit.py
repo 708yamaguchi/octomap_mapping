@@ -87,12 +87,19 @@ class ClassifyFruit(object):
         ax.set_xlabel("Eigen Vector 1")
         ax.set_ylabel("Eigen Vector 2")
         ax.set_zlabel("Eigen Vector 3")
+        # ax.plot(self.apple[:, 0], self.apple[:, 1], self.apple[:, 2],
+        #         "o", color="#00ff00", ms=4, mew=0.5, label='apple')
         ax.plot(self.apple[:, 0], self.apple[:, 1], self.apple[:, 2],
-                "o", color="#00ff00", ms=4, mew=0.5, label='apple')
+                "o", color="#008800", ms=8, mew=0.5, label='apple')
+        # ax.plot(self.banana[:, 0], self.banana[:, 1], self.banana[:, 2],
+        #         "o", color="#0000ff", ms=4, mew=0.5, label='banana')
         ax.plot(self.banana[:, 0], self.banana[:, 1], self.banana[:, 2],
-                "o", color="#0000ff", ms=4, mew=0.5, label='banana')
+                "o", color="#000088", ms=8, mew=0.5, label='banana')
+        # ax.plot(self.mango[:, 0], self.mango[:, 1], self.mango[:, 2],
+        #         "o", color="#ff0000", ms=4, mew=0.5, label='mango')
         ax.plot(self.mango[:, 0], self.mango[:, 1], self.mango[:, 2],
-                "o", color="#ff0000", ms=4, mew=0.5, label='mango')
+                "o", color="#880000", ms=8, mew=0.5, label='mango')
+
         lg = plt.legend(loc='upper right', fontsize=10)
         lg.get_title().set_fontsize(10)
         plt.title("Classification by Groping", fontsize=20)
