@@ -58,7 +58,7 @@ class ClassifyFruit(object):
         score = accuracy_score(targets, predicted_labels)
         return score
 
-    def classify_cross_validation(self, k=1, divide=5):
+    def classify_cross_validation(self, k=7, divide=5):
         # features = np.concatenate((self.apple, self.banana, self.mango), axis=0)
         if len(self.apple) != len(self.banana) or \
            len(self.banana) != len(self.mango) or \
@@ -77,7 +77,13 @@ class ClassifyFruit(object):
         test_label_mango = np.zeros(test_length, dtype=np.int) + 2
         test_labels = np.append(np.append(test_label_apple, test_label_banana), test_label_mango) # label for train data
         scores = np.array([], dtype=np.float32)
+        scores_apple = np.array([], dtype=np.float32)
+        scores_banana = np.array([], dtype=np.float32)
+        scores_mango = np.array([], dtype=np.float32)
         mean_score = 0
+        mean_score_apple = 0
+        mean_score_banana = 0
+        mean_score_mango = 0
         # divide dataset for cross validation
         for i in range(divide):
             train_data = np.concatenate(
@@ -98,12 +104,26 @@ class ClassifyFruit(object):
             model.fit(train_data, train_labels)
             # predict
             predicted_label = model.predict(test_data)
+            predicted_label_apple = model.predict(test_data[0:test_length])
+            predicted_label_banana = model.predict(test_data[test_length:test_length*2])
+            predicted_label_mango = model.predict(test_data[test_length*2:test_length*3])
             # calc score
             score = accuracy_score(test_labels, predicted_label)
+            score_apple = accuracy_score(test_label_apple, predicted_label_apple)
+            score_banana = accuracy_score(test_label_banana, predicted_label_banana)
+            score_mango = accuracy_score(test_label_mango, predicted_label_mango)
             scores = np.append(scores, score)
+            scores_apple = np.append(scores_apple, score_apple)
+            scores_banana = np.append(scores_banana, score_banana)
+            scores_mango = np.append(scores_mango, score_mango)
             # print("accuracy {} at {} cycle".format(score, i))
         mean_score = scores.mean()
+        mean_score_apple = scores_apple.mean()
+        mean_score_banana = scores_banana.mean()
+        mean_score_mango = scores_mango.mean()
         # print("mean accuracy: {}".format(mean_score))
+        print("apple: {}, banana: {}, mango: {}".format(mean_score_apple, mean_score_banana, mean_score_mango))
+        # print("banana: {}, (apple+mango)/2: {}".format(mean_score_banana, (mean_score_apple+mean_score_mango)/2.0))
         return mean_score
 
     def classify(self, data, k=7):  # 7 is desirable for this dataset
@@ -180,7 +200,7 @@ if __name__ == '__main__':
     # cf.classify([716.922, 476.102, 80.1956], k=1) # apple/1.txt
     # cf.visualize()
     for i in range(20):
-        print("k-nearest-neighbor' k: {}, score: {}".format(
+        print("k-nearest-neighbor' k: {}, mean score: {}".format(
             i+1, cf.classify_cross_validation(k=(i+1))))
     # visualize target pca. this is sample of groping-in-bag experiment
     # cf.visualize_target(291.401, 113.970, 51.8338)
