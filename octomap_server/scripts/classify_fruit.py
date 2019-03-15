@@ -122,9 +122,9 @@ class ClassifyFruit(object):
         mean_score_banana = scores_banana.mean()
         mean_score_mango = scores_mango.mean()
         # print("mean accuracy: {}".format(mean_score))
-        print("apple: {}, banana: {}, mango: {}".format(mean_score_apple, mean_score_banana, mean_score_mango))
+        # print("apple: {}, banana: {}, mango: {}".format(mean_score_apple, mean_score_banana, mean_score_mango))
         # print("banana: {}, (apple+mango)/2: {}".format(mean_score_banana, (mean_score_apple+mean_score_mango)/2.0))
-        return mean_score
+        return [scores, scores_apple, scores_banana, scores_mango]
 
     def classify(self, data, k=7):  # 7 is desirable for this dataset
         # see https://blog.amedama.jp/entry/2017/03/18/140238
@@ -193,14 +193,45 @@ class ClassifyFruit(object):
         # plt.title("Classification by Groping", fontsize=20)
         plt.show()
 
+    def visualize_cross_validation(self):
+        accuracy_whole = np.array([], dtype=np.float32)
+        accuracy_apple = np.array([], dtype=np.float32)
+        accuracy_banana = np.array([], dtype=np.float32)
+        accuracy_mango = np.array([], dtype=np.float32)
+        index_k = np.array([], dtype=np.int)
+        # correct accuracy for each k of k-nearest neighbor
+        for i in range(20):
+            val_result = cf.classify_cross_validation(k=(i+1))
+            scores = val_result[0]
+            scores_apple = val_result[1]
+            scores_banana = val_result[2]
+            scores_mango = val_result[3]
+            accuracy_whole = np.append(accuracy_whole, scores.mean())
+            accuracy_apple = np.append(accuracy_apple, scores_apple.mean())
+            accuracy_banana = np.append(accuracy_banana, scores_banana.mean())
+            accuracy_mango = np.append(accuracy_mango, scores_mango.mean())
+            index_k = np.append(index_k, i+1)
+        # plot
+        plt.plot(index_k, accuracy_whole, label="Entire accuracy", color="#008800", linewidth=3.0)
+        plt.plot(index_k, accuracy_apple, label="Apple accuracy", color="#000088", linewidth=3.0)
+        plt.plot(index_k, accuracy_banana, label="Banana accuracy", color="#880000", linewidth=3.0)
+        plt.plot(index_k, accuracy_mango, label="Mango accuracy", color="#ff0000", linewidth=3.0)
+        plt.xticks(np.arange(1, 21, 1))
+        plt.yticks(np.arange(0, 1.4, 0.2))
+        # show
+        lg = plt.legend(loc='upper right', fontsize=8)
+        lg.get_title().set_fontsize(10)
+        plt.title("Fruit shape classification by knn", fontsize=20)
+        plt.xlabel("k of k-nearest neighbor")
+        plt.ylabel("Accuracy")
+        plt.show()
+
 
 if __name__ == '__main__':
     cf = ClassifyFruit()
     # cf.classify([411.728, 163.605, 40.9302], k=1) # banana/1.txt
     # cf.classify([716.922, 476.102, 80.1956], k=1) # apple/1.txt
     # cf.visualize_dataset()
-    for i in range(20):
-        print("k-nearest-neighbor' k: {}, mean score: {}".format(
-            i+1, cf.classify_cross_validation(k=(i+1))))
+    cf.visualize_cross_validation()
     # visualize target pca. this is sample of groping-in-bag experiment
     # cf.visualize_target(291.401, 113.970, 51.8338)
