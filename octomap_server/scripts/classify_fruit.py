@@ -68,17 +68,17 @@ class ClassifyFruit(object):
             return
         data_length = len(self.apple)
         test_length = len(self.apple) / divide
-        target_apple = np.zeros(data_length - test_length, dtype=np.int)
-        target_banana = np.zeros(data_length - test_length, dtype=np.int) + 1
-        target_mango = np.zeros(data_length - test_length, dtype=np.int) + 2
-        targets = np.append(np.append(target_apple, target_banana), target_mango) # label for train data
+        train_label_apple = np.zeros(data_length - test_length, dtype=np.int)
+        train_label_banana = np.zeros(data_length - test_length, dtype=np.int) + 1
+        train_label_mango = np.zeros(data_length - test_length, dtype=np.int) + 2
+        train_labels = np.append(np.append(train_label_apple, train_label_banana), train_label_mango) # label for train data
         test_label_apple = np.zeros(test_length, dtype=np.int)
         test_label_banana = np.zeros(test_length, dtype=np.int) + 1
         test_label_mango = np.zeros(test_length, dtype=np.int) + 2
         test_labels = np.append(np.append(test_label_apple, test_label_banana), test_label_mango) # label for train data
         scores = np.array([], dtype=np.float32)
         mean_score = 0
-
+        # divide dataset for cross validation
         for i in range(divide):
             train_data = np.concatenate(
                 (np.concatenate((self.apple[0:i*test_length],
@@ -95,7 +95,7 @@ class ClassifyFruit(object):
                 axis=0)
             # load model of k nearest neighbor
             model = KNeighborsClassifier(n_neighbors=k)
-            model.fit(train_data, targets)
+            model.fit(train_data, train_labels)
             # predict
             predicted_label = model.predict(test_data)
             # calc score
@@ -110,16 +110,16 @@ class ClassifyFruit(object):
         # see https://blog.amedama.jp/entry/2017/03/18/140238
         # prepare for classification (e.g. create train and test data)
         features = np.concatenate((self.apple, self.banana, self.mango), axis=0)
-        target_apple = np.zeros(len(self.apple), dtype=np.int)
-        target_banana = np.zeros(len(self.apple), dtype=np.int) + 1
-        target_mango = np.zeros(len(self.apple), dtype=np.int) + 2
-        targets = np.append(np.append(target_apple, target_banana), target_mango)
+        train_label_apple = np.zeros(len(self.apple), dtype=np.int)
+        train_label_banana = np.zeros(len(self.apple), dtype=np.int) + 1
+        train_label_mango = np.zeros(len(self.apple), dtype=np.int) + 2
+        train_labels = np.append(np.append(train_label_apple, train_label_banana), train_label_mango)
         # train k nearest neighbor
         train = np.zeros(features.shape[0], dtype=np.int)
         for (i, element) in enumerate(train):
             train[i] = i
         train_data = features[train]
-        target_data = targets[train]
+        target_data = train_labels[train]
         model = KNeighborsClassifier(n_neighbors=k)
         model.fit(train_data, target_data)
         # predict
@@ -182,6 +182,5 @@ if __name__ == '__main__':
     for i in range(20):
         print("k-nearest-neighbor' k: {}, score: {}".format(
             i+1, cf.classify_cross_validation(k=(i+1))))
-
     # visualize target pca. this is sample of groping-in-bag experiment
     # cf.visualize_target(291.401, 113.970, 51.8338)
