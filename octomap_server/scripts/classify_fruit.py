@@ -148,7 +148,7 @@ class ClassifyFruit(object):
         # label: 0->apple, 1->banana, 2->mango
         return predicted_label
 
-    def visualize(self):
+    def visualize_dataset(self):
         # plot
         fig = plt.figure()
         ax = Axes3D(fig)
@@ -198,7 +198,7 @@ if __name__ == '__main__':
     cf = ClassifyFruit()
     # cf.classify([411.728, 163.605, 40.9302], k=1) # banana/1.txt
     # cf.classify([716.922, 476.102, 80.1956], k=1) # apple/1.txt
-    # cf.visualize()
+    # cf.visualize_dataset()
     for i in range(20):
         print("k-nearest-neighbor' k: {}, mean score: {}".format(
             i+1, cf.classify_cross_validation(k=(i+1))))
