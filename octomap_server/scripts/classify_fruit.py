@@ -158,19 +158,19 @@ class ClassifyFruit(object):
         # ax.plot(self.apple[:, 0], self.apple[:, 1], self.apple[:, 2],
         #         "o", color="#00ff00", ms=4, mew=0.5, label='apple')
         ax.plot(self.apple[:, 0], self.apple[:, 1], self.apple[:, 2],
-                "o", color="#008800", ms=8, mew=0.5, label='apple')
+                "o", color="#008800", ms=8, mew=0.5, label='Apple')
         # ax.plot(self.banana[:, 0], self.banana[:, 1], self.banana[:, 2],
         #         "o", color="#0000ff", ms=4, mew=0.5, label='banana')
         ax.plot(self.banana[:, 0], self.banana[:, 1], self.banana[:, 2],
-                "o", color="#000088", ms=8, mew=0.5, label='banana')
+                "o", color="#000088", ms=8, mew=0.5, label='Banana')
         # ax.plot(self.mango[:, 0], self.mango[:, 1], self.mango[:, 2],
         #         "o", color="#ff0000", ms=4, mew=0.5, label='mango')
         ax.plot(self.mango[:, 0], self.mango[:, 1], self.mango[:, 2],
-                "o", color="#880000", ms=8, mew=0.5, label='mango')
+                "o", color="#880000", ms=8, mew=0.5, label='Mango')
 
         lg = plt.legend(loc='upper right', fontsize=10)
         lg.get_title().set_fontsize(10)
-        plt.title("Classification by Groping", fontsize=20)
+        plt.title("Fruit Shape Classification", fontsize=20)
         plt.show()
 
     def visualize_target(self, eigen1, eigen2, eigen3):
@@ -212,16 +212,17 @@ class ClassifyFruit(object):
             accuracy_mango = np.append(accuracy_mango, scores_mango.mean())
             index_k = np.append(index_k, i+1)
         # plot
-        plt.plot(index_k, accuracy_whole, label="Entire accuracy", color="#008800", linewidth=3.0)
-        plt.plot(index_k, accuracy_apple, label="Apple accuracy", color="#000088", linewidth=3.0)
-        plt.plot(index_k, accuracy_banana, label="Banana accuracy", color="#880000", linewidth=3.0)
-        plt.plot(index_k, accuracy_mango, label="Mango accuracy", color="#ff0000", linewidth=3.0)
+        plt.plot(index_k, accuracy_whole, label="Average of 3 fruits", color="#000000", linewidth=3.0)
+        plt.plot(index_k, accuracy_apple, label="Apple", color="#008800", linewidth=3.0)
+        plt.plot(index_k, accuracy_banana, label="Banana", color="#000088", linewidth=3.0)
+        plt.plot(index_k, accuracy_mango, label="Mango", color="#880000", linewidth=3.0)
         plt.xticks(np.arange(1, 21, 1))
-        plt.yticks(np.arange(0, 1.4, 0.2))
+        plt.yticks(np.arange(0, 1.2, 0.2))
         # show
-        lg = plt.legend(loc='upper right', fontsize=8)
+        # lg = plt.legend(bbox_to_anchor=(1.1, 1.2), loc='upper right', fontsize=8)
+        lg = plt.legend(loc='lower left', fontsize=8)
         lg.get_title().set_fontsize(10)
-        plt.title("Fruit shape classification by knn", fontsize=20)
+        plt.title("Classification Accuracy of Fruits", fontsize=20)
         plt.xlabel("k of k-nearest neighbor")
         plt.ylabel("Accuracy")
         plt.show()
