@@ -121,8 +121,8 @@ class ClassifyFruit(object):
         mean_score_apple = scores_apple.mean()
         mean_score_banana = scores_banana.mean()
         mean_score_mango = scores_mango.mean()
-        # print("mean accuracy: {}".format(mean_score))
-        # print("apple: {}, banana: {}, mango: {}".format(mean_score_apple, mean_score_banana, mean_score_mango))
+        # print("accuracy at k={}".format(k))
+        # print("mean: {}, apple: {}, banana: {}, mango: {}".format(mean_score, mean_score_apple, mean_score_banana, mean_score_mango))
         # print("banana: {}, (apple+mango)/2: {}".format(mean_score_banana, (mean_score_apple+mean_score_mango)/2.0))
         return [scores, scores_apple, scores_banana, scores_mango]
 
