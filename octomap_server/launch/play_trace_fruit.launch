@@ -6,9 +6,9 @@
 
   <!-- for fetch robot -->
 
-  <arg name="filename" value="$(find octomap_server)/rosbag/2019-03-15-apple.bag" />
+  <!-- <arg name="filename" value="$(find octomap_server)/rosbag/2019-03-15-apple.bag" /> -->
   <!-- <arg name="filename" value="$(find octomap_server)/rosbag/2019-03-15-banana.bag" /> -->
-  <!-- <arg name="filename" value="$(find octomap_server)/rosbag/2019-03-15-mango.bag" /> -->
+  <arg name="filename" value="$(find octomap_server)/rosbag/2019-03-15-mango.bag" />
 
   <arg name="create_manager" default="true"/>
   <arg name="manager" default="manager_for_bag"/>
@@ -122,7 +122,8 @@
   <!-- classify fruit by using occupied octomap grid-->
   <node pkg="octomap_server" name="classify_fruit_ros" type="classify_fruit_ros.py" />
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/trace_fruit.rviz"/>
+  <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/trace_fruit.rviz"/> -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/config/trace_fruit_screenshot.rviz"/>
 
   <node name="service_call_for_rosbag" pkg="octomap_server" type="service-call-for-rosbag.l" />
 </launch>
