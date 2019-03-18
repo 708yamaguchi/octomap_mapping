@@ -340,6 +340,7 @@ If you want to set fetch's prepose from reset-pose,~%")
       (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
       (setq gripper-pos (send *ri* :gripper :position))
       (send *ri* :wait-interpolation)
+      (unix:usleep (* 100 1000))
 
       ;; ajust incline
       (ros::spin-once)
@@ -351,9 +352,10 @@ If you want to set fetch's prepose from reset-pose,~%")
 
       ;; (send *fetch* :stop-grasp)
       ;; move hand up
+      (unix:usleep (* 100 1000))
       (if direction
-        (send *fetch* :rarm :move-end-pos #f(0 0 20) :local :use-torso nil)
-        (send *fetch* :rarm :move-end-pos #f(0 0 -20) :local :use-torso nil))
+        (send *fetch* :rarm :move-end-pos #f(0 0 30) :local :use-torso nil)
+        (send *fetch* :rarm :move-end-pos #f(0 0 -30) :local :use-torso nil))
       (send *ri* :angle-vector (send *fetch* :angle-vector) 3000)
       (send *ri* :wait-interpolation)
       (unix:usleep (* 100 1000))

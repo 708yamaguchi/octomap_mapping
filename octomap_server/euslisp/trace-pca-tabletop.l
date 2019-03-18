@@ -19,11 +19,11 @@
   ;; trace object
   (camera-stop)
   (octomap-reset)
-  (trace :direction nil :count 2)
+  (trace :direction nil :count 1)
   (print 111111)
-  (trace :direction t :count 4)
+  (trace :direction t :count 2)
   (print 222222)
-  (trace :direction nil :count 2)
+  (trace :direction nil :count 1)
   (print 333333)
   ;; classify object
   (send *fetch* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))

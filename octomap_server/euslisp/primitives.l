@@ -19,10 +19,12 @@
 
 
 (defun align ()
-  (let ((angle (setq angle (/ (+ (plane-incline-side0 "/left")
-                    (plane-incline-side0 "/right")) 2.0))))
   (ros::spin-once)
-  (if (and angle (< (abs angle) 45))
-      (rotate-wrist-r (/ angle 2.0)))
-  (send *ri* :wait-interpolation)
+  (let ((angle (/ (+ (plane-incline-side0 "/left")
+                     (plane-incline-side0 "/right")) 2.0)))
+    (setq angle (plane-incline-side0 "/left"))
+    (ros::spin-once)
+    (if (and angle (< (abs angle) 45))
+        (rotate-wrist-r angle))
+    (send *ri* :wait-interpolation)
   ))
