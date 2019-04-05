@@ -25,7 +25,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: VisProximityRight
   - Class: jsk_rviz_plugin/PublishTopic
     Name: PublishTopic
     Topic: /set_init_proximities
@@ -67,7 +67,7 @@ Visualization Manager:
       Marker Topic: /occupied_cells_vis_array
       Name: OccupiedCells
       Namespaces:
-        {}
+        base_link: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -183,11 +183,11 @@ Visualization Manager:
       Update Interval: 0
       Value: false
     - Class: jsk_rviz_plugin/BoundingBoxArray
-      Enabled: true
+      Enabled: false
       Name: RegionForOctomap
       Topic: /attention_clipper_for_octomap/output/box_array
       Unreliable: false
-      Value: true
+      Value: false
       alpha: 0.8
       color: 25; 255; 0
       coloring: Flat color
@@ -206,7 +206,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -223,7 +223,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
@@ -420,7 +420,7 @@ Visualization Manager:
       Pitch: 0.255205
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.77131
+      Yaw: 5.72631
     Saved: ~
 Window Geometry:
   Displays:
