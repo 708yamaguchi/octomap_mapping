@@ -21,11 +21,23 @@
       (send cube :worldcoords)
       (objects (append (list *fetch*) (send cube :edges)))
       (send *irtviewer* :change-background #f(0 0 0))
-
       (send *fetch* :reset-pose)
       (send *irtviewer* :viewer :viewing :look #f(1528.4 1471.28 1304.32) #f(604.334 -129.251 631.657) #f(0 0 1))
       (send *irtviewer* :draw-objects :flush t)
       (send *irtviewer* :resize 500 500)
+
+      ;; extract points in the target region
+      (let* ((pc-orig pc) (pc-new (instance pointcloud :init)) (points- (send pc-orig :point-list))
+             (point-list- nil) (point-matrix nil))
+        (print (length points-))
+        (dolist (point points-)
+          (when (eq (send cube :insidep point) :inside)
+            (setq point-list- (append point-list- (list point)))))
+        (print (length point-list-))
+        (setq point-matrix (apply #'matrix point-list-))
+        (send pc-new :points point-matrix)
+        (setq pc pc-new))
+
       (format t "Press Enter key to start~%")
       (do-until-key
        (x::window-main-one)
